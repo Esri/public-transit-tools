@@ -51,11 +51,15 @@ You can use the ArcMap or ArcGIS Pro editing tools to edit your stop locations a
 5. Save your edits
 6. Stop the editing session
 
-For detailed information on editing in ArcMap, read about editing in the ArcGIS Help.
+For detailed information on editing in ArcMap, read about editing in the [ArcMap Help](http://desktop.arcgis.com/en/desktop/latest/manage-data/editing/what-is-editing-.htm).
 
 ###ArcGIS Pro
 
-Add stuff
+1. Click the Edit tab and use the tools on this tab to modify your stops feature class.
+2. Edit the attributes of your feature class if desired.  Do not edit the stop_lat and stop_lon fields.
+3. Click the Save Edits button.
+
+For detailed information on editing in ArcGIS Pro, read about editing in the [ArcGIS Pro Help](http://pro.arcgis.com/en/pro-app/help/editing/overview-of-desktop-editing.htm).
 
 ##Running *2) Write New stops.txt File*
 
