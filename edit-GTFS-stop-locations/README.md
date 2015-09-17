@@ -18,8 +18,7 @@ The Edit GTFS Stop Locations toolbox is a set of python script tools that allow 
 
 ## Resources
 
-* [Documentation](https://github.com/mmorang/edit-GTFS-stop-locations/blob/master/EditGTFSStopLocations_UsersGuide_0.1.pdf)
-* [Download the tool in a ready-to use form](http://www.arcgis.com/home/item.html?id=1f4cb2aac0e7499db98f46cd83beb2bd)
+* [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/edit-GTFS-stop-locations/UsersGuide.md)
 * [GTFS specification](https://developers.google.com/transit/gtfs/reference)
 
 ## Issues
