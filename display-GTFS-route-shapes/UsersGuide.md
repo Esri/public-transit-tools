@@ -23,7 +23,7 @@ The Display GTFS Route Shapes tool converts the information from the GTFS routes
 
 ##Running *Display GTFS Route Shapes*
 
-![Screenshot of tool dialog](/images/Screenshot_DisplayGTFSRouteShapes_Dialog.png)
+![Screenshot of tool dialog](/display-GTFS-route-shapes/images/Screenshot_DisplayGTFSRouteShapes_Dialog.png)
 
 ###Inputs
 - **GTFS directory**:  The *folder* containing your (unzipped) GTFS .txt files.  Your GTFS data folder must contain these files: trips.txt, routes.txt, and shapes.txt.
