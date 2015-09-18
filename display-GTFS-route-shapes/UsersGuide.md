@@ -23,7 +23,7 @@ The Display GTFS Route Shapes tool converts the information from the GTFS routes
 
 ##Running *Display GTFS Route Shapes*
 
-![Screenshot of tool dialog](/images/Screenshot_DisplayGTFSRouteShapes_Dialog.png)
+![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/display-GTFS-route-shapes/images/Screenshot_DisplayGTFSRouteShapes_Dialog.png)
 
 ###Inputs
 - **GTFS directory**:  The *folder* containing your (unzipped) GTFS .txt files.  Your GTFS data folder must contain these files: trips.txt, routes.txt, and shapes.txt.
@@ -45,7 +45,7 @@ If your GTFS dataset contains route_color information and you want to view these
 - When the Symbol Selector appears, choose More Colors from the Color drop-down.
 - Flip the drop-down to RGB.  Enter the RGB values from the route_color_RGB field into the R, G, and B boxes.  For example, if the RGB color triplet was (198, 12, 48), modify the color selector to look like the picture here:
 
-![Screenshot of ArcMap RGB symbology picker](https://github.com/ArcGIS/public-transit-tools/blob/master/display-gtfs-route-shapes/images/Screenshot_RGB_ArcMap.png)
+![Screenshot of ArcMap RGB symbology picker](https://github.com/ArcGIS/public-transit-tools/blob/master/display-GTFS-route-shapes/images/Screenshot_RGB_ArcMap.png)
 
 ####In ArcGIS Pro####
 Add steps
