@@ -23,11 +23,7 @@ The Display GTFS Route Shapes tool converts the information from the GTFS routes
 
 ##Running *Display GTFS Route Shapes*
 
-<<<<<<< HEAD
 ![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/display-GTFS-route-shapes/images/Screenshot_DisplayGTFSRouteShapes_Dialog.png)
-=======
-![Screenshot of tool dialog](/display-GTFS-route-shapes/images/Screenshot_DisplayGTFSRouteShapes_Dialog.png)
->>>>>>> origin/master
 
 ###Inputs
 - **GTFS directory**:  The *folder* containing your (unzipped) GTFS .txt files.  Your GTFS data folder must contain these files: trips.txt, routes.txt, and shapes.txt.
