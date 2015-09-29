@@ -39,18 +39,28 @@ The Display GTFS Route Shapes tool converts the information from the GTFS routes
 If your GTFS dataset contains route_color information and you want to view these colors in the map, you can do the following:
 
 ####In ArcMap####
-- In the symbology tab of the layer properties, select Categories->Unique Values.
-- Choose route_color_RGB as the Value Field.  Click Add All Values.
-- For each route color that appears, double click the line symbol next to it.
-- When the Symbol Selector appears, choose More Colors from the Color drop-down.
-- Flip the drop-down to RGB.  Enter the RGB values from the route_color_RGB field into the R, G, and B boxes.  For example, if the RGB color triplet was (198, 12, 48), modify the color selector to look like the picture here:
+1. In the symbology tab of the layer properties, select Categories->Unique Values.
+2. Choose route_color_RGB as the Value Field.  Click Add All Values.
+3. For each route color that appears, double click the line symbol next to it.
+4. When the Symbol Selector appears, choose More Colors from the Color drop-down.
+5. Flip the drop-down to RGB.  Enter the RGB values from the route_color_RGB field into the R, G, and B boxes.  For example, if the RGB color triplet was (198, 12, 48), modify the color selector to look like the picture here:
 
 ![Screenshot of ArcMap RGB symbology picker](https://github.com/ArcGIS/public-transit-tools/blob/master/display-GTFS-route-shapes/images/Screenshot_RGB_ArcMap.png)
 
 ####In ArcGIS Pro####
-Add steps
+1. Open the Symbology pane to format your layer's symbology.
+2. Choose Unique Values in the Symbology drop-down selector.
+3. Choose route_color_RGB as the Value field.
+4. For each route color, click on the symbol so that the "Format Line Symbol" part of the Symbology pane appears.
+5. Click on Properties toward the top of this page of the pane.
+6. In the drop-down color pallet, select "Color Properties".
+7. When the Color Editor appears, make sure "Color Model" is set to RGB, and then enter the appropriate Red, Green, and Blue values for your line.
+
+Alternatively, because the Color Editor in ArcGIS Pro allows you to enter a hexadecimal color value, you could symbolize your route shapes using the route_color field and enter the appropriate hexadecimal value instead of the RGB values.  The results will be identical.
 
 ![Screenshot of Pro RGB symbology picker](https://github.com/ArcGIS/public-transit-tools/blob/master/display-gtfs-route-shapes/images/Screenshot_RGB_Pro.png)
+
+NOTE: ArcGIS Pro now supports attribute-driven symbology, and this makes it possible to choose the color of a symbol based on a hexadecimal color value in a text field in your data.  Read the [documentation] (http://pro.arcgis.com/en/pro-app/help/mapping/symbols-and-styles/attribute-driven-symbology.htm) to find out how to set this up.  You will need to add a "#" sign to the front of each value in the route_color field.
 
 ###Rearranging the drawing order of your transit shapes###
 If you want to rearrange the draw order of your different transit shapes, do the following:
@@ -62,4 +72,4 @@ If you want to rearrange the draw order of your different transit shapes, do the
 - Rearrange your symbols however you wish.  The ones at the top will be drawn on top of the ones at the bottom.
 
 ####In ArcGIS Pro####
-Add stuff
+Coming soon...
