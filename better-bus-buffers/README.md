@@ -4,7 +4,7 @@ BetterBusBuffers is a toolset to help you quantitatively measure access to publi
 
 ## Features
 * Create service areas (ie, walksheds, or network buffers) around transit stops.
-* * Count trips at stops, for areas of town, or for points of interest.
+* Count trips at stops, for areas of town, or for points of interest.
 * ArcGIS toolbox - No coding is required to use this tool.  Just add the toolbox to ArcMap and use the tools like any other geoprocessing tools.
 
 ## Instructions
