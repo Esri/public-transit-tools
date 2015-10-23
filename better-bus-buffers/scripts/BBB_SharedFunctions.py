@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 29 September 2015
+## Last updated: 23 October 2015
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -601,7 +601,7 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
 
     # Add the GTFS stops as locations for the analysis.
     arcpy.na.AddLocations(outNALayer_SA, facilities, StopsLayer,
-                            fieldMappingSA, "", "", "", "", "", "", "",
+                            fieldMappingSA, "50 meters", "", "", "", "", "", "",
                             ExcludeRestricted)
 
     # Solve the service area.
