@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 29 September 2015
+## Last updated: 23 October 2015
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Points
 
@@ -166,7 +166,7 @@ try:
             fieldMappingStops["stop_id"].mappedFieldName = "stop_id"
         # Add the GTFS stops as locations for the analysis.
         arcpy.na.AddLocations(outNALayer_OD, stops, StopsLayer,
-                                fieldMappingStops, "", "", "", "", "", "", "",
+                                fieldMappingStops, "50 meters", "", "", "", "", "", "",
                                 ExcludeRestricted)
         # Clear out the memory because we don't need this anymore.
         arcpy.management.Delete(StopsLayer)
@@ -183,7 +183,7 @@ try:
             fieldMappingPoints[inLocUniqueID_qualified].mappedFieldName = inLocUniqueID
         # Add the input points as locations for the analysis.
         arcpy.na.AddLocations(outNALayer_OD, points, inPointsLayer,
-                                fieldMappingPoints, "", "", "", "", "", "", "",
+                                fieldMappingPoints, "500 meters", "", "", "", "", "", "",
                                 ExcludeRestricted)
 
         # Solve the OD matrix.
