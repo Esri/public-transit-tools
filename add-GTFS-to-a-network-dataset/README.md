@@ -11,8 +11,17 @@
 
 ## Instructions
 
-1. To simply use the tool, download the latest release and follow the included User's Guide. 
-2. If you want to play with the code, fork it and have fun.
+To simply use the tool, download the latest release and follow the included User's Guide. 
+
+If you want to play with the code, fork it and have fun.  In addition to grabbing everything from GitHub, you also need to download and set up the correct version of [System.Data.SQLite] (https://system.data.sqlite.org/index.html/doc/trunk/www/downloads.wiki).
+  - The one you want is sqlite-netFx20-binary-Win32-2005-1.0.98.0.zip.  Download this.
+  - Unzip it.
+  - Copy System.Data.SQLite.dll into the Debug folder where TransitEvaluator.sln is going to build.
+  - In that same Debug folder, create a folder called x86.
+  - Copy  SQLite.Interop.dll from your SQLite download into the x86 folder.
+  - If you want the Add GTFS to a Network Dataset tool to work in ArcGIS Server, you will also need to download the 64-bit version of the above and place the 64-bit version of SQLite.Interop.dll in a folder called x64.
+
+To build the GetEIDs tool, you will need to do the same thing with the System.Data.SQLite files and the GetEIDs Debug folder.
 
 ## Requirements
 
