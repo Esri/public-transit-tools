@@ -68,7 +68,7 @@ If, on the other hand, your transit agency uses the calendar.txt file and you st
 **Your network connectivity is incorrect**
 Make sure your network connectivity is set up according to the instructions in the User's Guide.  The most common mistake is to forget to switch the Stops_Snapped2Streets source to a connectivity policy of "Override".  If it is still set to "End Point", then your connector lines will not actually be connected to the street features, and it will be impossible for travelers to actually access the transit lines from the streets.  If this was your problem, make sure to rebuild the network dataset after switching your connectivity to Override.  Then, rerun the *Get Network EIDs* tool to refresh the EIDs (which may change during the rebuild).
 
-![Screenshot of correct network dataset connectivity policy](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_NDCreation_ConnectivityGroups_Override.png.png)
+![Screenshot of correct network dataset connectivity policy](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_NDCreation_ConnectivityGroups_Override.png)
 
 It's easy to check whether your network features are correctly connected to one another.  Zoom in to one of your transit lines. Use the Network Identify tool (on the Network Analyst toolbar) to click on the connector line (Connectors_Stops2Streets) that connects the street with the transit line.  When you use Network Identify, it will give you a list of the other edges that are connected to it.  When you click on the items in this list, it should highlight them in the map.  Make sure the adjacent street feature shows up as connected to your connector line.
 
@@ -88,7 +88,7 @@ Here is a technique for debugging your transit network in detail.  The idea is t
 ##<a name="Exclude"></a>My Service Areas have ugly spikes around the transit lines
 If you are solving a Service Area analysis, you need to prevent service areas from being drawn around transit lines.  The service area polygons should only be drawn around streets since pedestrians can't exit the transit vehicle partway between stops.  To do this, open the layer properties and go to the Polygon Generation tab.  In the bottom left corner, click to exclude TransitLines and Connectors_Stops2Streets (or whatever is most appropriate for your network).
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_AnalysisSettings_ExcludedSources.png.png)
+![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_AnalysisSettings_ExcludedSources.png)
 
 ##<a name="HRESULT"></a>The Get Network EIDs tool failed with a message saying "Error obtaining network EIDs. Exception from HRESULT: 0x80040216".
 This means that your network dataset or one of the associated files has a schema lock on it, likely because you added it to the map or tried to edit it.  Try closing ArcMap, reopening a blank map, and running the tool again prior to adding any layers to the map.  Alternatively, you can run the tool from ArcCatalog.
