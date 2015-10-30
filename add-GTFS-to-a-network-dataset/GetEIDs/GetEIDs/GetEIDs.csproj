@@ -59,7 +59,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data.SQLite">
-      <HintPath>..\..\..\..\..\Program Files (x86)\System.Data.SQLite\2008\bin\System.Data.SQLite.dll</HintPath>
+      <HintPath>..\..\SQLite\System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Windows.Forms">
       <Private>False</Private>
