@@ -30,18 +30,18 @@ Generate GTFS Shapes is targeted primarily toward transit agencies seeking to im
 ##Workflow
 This tool has three steps:  
 
-1. Run the tool called *Step 1: Generate Shapes on Map* or *Step 1: Generate Shapes on Map (no Network Analyst)* to create a reasonable estimate of your transit shapes.
+1. Run the tool called [*Step 1: Generate Shapes on Map*](#GenerateShapesOnMap) or [*Step 1: Generate Shapes on Map (no Network Analyst)*](#GenerateShapesOnMapNoNA) to create a reasonable estimate of your transit shapes.
 2. Make whatever edits you need to make to your transit shape feature class using the editing tools in ArcMap.
-3. Run the tool called *Step 2: Generate new GTFS text files* to generate a shapes.txt file and add the appropriate  shape-related fields to your trips.txt and stop_times.txt files.
+3. Run the tool called [*Step 2: Generate new GTFS text files*](#GenerateNewGTFSTextFiles) to generate a shapes.txt file and add the appropriate  shape-related fields to your trips.txt and stop_times.txt files.
 
 
-##Running *Step 1: Generate Shapes on Map*
+##<a name="GenerateShapesOnMap"></a>Running *Step 1: Generate Shapes on Map*
 
 *Step 1: Generate Shapes on Map* uses your GTFS schedule information and the Network Analyst Route solver to produce a feature class showing the most probable geographic paths taken by transit vehicles in your system.
 
 This step will take some time to run for large transit systems.  Smaller transit systems should only take a few minutes, but larger systems may take a significant amount of time.
 
-Note: If you do not have the Network Analyst extension or wish to simply generate straight-line estimates for your route shapes, use the *Step 1: Generate Shapes on Map (no Network Analyst)* version of this tool (described below).
+Note: If you do not have the Network Analyst extension or wish to simply generate straight-line estimates for your route shapes, use the [*Step 1: Generate Shapes on Map (no Network Analyst)*](#GenerateShapesOnMapNoNA) version of this tool (described below).
 
 ![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/images/Screenshot_GenerateShapesOnMap_Dialog.png)
 
@@ -66,7 +66,7 @@ A file geodatabase with the name and location you specified will be created and 
 * **SQLDbase.sql**: A SQL database of your GTFS data.  You shouldn't need to look at this for anything, but don't delete it because it is necessary for running Step 2.
 
 
-##Running *Step 1: Generate Shapes on Map (no Network Analyst)*
+##<a name="GenerateShapesOnMapNoNA"></a>Running *Step 1: Generate Shapes on Map (no Network Analyst)*
 
 This version of Step 1 does not use a streets network to estimate your route shapes.  It generates shapes by drawing a straight line between connected stops instead of tracing the pattern of the streets.  You should only use this version of Step 1 if you do not have the Network Analyst extension or wish to simply generate straight-line estimates for your route shapes.
 
@@ -101,7 +101,7 @@ For detailed information on editing in ArcMap, read about editing in the [ArcGIS
 ###Tips for editing
 * To view and edit one shape at a time, open the Shapes feature class properties in ArcMap and go to the Definition Query tab.  You can create a definition query such as "shape_id = 2" to display only the shape for shape_id 2.  All others will be hidden.  You can do the same thing with the Stops_wShapeIDs feature class to see only the stops associated with that shape.
 
-###Common Shape problems and how to fix them
+###<a name="ShapeProblems"></a>Common Shape problems and how to fix them
 * The stop is actually along the main road, but the stop location in the data fell slightly closer to a side road.  Consequently, the stop snapped to the side road, and the bus had to turn into the side road to visit the stop and then make a U-turn to return to the main road.  You can edit these out easily using the Reshape Features Tool.
 
 ![Editing tips](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/images/EditingTips_UTurns.png)
@@ -123,7 +123,7 @@ For detailed information on editing in ArcMap, read about editing in the [ArcGIS
 * If you are still unable to produce good results, you should consider editing your GTFS stop locations to place them closer to the correct positions on the streets. The [Edit GTFS Stop Locations](http://www.arcgis.com/home/item.html?id=1f4cb2aac0e7499db98f46cd83beb2bd) tool can help you generate a corrected GTFS stops.txt file for your dataset.
 
 
-##Running *Step 2: Generate new GTFS text files*
+##<a name="GenerateNewGTFSTextFiles"></a>Running *Step 2: Generate new GTFS text files*
 
 *Step 2: Generate new GTFS text files* creates a shapes.txt file based on the feature classes you created and edited.  It also creates or updates the shape_id field trips.txt and the shape_dist_travled field in stop_times.txt.  This tool does not overwrite any of your existing GTFS data.  You can review the new files before deleting the originals.
 
@@ -147,7 +147,7 @@ This tool will run very quickly for small GTFS datasets, but it may take signifi
 * **The tool takes forever to run**: This tool does take a long time to run for large GTFS datasets, and both Step 1 and Step 2 should give you regular progress updates.  If everything is running correctly, the following conditions will cause the tool to take longer to run:
   - Very large transit datasets with a large number of shapes will take longer to process.
   - The tool will run slower if you are writing to and from a network drive.
-* **I got a warning message saying "Warning! For some Shapes, the order of the measured shape_dist_traveled for vertices along the shape does not match the correct sequence of the vertices. This likely indicates a problem with the geometry of your shapes.  Your new shapes.txt file will be generated, and the shapes may look correct, but the shape_dist_traveled value may be incorrect. Please review and fix your shape geometry, then run this tool again.  See the user's guide for more information."**: This warning occurs during shapes.txt generation and usually means that part of your shape doubles back on itself.  The tool tries to find the distance along the line that each shape vertex occurs in order to add this value to the shape_dist_traveled field in shapes.txt.  However, if the shape line doubles back on itself, the vertex might actually land at more than one point along the line.  The tool simply finds the first location along the line and ignores the rest, which means that sometimes the correct order of the shape vertices will not match the order in the shape_dist_traveled field.  Examine the shapes in question and look for places where the buses erroneously made U-turns or turned into side roads. More information about this problem can be found in the "Common Shape problems and how to fix them" section of this document.
+* **I got a warning message saying "Warning! For some Shapes, the order of the measured shape_dist_traveled for vertices along the shape does not match the correct sequence of the vertices. This likely indicates a problem with the geometry of your shapes.  Your new shapes.txt file will be generated, and the shapes may look correct, but the shape_dist_traveled value may be incorrect. Please review and fix your shape geometry, then run this tool again.  See the user's guide for more information."**: This warning occurs during shapes.txt generation and usually means that part of your shape doubles back on itself.  The tool tries to find the distance along the line that each shape vertex occurs in order to add this value to the shape_dist_traveled field in shapes.txt.  However, if the shape line doubles back on itself, the vertex might actually land at more than one point along the line.  The tool simply finds the first location along the line and ignores the rest, which means that sometimes the correct order of the shape vertices will not match the order in the shape_dist_traveled field.  Examine the shapes in question and look for places where the buses erroneously made U-turns or turned into side roads. More information about this problem can be found in the [*Common Shape problems and how to fix them* section](#ShapeProblems) of this document.
 * **I got a warning message saying "Warning! For some Shapes, the order of the measured shape_dist_traveled for stops along the shape does not match the correct sequence of the stops. This likely indicates a problem with the geometry of your shapes.  The shape_dist_traveled field will be added to your stop_times.txt file and populated, but the values may be incorrect. Please review and fix your shape geometry, then run this tool again.  See the user's guide for more information."**:  Similar to the problem above, if the shapes double back on themselves, a transit stop might be equidistant to more than one point on the shape, and the correct sequence of stops might not match the order of your shape_dist_traveled values.  This could indicate an underlying geometry problems in your shapes.  It could also occur when a transit shape legitimately traverses the same road in both directions.
 * **I got a warning message saying "Warning! Some shapes had no geometry or 0 length. These shapes were written to shapes.txt, but all shape_dist_traveled values for the shape will have a value of 0.0."**: This occurs if one of the shapes in your Shapes feature class has 0 length or no geometry.  This could occur if the transit line has only two stops, both of which are in the same location.  This is probably an error in the GTFS data.
 

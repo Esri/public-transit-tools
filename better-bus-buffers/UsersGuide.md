@@ -10,15 +10,15 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 BetterBusBuffers is a toolset to help you quantitatively measure access to public transit in your city.  The tools use GTFS public transit data and ArcGIS to count the number of transit trips available during a time window for areas within your city, point locations within your city, or at the transit stops themselves.
 
 ##Overview of the BetterBusBuffers tools
-The *Preprocess GTFS* tool converts your GTFS dataset(s) into a SQL database.  This SQL database is used as input for all the other BetterBusBuffers tools.  You should run this tool first.
+The *[Preprocess GTFS](#PreprocessGTFS)* tool converts your GTFS dataset(s) into a SQL database.  This SQL database is used as input for all the other BetterBusBuffers tools.  You should run this tool first.
 
-The *Count Trips for Individual Route* tool allows you to examine individual routes in your system in detail.  It generates a feature class of transit stops associated with the route you select as well as polygon service areas around the stops, and it calculates the number of visits, frequency, max wait time, and average headway for each stop during a time window.
+The *[Count Trips for Individual Route](#CountTripsForIndividualRoute)* tool allows you to examine individual routes in your system in detail.  It generates a feature class of transit stops associated with the route you select as well as polygon service areas around the stops, and it calculates the number of visits, frequency, max wait time, and average headway for each stop during a time window.
 
-The *Count Trips in Polygon Buffers around Stops* tool generates polygon service areas around all the stops in your transit system and counts the number of transit trips available in those areas during a time window.  The output is a transit coverage map that can be color-coded by the number of available trips.
+The *[Count Trips in Polygon Buffers around Stops](#CountTripsInPolygonBuffersAroundStops)* tool generates polygon service areas around all the stops in your transit system and counts the number of transit trips available in those areas during a time window.  The output is a transit coverage map that can be color-coded by the number of available trips.
 
-The *Count Trips at Points* tool counts the number of transit trips available within a designated distance of specific point locations during a time window.  The output is a copy of the input point locations with fields indicating the number of transit trips available within a short walk during a time window.
+The *[Count Trips at Points](#CountTripsAtPoints)* tool counts the number of transit trips available within a designated distance of specific point locations during a time window.  The output is a copy of the input point locations with fields indicating the number of transit trips available within a short walk during a time window.
 
-The *Count Trips at Stops* tool counts the number of transit trips that visit the stops in your transit system during a time window.  The output is a feature class of your GTFS stops with fields indicating the number of transit trips that visit those stops.
+The *[Count Trips at Stops](#CountTripsAtStops)* tool counts the number of transit trips that visit the stops in your transit system during a time window.  The output is a feature class of your GTFS stops with fields indicating the number of transit trips that visit those stops.
 
 Detailed instructions for each of these tools is given later in this document.
 
@@ -42,7 +42,7 @@ Detailed instructions for each of these tools is given later in this document.
 1. After preparing the toolbox and your data, run the *Preprocess GTFS* tool. The output for this tool will serve as input for all the other tools in the toolbox.
 2. Run whichever other tools you are interested in.  Details about how to run these tools are below.
 
-##Running *Preprocess GTFS*
+##<a name="PreprocessGTFS"></a>Running *Preprocess GTFS*
 
 ###What this tool does
 The *Preprocess GTFS* tool converts your GTFS dataset(s) into a SQL database.  This SQL database is used as input for all the other BetterBusBuffers tool.  You should run this tool first.  You only need to run this tool once for any GTFS dataset or set of datasets you wish to analyze.
@@ -70,7 +70,7 @@ The *Preprocess GTFS* tool converts your GTFS dataset(s) into a SQL database.  T
   * If you are analyzing multiple GTFS datasets at a time, and the datasets have non-overlapping date ranges, you will get the same error as you will if service_ids in one dataset have non-overlapping date ranges.  The date range problem is less of an issue (or not an issue at all) if it occurs in different datasets, but you should double-check anyway to make sure you understand your data.
 
 
-##Running *Count Trips for Individual Route*
+##<a name="CountTripsForIndividualRoute"></a>Running *Count Trips for Individual Route*
 
 ###What this tool does
 The *Count Trips for Individual Route* tool finds the stops used by a particular route in your system, generates polygon service areas around those stops, and calculates some statistics about the number of trips that visit those stops during a time window.  The output is a feature class of stops and a feature class showing the area served by the route, along with fields indicating the number, frequency, max wait time, and average headway for that route during the time window you select.
@@ -124,7 +124,7 @@ This tool produces a polygon buffers around each transit stop used by the route 
 * **AvgHeadway**: The average time, in minutes, between consecutive transit trip arrivals or departures during your time window.  Note that if the actual headway along your route changes during your time window, the average headway might not reflect the actual headway at any particular time of day.  Choose your time window carefully and be wary of the average headway value listed here. An AvgHeadway of \<Null\> indicates that the AvgHeadway could not be calculated because there were fewer than two transit trips available within the time window.
 
 
-##Running *Count Trips in Polygon Buffers around Stops*
+##<a name="CountTripsInPolygonBuffersAroundStops"></a>Running *Count Trips in Polygon Buffers around Stops*
 
 ###What this tool does
 The *Count Trips in Polygon Buffers around Stops* tool generates polygon service areas around the stops in your transit system and counts the number of transit trips available in those areas during a time window.  The output is a transit coverage map that can be color-coded by the number of available trips in order to highlight the transit frequency in different parts of your city.
@@ -196,7 +196,7 @@ A MaxWaitTime of \<Null\> (-1 for shapefile output) indicates that the MaxWaitTi
 * **Polygon outlines are obscuring your color-coded polygons**:  On the Symbology tab, select one of the entries in your symbol menu.  Right click, and choose "Properties for All Symbols".  Under Outline Color, choose No Color.
 
 
-##Running *Count Trips at Points*
+##<a name="CountTripsAtPoints"></a>Running *Count Trips at Points*
 This tool requires a Network Analyst license.
 
 ###What this tool does
@@ -241,10 +241,10 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
   - A large number of input points will take longer to process.
   - Performing the "MaxWaitTime" calculation for a large number of input points will take longer to process.
   - The tool will run slower if you are writing to and from a network drive.
-* **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the *Preprocess GTFS* section.
+* **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
 
 
-##Running *Count Trips at Stops*
+##<a name="CountTripsAtStops"></a>Running *Count Trips at Stops*
 
 ###What this tool does
 The *Count Trips at Stops* tool counts the number of transit trips that visit the stops in your network during a time window.  The output is a feature class of your GTFS stops with fields indicating the number of transit trips that visit those stops.  You can use the symbology settings of the resulting feature class to highlight the frequency of service for stops in your network.
@@ -282,4 +282,4 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
   - Very large transit datasets will take longer to process.
   - Performing the "MaxWaitTime" calculation for a large transit network will take longer to process.
   - The tool will run slower if you are writing to and from a network drive.
-* **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the *Preprocess GTFS* section.
+* **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
