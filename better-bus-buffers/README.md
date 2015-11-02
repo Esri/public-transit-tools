@@ -9,7 +9,7 @@ BetterBusBuffers is a toolset to help you quantitatively measure access to publi
 
 ## Instructions
 
-1. To simply use the tool, download the latest release and follow the included User's Guide. 
+1. To simply use the tool, download the latest release and follow the included User's Guide.
 2. If you want to play with the code, fork it and have fun.
 
 ## Requirements
@@ -49,7 +49,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-A copy of the license is available in the repository's [license.txt](https://github.com/mmorang/better-bus-buffers/blob/master/License.txt) file.
+A copy of the license is available in the repository's [license.txt](../License.txt?raw=true) file.
 
 [](Esri Tags: ArcGIS GTFS public transit transport transportation routes walkshed service area frequency Title VI buffer isochrone coverage trips toolbox geoprocessing)
 [](Esri Language: Python)​

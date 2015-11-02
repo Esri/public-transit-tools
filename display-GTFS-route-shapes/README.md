@@ -8,7 +8,7 @@ The Display GTFS Route Shapes tool converts the information from the GTFS routes
 
 ## Instructions
 
-1. To simply use the tool, download the latest release and follow the included User's Guide. 
+1. To simply use the tool, download the latest release and follow the included User's Guide.
 2. If you want to play with the code, fork it and have fun.
 
 ## Requirements
@@ -44,7 +44,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-A copy of the license is available in the repository's [license.txt](https://github.com/mmorang/display-gtfs-route-shapes/blob/master/License.txt) file.
+A copy of the license is available in the repository's [license.txt](../License.txt?raw=true) file.
 
 [](Esri Tags: ArcGIS GTFS shapes.txt public transit transport transportation routes shapes toolbox geoprocessing)
 [](Esri Language: Python)​

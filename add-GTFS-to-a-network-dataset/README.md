@@ -11,7 +11,7 @@
 
 ## Instructions
 
-To simply use the tool, download the latest release and follow the included User's Guide. 
+To simply use the tool, download the latest release and follow the included User's Guide.
 
 If you want to play with the code, fork it and have fun.  In addition to grabbing everything from GitHub, you also need to download and set up the correct version of [System.Data.SQLite] (https://system.data.sqlite.org/index.html/doc/trunk/www/downloads.wiki).
   - The one you want is sqlite-netFx20-binary-Win32-2005-1.0.98.0.zip.  Download this.
@@ -58,7 +58,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-A copy of the license is available in the repository's [license.txt](https://github.com/mmorang/add-GTFS-to-a-network-dataset/blob/master/License.txt) file.
+A copy of the license is available in the repository's [license.txt](../License.txt?raw=true) file.
 
 [](Esri Tags: ArcGIS GTFS public transit transport transportation transitshed service area isochrone origin destination cost matrix schedule Network Analyst accessibility planning toolbox geoprocessing C-Sharp ArcObjects)
 [](Esri Language: Python)​
