@@ -23,7 +23,7 @@ The Display GTFS Route Shapes tool converts the information from the GTFS routes
 
 ##Running *Display GTFS Route Shapes*
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/display-GTFS-route-shapes/images/Screenshot_DisplayGTFSRouteShapes_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_DisplayGTFSRouteShapes_Dialog.png)
 
 ###Inputs
 - **GTFS directory**:  The *folder* containing your (unzipped) GTFS .txt files.  Your GTFS data folder must contain these files: trips.txt, routes.txt, and shapes.txt.
@@ -45,7 +45,7 @@ If your GTFS dataset contains route_color information and you want to view these
 4. When the Symbol Selector appears, choose More Colors from the Color drop-down.
 5. Flip the drop-down to RGB.  Enter the RGB values from the route_color_RGB field into the R, G, and B boxes.  For example, if the RGB color triplet was (198, 12, 48), modify the color selector to look like the picture here:
 
-![Screenshot of ArcMap RGB symbology picker](https://github.com/ArcGIS/public-transit-tools/blob/master/display-GTFS-route-shapes/images/Screenshot_RGB_ArcMap.png)
+![Screenshot of ArcMap RGB symbology picker](https://github.com/esri/public-transit-tools/blob/master/display-GTFS-route-shapes/images/Screenshot_RGB_ArcMap.png)
 
 ####In ArcGIS Pro####
 1. Open the Symbology pane to format your layer's symbology.
@@ -58,7 +58,7 @@ If your GTFS dataset contains route_color information and you want to view these
 
 Alternatively, because the Color Editor in ArcGIS Pro allows you to enter a hexadecimal color value, you could symbolize your route shapes using the route_color field and enter the appropriate hexadecimal value instead of the RGB values.  The results will be identical.
 
-![Screenshot of Pro RGB symbology picker](https://github.com/ArcGIS/public-transit-tools/blob/master/display-gtfs-route-shapes/images/Screenshot_RGB_Pro.png)
+![Screenshot of Pro RGB symbology picker](https://github.com/esri/public-transit-tools/blob/master/display-gtfs-route-shapes/images/Screenshot_RGB_Pro.png)
 
 NOTE: ArcGIS Pro now supports attribute-driven symbology, and this makes it possible to choose the color of a symbol based on a hexadecimal color value in a text field in your data.  Read the [documentation] (http://pro.arcgis.com/en/pro-app/help/mapping/symbols-and-styles/attribute-driven-symbology.htm) to find out how to set this up.  You will need to add a "#" sign to the front of each value in the route_color field.
 
