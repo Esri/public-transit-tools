@@ -30,7 +30,7 @@ This tool has three steps:
 
 ##Running *1) Create Stops Feature Class*
 
-![Screenshot of step 1 dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/edit-GTFS-stop-locations/images/Screenshot_EditGTFSStopLocations_Step1Dialog.png)
+![Screenshot of step 1 dialog](./images/Screenshot_EditGTFSStopLocations_Step1Dialog.png)
 
 ###Inputs
 - **GTFS stops.txt file to edit**:  The stops.txt file you wish to edit
@@ -63,7 +63,7 @@ For detailed information on editing in ArcGIS Pro, read about editing in the [Ar
 
 ##Running *2) Write New stops.txt File*
 
-![Screenshot of step 2 dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/edit-GTFS-stop-locations/images/Screenshot_EditGTFSStopLocations_Step2Dialog.png)
+![Screenshot of step 2 dialog](./images/Screenshot_EditGTFSStopLocations_Step2Dialog.png)
 
 ###Inputs
 - **Stops feature class**:  The feature class you created in Step 1 and edited

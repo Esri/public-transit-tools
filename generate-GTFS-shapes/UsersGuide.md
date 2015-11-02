@@ -43,7 +43,7 @@ This step will take some time to run for large transit systems.  Smaller transit
 
 Note: If you do not have the Network Analyst extension or wish to simply generate straight-line estimates for your route shapes, use the [*Step 1: Generate Shapes on Map (no Network Analyst)*](#GenerateShapesOnMapNoNA) version of this tool (described below).
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/images/Screenshot_GenerateShapesOnMap_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_GenerateShapesOnMap_Dialog.png)
 
 ###Inputs
 * **GTFS directory**:  The folder containing your (unzipped) GTFS .txt files.
@@ -70,7 +70,7 @@ A file geodatabase with the name and location you specified will be created and 
 
 This version of Step 1 does not use a streets network to estimate your route shapes.  It generates shapes by drawing a straight line between connected stops instead of tracing the pattern of the streets.  You should only use this version of Step 1 if you do not have the Network Analyst extension or wish to simply generate straight-line estimates for your route shapes.
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/images/Screenshot_GenerateShapesOnMapNoNetworkAnalyst_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_GenerateShapesOnMapNoNetworkAnalyst_Dialog.png)
 
 ###Inputs
 * **GTFS directory**:  The folder containing your (unzipped) GTFS .txt files.  The tool uses the .txt files directly, so you need not turn them into shapefiles or process them in any way.
@@ -104,17 +104,17 @@ For detailed information on editing in ArcMap, read about editing in the [ArcGIS
 ###<a name="ShapeProblems"></a>Common Shape problems and how to fix them
 * The stop is actually along the main road, but the stop location in the data fell slightly closer to a side road.  Consequently, the stop snapped to the side road, and the bus had to turn into the side road to visit the stop and then make a U-turn to return to the main road.  You can edit these out easily using the Reshape Features Tool.
 
-![Editing tips](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/images/EditingTips_UTurns.png)
+![Editing tips](./images/EditingTips_UTurns.png)
 
 * The bus took a completely different route than it should have because the network dataset isn't well connected or the network restrictions prevented the bus from taking the correct streets.  Sometimes, if a route couldn't be found on the streets at all, a straight-line shape might have been generated.  You will have to manually edit the whole line to the correct shape.
 
 * Although the stop should be on the right side of the road, the GTFS stop lat/lon location or the network dataset street location is slightly off, putting the stop on the wrong (left) side of the road.  This means that the bus had to make a U-turn to reach the stop, so the shape doubled back on itself.  Alternatively, the bus might have had to travel around the block in a big loop to turn around and visit the stop.  These situations are sometimes hard to identify because you can't see the areas where the shape line overlaps itself (see picture).  Once you identify them, however, it's fairly easy to use the Reshape Features Tool to edit them out.  Sometimes, the bus legitimately travels the same road in both directions.  When the lines overlap exactly, it causes problems in Step 2 of the tool.  The best way to handle this situation is to use the Edit Vertices Tool to slightly separate the lines going in either direction so that they no longer overlap.
 
-![Editing tips](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/images/EditingTips_Overlaps.png)
+![Editing tips](./images/EditingTips_Overlaps.png)
 
 * If you ran Step 1 with the "Try to improve results by locating stops on junctions instead of streets" box checked True, you will probably see fewer small side-road diversions, but you might see some larger unexpected results in areas with very long street features.  The nearest network junction might actually fall on a completely different street than the one the stop is closest to, so the transit vehicle will take a large detour or a different route completely.  The figure to the right illustrates an example.  The two circled stops were far from the street's junction, and they located on dead ends far off the main road, causing a large route diversion.  You might be able to edit these out using the Reshape Features Tool, or you might have to completely redraw the route by hand. 
 
-![Editing tips](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/images/EditingTips_Snapping.png)
+![Editing tips](./images/EditingTips_Snapping.png)
 
 
 ###If your shapes have widespread problems
@@ -129,7 +129,7 @@ For detailed information on editing in ArcMap, read about editing in the [ArcGIS
 
 This tool will run very quickly for small GTFS datasets, but it may take significantly longer for larger ones.
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/images/Screenshot_GenerateNewGTFSTextFiles_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_GenerateNewGTFSTextFiles_Dialog.png)
 
 ###Inputs
 * **Geodatabase created in Step 1**:  The file geodatabase that was created when you ran Step 1 of this tool.  It must contain the Shapes feature class as well as Stops_wShapeIDs and SQLDbase.sql.

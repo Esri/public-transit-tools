@@ -43,7 +43,7 @@ In order to use GTFS routes, stops, and schedules in a network dataset, you must
 
 * Now you need to "register" (install) the special GTFS transit evaluator.  To do this, double-click Install.bat.  If the installation succeeds, you will get a pop-up saying so.
 
-![Screenshot of successful registration pop-up](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_Registration_Popup.png)
+![Screenshot of successful registration pop-up](./images/Screenshot_Registration_Popup.png)
 
 * If registration fails, please see the Troubleshooting Guide.  
 
@@ -76,7 +76,7 @@ If you are unfamiliar with the procedure for creating file geodatabases or featu
 
 In the *Add GTFS to network dataset* toolbox, run the tool called *1) Generate Transit Lines and Stops*.  This tool will take several minutes to run for a large dataset.
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_GenerateTransitLinesAndStops_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_GenerateTransitLinesAndStops_Dialog.png)
 
 ###Inputs
 * **GTFS directories**: Select the directory or directories where your GTFS data is stored.  You may select as many GTFS datasets as you wish to include in your network dataset.
@@ -108,11 +108,11 @@ This is what the *Generate Stop-Street Connectors* tool does:
 * Next, the tool creates a "wheelchair_boarding" field to indicate whether or not the stop is wheelchair accessible.  The values used in this field are derived from the wheelchair_boarding field in the [GTFS stops.txt file] (https://developers.google.com/transit/gtfs/reference#stops_fields).  If the stop has a parent station and has a wheelchair_boarding value of 0, the tool populates the field based on the wheelchair_boarding value for the parent station.
 * Finally, the tool [creates vertices] (http://desktop.arcgis.com/en/desktop/latest/tools/data-management-toolbox/integrate.htm) in the street features at the locations of the snapped stops.  These vertices are necessary for establishing connectivity when you create your network dataset.
 
-![Diagram showing desired connectivity of streets and transit lines](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/ConnectivityDiagram.png)
+![Diagram showing desired connectivity of streets and transit lines](./images/ConnectivityDiagram.png)
 
 Note: In order to run the *2) Generate Stop-Street Connectors* tool, you must have the Desktop Standard (ArcEditor) or Desktop Advanced (ArcInfo) license.  If you have only the Desktop Basic (ArcView) license, you must find an alternate method to connect your streets and your transit stops because the Snap tool is not available.
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_GenerateStopStreetConnectors_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_GenerateStopStreetConnectors_Dialog.png)
 
 ###Inputs
 * **Feature dataset where network dataset will be created**: Indicate the location of the feature dataset where your network dataset will be created.
@@ -139,7 +139,7 @@ Give your network dataset a name, and click Next.
 
 Choose the feature classes from your feature dataset that you will include in your network dataset.  You should check, at minimum, all of the following: Connectors_Stops2Streets, Streets_UseThisOne, TransitLines, Stops, Stops_Snapped2Streets
 
-![Screenshot of network dataset creation dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_NDCreation_SourceFCs.png)
+![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_SourceFCs.png)
 
 If you have additional feature classes you want to include or if you used a different method for creating connectors between your transit network and your streets, you should select whatever feature classes are appropriate.
 
@@ -154,7 +154,7 @@ On the next page, click the Connectivity button.  You need to set up your connec
 * Leave the Connectivity Policy for Stops as "Honor" because Stops should only connect to transit lines and connectors at endpoints.
 * If you used the *Generate Stop-Street Connectors* tool or some other method that created vertices in your street features at the locations of snapped stops, change the Connectivity Policy for Stops_Snapped2Streets to "Override".  This allows the snapped stops to connect to the street feature vertices even if the street feature connectivity is set to End Point.
 
-![Screenshot of network dataset creation dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_NDCreation_ConnectivityGroups.png)
+![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_ConnectivityGroups.png)
 
 After you have finished setting up your connectivity groups, click OK and then click Next to set up your elevation information.  The transit network does not contain elevation information.  If you wish to model elevation of your other source features, you may choose to do so.  Otherwise, choose None.
 
@@ -164,13 +164,13 @@ To create a travel time cost attribute that uses the GTFS transit evaluator, do 
 * Click Add to create a new attribute.
 * Give the new attribute a name, set the Usage Type to Cost, the Units to Minutes, and the Data Type to Double.  You will probably want this to be the default cost attribute, so check the box that says Use by Default.
 
-![Screenshot of network dataset creation dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_NDCreation_NewAttribute.png)
+![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_NewAttribute.png)
 
 * Now you need to tell the network dataset how to determine the travel time for each different source feature class, in each direction.  Click the new attribute in your list of attributes and click the "Evaluators" button.  If you are uncertain of what an evaluator is or how they work, please review the [Types of evaluators used by a network] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/types-of-evaluators-used-by-a-network.htm) page before proceeding.
 
 * For your streets, it's up to you how to determine travel time.  If your data already contains a field for pedestrian walk time, you can use that field.  Otherwise, you will probably want to reference the length of the feature and convert to time by assuming a walk speed (as I have done in the example shown in the image).  Be sure to use the correct units for your input data.  You could also define an attribute parameter for walk speed so the user can change it without rebuilding the network.  If you decide to add a walk speed parameter, please review the [Using parameters with network attributes] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/using-parameters-with-network-attributes.htm) page.
 
-![Screenshot of network dataset creation dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_NDCreation_Evaluators.png)
+![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_Evaluators.png)
 
 * For Connectors_Stops2Streets: You can set these equal to a constant of 0 if you do not want traveling between streets and transit lines to invoke any time penalty.  However, you can use these features to simulate a time delay for boarding or exiting a vehicle.  For example, if you want it to take 30 seconds to board a vehicle, you could set the To-From direction equal to a constant of 0.5.  You could leave the From-To direction at 0 if you don't want to invoke a delay for exiting a vehicle.  Note that From-To indicates the direction traveling from the stops to the streets, and vice-versa for the To-From direction.  *Note: If you've done something fancy with your stop-street connections, you can ignore the instructions above and do whatever you think most appropriate.  You could, for instance, create a connection feature class containing a field indicating an individual walk time between the station entrance and the stop point (the platform).  You could use this field as the value for travel time.*
 
@@ -193,7 +193,7 @@ Before continuing, you may also set up any network restriction attributes you li
 
 For example, to prohibit riders from traveling on buses, create a new restriction attribute.  In the Evaluators dialog for that restriction attribute, use a Field evaluator for TransitLines in the From-To direction and click the button on the right showing a finger pointing at a piece of paper.  The image on the right shows how you can set up your restriction to prohibit travel on buses.  The "route_type" field uses numerical codes from the GTFS data.  An explanation of the codes is in the [GTFS specification document] (https://developers.google.com/transit/gtfs/reference#routes_fields).
 
-![Screenshot of network dataset creation dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_NDCreation_RestrictionFieldEvaluator.png)
+![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_RestrictionFieldEvaluator.png)
 
 <a name="WheelchairRestriction"></a>If you plan to perform analyses for travelers in wheelchairs and your stops.txt file contains a wheelchair_boarding field, you need to create a restriction attribute to prevent these travelers from using inaccessible stops.  Create a new restriction attribute (for example, "Traveling with a wheelchair"), and for the Connectors_Stops2Streets features, use a field evaluator to determine whether or not the stop should be restricted.  The "wheelchair boarding" field values follow the GTFS specification.  A value of "1" indicates that the stop is wheelchair accessible; a value of "2" indicates that the stop is not wheelchair accessible; a value of "0" indicates that there is no information for this stop.   If your street or sidewalk data has information about wheelchair accessibility, you can configure that here as well.  Remember to create a "Traveling in a wheelchair" parameter on your travel time attribute as described [above](#WheelchairParameter) if you want inaccessible GTFS trips to be restricted as well. This restriction only handles the stops.
 
@@ -210,7 +210,7 @@ When the box pops up, choose to Build the network dataset now.  If there are bui
 
 The special GTFS transit evaluator references a SQL database containing your GTFS transit schedule data.  This database is created and processed when you run the *1) Generate Transit Lines and Stops* tool.  However, the database needs one further piece of information, a list of network EIDs, which can only be added after the network dataset has been created and built.  Consequently, you need to run one further tool before your network dataset is ready to use, *3) Get Network EIDs*.  *Warning: every time you rebuild your network dataset, you will have to re-run this tool because the network EIDs might change.*
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_GetEIDs_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_GetEIDs_Dialog.png)
 
 Note: Occasionally, *3) Get Network EIDs* will fail with a message saying "Error obtaining network EIDs. Exception from HRESULT: 0x80040216".  This means that your network dataset or one of the associated files has a schema lock on it, likely because you added it to the map or tried to edit it.  Try closing ArcMap, reopening a blank map, and running the tool again prior to adding any layers to the map.  Alternatively, you can run the tool from ArcCatalog.
 
@@ -235,13 +235,13 @@ Before adding or creating any inputs to your network analysis layer, such as sto
 
 If you have any restrictions on your network and want to use them for your analysis, be sure to check the "Exclude restricted portions of the network" box to prevent your points from ending upon restricted streets.  In order for this to work properly, you need to check your restrictions in the Analysis Settings tab before you load your Locations (Facilities, Stops, etc.).
 
-![Screenshot of analysis settings](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_AnalysisSettings_NetworkLocations.png)
+![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_NetworkLocations.png)
 
 ###Time of day
 
 Before running your analysis, make sure to tell it to run at a particular time of day.  Transit lines will be ignored if you run your analysis without a time of day.  Time is under the Analysis Settings tab in the layer properties.
 
-![Screenshot of analysis settings](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_AnalysisSettings_TimeOfDay.png)
+![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_TimeOfDay.png)
 
 ###Specific vs. generic dates
 
@@ -249,7 +249,7 @@ If you want to run your analysis for a generic day of the week, such as Tuesday,
 
 If, on the other hand, you want to run your analysis for a specific date, click the "Specific Date" radio button and enter the date.  Additionally, make sure that you have created a "Use Specific Dates" parameter and that it is set to True.  To do this, go to the Attribute Parameters tab in the Layer Properties and adjust the "Use Specific Dates" parameter as needed.  Note: If you enter a specific date but leave the "Use Specific Dates" parameter as False, the analysis will ignore the date you entered and simply use the day of the week that date falls on.
 
-![Screenshot of analysis settings](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_AnalysisSettings_SpecificDatesParameter.png)
+![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_SpecificDatesParameter.png)
 
 A note on GTFS data containing non-overlapping date ranges: The GTFS calendar.txt file contains date ranges indicating the range of dates when service runs.  Some GTFS datasets have entries in this table with date ranges that do not overlap one another.  For example, one service_id in the table might be used for trips occurring in the spring, and a different one might be for trips occurring during the summer.  Additionally, if you use multiple GTFS datasets in your network, the date ranges might be different between the two datasets. You can get more information about service_ids and date ranges in the [GTFS specification document] (https://developers.google.com/transit/gtfs/reference#calendar_fields).  If your data contains non-overlapping date ranges, you will have received a warning message when you ran the *1) Generate Transit Lines and Stops* tool.  *If you try to run analyses for generic weekdays using this data, you could get inaccurate results.*  When you choose not to use specific dates, the date ranges will be ignored, which could cause the GTFS transit evaluator to over-count the number of trips available.  If you have non-overlapping date ranges in your data, make sure you understand how your data is constructed and how it might affect your analysis.
 
@@ -257,7 +257,7 @@ A note on GTFS data containing non-overlapping date ranges: The GTFS calendar.tx
 
 If you are solving a Service Area analysis, you need to prevent service areas from being drawn around transit lines.  The service area polygons should only be drawn around streets since pedestrians can't exit the transit vehicle partway between stops.  To do this, open the layer properties and go to the Polygon Generation tab.  In the bottom left corner, click to exclude TransitLines and Connectors_Stops2Streets (or whatever is most appropriate for your network).
 
-![Screenshot of analysis settings](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_AnalysisSettings_ExcludedSources.png)
+![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_ExcludedSources.png)
 
 ###<a name="WheelchairAnalysis"></a>Analysis for travelers with wheelchairs
 
@@ -283,7 +283,7 @@ If you wish to assess the impact of cutting transit service, you can "turn off" 
 
 To do this, you first need to create the appropriate parameters on your transit travel time attribute.  If you plan to exclude GTFS routes (an entire bus or train line), create an attribute called "Exclude route_ids".  If you plan to exclude specific GTFS trips (an instance of a bus or train traveling on a bus/train line at a particular time of day), create an attribute called "Exclude trip_ids".  The procedure for creating these parameters is described [above](#ExcludeParameter).
 
-![Screenshot of analysis settings](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_AnalysisSettings_ExcludeRoutes.png)
+![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_ExcludeRoutes.png)
 
 The value for these parameters can be a list of one or more GTFS route_ids or trip_ids, which you can look up in your original GTFS text files.  You can also use the Transit Identify tool (in the Transit Analysis Tools toolbox included with the Add GTFS to a Network Dataset download) to determine which routes and trips serve a particular network transit line.
 
@@ -295,7 +295,7 @@ If you wish to exclude multiple routes or trips, enter them in a list separated 
 
 Each time you solve a network analysis for the first time with this network dataset in a new map or in a geoprocessing model or script tool, it will have to initialize the GTFS transit evaluator.  It has to read in and process the transit schedules.  This process will take a minute or two, depending on the size of your transit network.  Please be patient.  This only happens on the first solve.  Subsequent solves will be quick.  Caching might also occur the first time you update your Network Location settings in the analysis layer properties.  If caching occurs here, it will not need to re-cache on the first solve.
 
-![Screenshot of caching pop-up](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_Caching_Popup.png)
+![Screenshot of caching pop-up](./images/Screenshot_Caching_Popup.png)
 
 If you are performing a complex analysis in which you want to modify your transit data between solves (for example, you are testing the effects of adding an extra trip and are directly modifying the SQL database of GTFS data), you might need the transit evaluator to re-cache the schedules prior to each solve.  Otherwise, it will not read in the changes you made to your transit schedules.  You can override the normal caching behavior by adding a parameter called "Cache on every solve", as described [above](#CacheParameter).
 

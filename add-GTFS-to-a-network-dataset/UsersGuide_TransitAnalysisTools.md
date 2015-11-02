@@ -16,7 +16,7 @@ The ArcGIS Network Analyst tool *Copy Traversed Source Features* produces featur
 
 Learn more about the original [Copy Traversed Source Features](http://desktop.arcgis.com/en/desktop/latest/tools/network-analyst-toolbox/copy-traversed-source-features.htm) tool and the [output](http://desktop.arcgis.com/en/desktop/latest/tools/network-analyst-toolbox/copy-traversed-source-features-output.htm) from that tool in the ArcGIS documentation.
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_CopyTraversedSourceFeaturesWithTransit_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_CopyTraversedSourceFeaturesWithTransit_Dialog.png)
 
 ###Inputs
 * **Input Network Analysis Layer**: The network analysis layer created using your transit network dataset for which you want to produce the traversal result. At this time, only network analysis layers of type Route and Closest Facility are supported.
@@ -57,7 +57,7 @@ You can use this information when testing that your network is working correctly
 
 This tool is *not* meant to be used to extract schedule information from the entire network; consequently, the tool will only run if the number of selected features is 5 or fewer.
 
-![Screenshot of tool dialog](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/images/Screenshot_TransitIdentify_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_TransitIdentify_Dialog.png)
 
 ###Inputs
 * **TransitLines (with selected features)**: The only valid input for this tool is a feature layer of your TransitLines feature class with 1-5 transit line features selected.  In other words, you should add your TransitLines feature class to the map, select up to five transit lines manually or using Select by Attributes or Select by Location, and use the TransitLines map layer as the input.
