@@ -1,7 +1,7 @@
 ####################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 29 September 2015
+## Last updated: 3 November 2015
 ####################################################
 ''' BetterBusBuffers Polygon Tool: Step 1 - Preprocess Buffers
 
@@ -52,8 +52,8 @@ try:
     try:
 
         # Figure out what version of ArcGIS they're running
-        ArcVersionInfo = arcpy.GetInstallInfo("desktop")
-        ArcVersion = BBB_SharedFunctions.ArcVersion = ArcVersionInfo['Version']
+        BBB_SharedFunctions.DetermineArcVersion()
+
         ArcLicense = arcpy.ProductInfo()
         if ArcLicense != "ArcInfo":
             arcpy.AddError("To run this tool, you must have the Desktop \
@@ -66,6 +66,19 @@ Advanced (ArcInfo) license.  Your license type is: %s." % ArcLicense)
         else:
             arcpy.AddError("You must have a Network Analyst license to use this tool.")
             raise CustomError
+
+        # If running in Pro, make sure an fgdb workspace is set so NA layers can be created.
+        if BBB_SharedFunctions.ProductName == "ArcGISPro":
+            if not arcpy.env.workspace:
+                arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
+                print(BBB_SharedFunctions.CurrentGPWorkspaceError)
+                raise CustomError
+            else:
+                workspacedesc = arcpy.Describe(arcpy.env.workspace)
+                if not workspacedesc.workspaceFactoryProgID.startswith('esriDataSourcesGDB.FileGDBWorkspaceFactory'):
+                    arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
+                    print(BBB_SharedFunctions.CurrentGPWorkspaceError)
+                    raise CustomError
 
         # It's okay to overwrite in-memory stuff.
         OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
@@ -148,7 +161,7 @@ Advanced (ArcInfo) license.  Your license type is: %s." % ArcLicense)
         arcpy.AddMessage("(This step will take a while for large networks.)")
 
         polycopy = os.path.join(outGDBwPath, "Temp_Polygons")
-        if ArcVersion == "10.0":
+        if BBB_SharedFunctions.ArcVersion == "10.0":
             # For some reason, passing an NALayer reference object to FeatureToPolygon
             # in PostProcessPolys() causes ArcMap 10.0 to crash.  Avoid this
             # by saving the layer to a feature class and passing the path.
@@ -216,7 +229,7 @@ Advanced (ArcInfo) license.  Your license type is: %s." % ArcLicense)
         # Add data to the table. Track Polygon IDs with no associated stop_ids so we can delete them.
         FIDsToDelete = []
         AddToStackedPts = []
-        if ArcVersion == "10.0":
+        if BBB_SharedFunctions.ArcVersion == "10.0":
             StackedPtCursor = arcpy.SearchCursor(StackedPoints, "", "", "ORIG_FID; stop_id")
             for row in StackedPtCursor:
                 if not row.stop_id:

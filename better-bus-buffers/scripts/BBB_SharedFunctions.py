@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 23 October 2015
+## Last updated: 3 November 2015
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -27,6 +27,7 @@ c = None
 
 # Version of ArcGIS they are running
 ArcVersion = None
+ProductName = None
 
 # Whether or not to consider trips from yesterday or tomorrow
 ConsiderYesterday = None
@@ -58,6 +59,13 @@ SecsInDay = 86400
 
 # Days of the week
 days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+CurrentGPWorkspaceError = "This tool creates one or more Network Analysis layers. \
+In ArcGIS Pro, Network Analysis layers make use of on-disk feature classes.  These \
+feature classes are created in the Geoprocessing Current Workspace that you specify. \
+In order to use this tool, you must explicitly specify a file geodatabase as the \
+Geoprocessing Current workspace.  You can do this in your python script by setting \
+arcpy.env.workspace = [path to desired file geodatabase]."
 
 
 def MakeServiceIDList(day):
@@ -447,19 +455,20 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
     if stoplist:
         StopTable = []
         for stop_id in stoplist:
-            selectstoptablestmt = "SELECT * FROM stops WHERE stop_id='%s';" % stop_id
+            selectstoptablestmt = "SELECT stop_id, stop_code, stop_name, stop_desc, stop_lat, stop_lon, zone_id, stop_url, location_type, parent_station FROM stops WHERE stop_id='%s';" % stop_id
             c.execute(selectstoptablestmt)
             StopInfo = c.fetchall()
             StopTable.append(StopInfo[0])
     else:
-        selectstoptablestmt = "SELECT * FROM stops;"
+        selectstoptablestmt = "SELECT stop_id, stop_code, stop_name, stop_desc, stop_lat, stop_lon, zone_id, stop_url, location_type, parent_station FROM stops;"
         c.execute(selectstoptablestmt)
         StopTable = c.fetchall()
+    possiblenulls = [1, 3, 4, 6, 9, 10]
 
     # Make a list of stop_ids for use later.
     StopIDList = []
     for stop in StopTable:
-        StopIDList.append(stop[5])
+        StopIDList.append(stop[0])
 
     if not ArcVersion:
         DetermineArcVersion()
@@ -471,7 +480,6 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
             stop = list(stopitem)
             # Shapefile output can't handle null values, so make them empty strings.
             if ".shp" in stopsfc_name:
-                possiblenulls = [1, 3, 4, 6, 9, 10]
                 for idx in possiblenulls:
                     if not stop[idx]:
                         stop[idx] = ""
@@ -508,27 +516,25 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
                                                      "zone_id", "stop_url", "location_type",
                                                      "parent_station"])
         # Schema of stops table
-        ##   0 - id
-        ##   1 - parent_station
-        ##   2 - stop_lat
-        ##   3 - location_type
-        ##   4 - stop_code
-        ##   5 - stop_id
-        ##   6 - stop_desc
-        ##   7 - stop_lon
-        ##   8 - snop_name
-        ##   9 - stop_url
-        ##   10 - zone_id
+        ##   0 - stop_id
+        ##   1 - stop_code
+        ##   2 - stop_name
+        ##   3 - stop_desc
+        ##   4 - stop_lat
+        ##   5 - stop_lon
+        ##   6 - zone_id
+        ##   7 - stop_url
+        ##   8 - location_type
+        ##   9 - parent_station
         for stopitem in StopTable:
             stop = list(stopitem)
             # Shapefile output can't handle null values, so make them empty strings.
             if ".shp" in stopsfc_name:
-                possiblenulls = [1, 3, 4, 6, 9, 10]
                 for idx in possiblenulls:
                     if not stop[idx]:
                         stop[idx] = ""
-            cur3.insertRow((float(stop[7]), float(stop[2]), stop[5], stop[4],
-                             stop[8], stop[6], stop[10], stop[9], stop[3], stop[1]))
+            cur3.insertRow((float(stop[5]), float(stop[4]), stop[0], stop[1],
+                             stop[2], stop[3], stop[6], stop[7], stop[8], stop[9]))
     del cur3
 
     return stopsfc, StopIDList
@@ -554,7 +560,7 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
     uturns = "ALLOW_UTURNS"
     hierarchy = "NO_HIERARCHY"
 
-    if not ArcVersion:
+    if not ArcVersion or not ProductName:
         DetermineArcVersion()
 
     # SALayer is the NA Layer object returned by getOutput(0)
@@ -573,12 +579,19 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
         # The "hierarcy" attribute for SA is only available in 10.1.
         # Default is that hierarchy is on, but we don't want it on for
         # pedestrian travel (probably makes little difference).
-        SALayer = arcpy.na.MakeServiceAreaLayer(inNetworkDataset, outNALayer_SA,
-                                    impedanceAttribute, TravelFromTo,
-                                    BufferSize, PolyType, merge,
-                                    NestingType, LineType, overlap,
-                                    split, exclude, accumulate, uturns,
-                                    restrictions, TrimPolys, TrimPolysValue, "", hierarchy).getOutput(0)
+        try:
+            SALayer = arcpy.na.MakeServiceAreaLayer(inNetworkDataset, outNALayer_SA,
+                                        impedanceAttribute, TravelFromTo,
+                                        BufferSize, PolyType, merge,
+                                        NestingType, LineType, overlap,
+                                        split, exclude, accumulate, uturns,
+                                        restrictions, TrimPolys, TrimPolysValue, "", hierarchy).getOutput(0)
+        except:
+            errors = arcpy.GetMessages(2).split("\n")
+            if errors[0] == "ERROR 030152: Geoprocessing Current Workspace not found.":
+                arcpy.AddMessage(CurrentGPWorkspaceError)
+                print(CurrentGPWorkspaceError)
+            raise
 
     # To refer to the SA sublayers, get the sublayer names.  This is essential for localization.
     if ArcVersion == "10.0":
@@ -588,7 +601,7 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
     facilities = naSubLayerNames["Facilities"]
 
     # Add a field for stop_id as a unique identifier for service areas.
-    arcpy.na.AddFieldToAnalysisLayer(outNALayer_SA, facilities,
+    arcpy.na.AddFieldToAnalysisLayer(SALayer, facilities,
                                     "stop_id", "TEXT")
 
     # Specify the field mappings for the stop_id field.
@@ -600,15 +613,21 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
         fieldMappingSA["stop_id"].mappedFieldName = "stop_id"
 
     # Add the GTFS stops as locations for the analysis.
-    arcpy.na.AddLocations(outNALayer_SA, facilities, StopsLayer,
+    arcpy.na.AddLocations(SALayer, facilities, StopsLayer,
                             fieldMappingSA, "50 meters", "", "", "", "", "", "",
                             ExcludeRestricted)
 
     # Solve the service area.
-    arcpy.na.Solve(outNALayer_SA)
+    arcpy.na.Solve(SALayer)
 
     # Make layer objects for each sublayer we care about.
-    subLayers = dict((lyr.datasetName, lyr) for lyr in arcpy.mapping.ListLayers(SALayer)[1:])
+    if ProductName == 'ArcGISPro':
+        subLayerDict = dict((lyr.name, lyr) for lyr in SALayer.listLayers())
+        subLayers = {}
+        for subL in naSubLayerNames:
+            subLayers[subL] = subLayerDict[naSubLayerNames[subL]]
+    else:
+        subLayers = dict((lyr.datasetName, lyr) for lyr in arcpy.mapping.ListLayers(SALayer)[1:])
     facilitiesSubLayer = subLayers["Facilities"]
     polygonsSubLayer = subLayers["SAPolygons"]
 
@@ -654,8 +673,17 @@ def parse_time(HMS):
 def DetermineArcVersion():
     '''Figure out what version of ArcGIS the user is running'''
     ArcVersionInfo = arcpy.GetInstallInfo("desktop")
-    global ArcVersion
+    global ArcVersion, ProductName
+    ProductName = ArcVersionInfo['ProductName']
     ArcVersion = ArcVersionInfo['Version']
+
+def CheckAndSetWorkspace(workspace):
+    '''Set arcpy.env.workspace if it's not already set to a file geodatabase. This is essential for Pro when creating NA layers.'''
+    currentworkspace = arcpy.env.workspace
+    if currentworkspace:
+        desc = arcpy.Describe(currentworkspace)
+        if desc.workspaceFactoryProgID != "esriDataSourcesGDB.FileGDBWorkspaceFactory.1": #File gdb
+            arcpy.env.workspace = workspace
 
 
 class CustomError(Exception):

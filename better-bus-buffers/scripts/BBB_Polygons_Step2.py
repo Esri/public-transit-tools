@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips in Polygon Buffers Around Stops
 ## Step 2: Count Trips in Buffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 29 September 2015
+## Last updated: 3 November 2015
 ####################################################
 '''BetterBusBuffers - Count Trips in Polygon Buffers Around Stops - Step 2: Count Trips in Buffers
 
@@ -90,8 +90,7 @@ try:
             DepOrArr = "arrival_time"
 
         # Figure out what version of ArcGIS they're running
-        ArcVersionInfo = arcpy.GetInstallInfo("desktop")
-        ArcVersion = ArcVersionInfo['Version']
+        BBB_SharedFunctions.DetermineArcVersion()
 
         # It's okay to overwrite stuff.
         OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
@@ -139,7 +138,7 @@ try:
         arcpy.management.CopyFeatures(FlatPolys, outFile)
         badpolys = []
 
-        if ArcVersion == "10.0":
+        if BBB_SharedFunctions.ArcVersion == "10.0":
             if ".shp" in outFilename:
                 ucursor = arcpy.UpdateCursor(outFile, "", "",
                                         "PolyID; NumTrips; NumTripsPe; NumStopsIn; MaxWaitTim")
