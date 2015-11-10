@@ -32,13 +32,13 @@ The Display GTFS Route Shapes tool converts the information from the GTFS routes
 ###Outputs
 - **[Your designated output feature class]**: The output feature class contains all the information from the GTFS routes.txt file as well as the shape_id. Please review the [GTFS Reference](https://developers.google.com/transit/gtfs/reference) if you need help understanding these fields.  If your GTFS dataset contains route_color information, route colors are given in the original hexadecimal format as well as an RGB triplet that can more easily be used as reference when choosing symbology in ArcGIS (see below).
 
-##Tips for viewing output in the map##
+##Tips for viewing output in the map
 
-###Displaying shapes with the correct colors###
+###Displaying shapes with the correct colors
 
 If your GTFS dataset contains route_color information and you want to view these colors in the map, you can do the following:
 
-####In ArcMap####
+####In ArcMap
 1. In the symbology tab of the layer properties, select Categories->Unique Values.
 2. Choose route_color_RGB as the Value Field.  Click Add All Values.
 3. For each route color that appears, double click the line symbol next to it.
@@ -47,7 +47,7 @@ If your GTFS dataset contains route_color information and you want to view these
 
 ![Screenshot of ArcMap RGB symbology picker](./images/Screenshot_RGB_ArcMap.png)
 
-####In ArcGIS Pro####
+####In ArcGIS Pro
 In ArcGIS Pro 1.2 or later, the output layer should automatically display using the colors specified in the route_color GTFS field defined in routes.txt.  This is done using [attribute-driven symbology](http://pro.arcgis.com/en/pro-app/help/mapping/symbols-and-styles/attribute-driven-symbology.htm).  The route shape display color is defined in the route_color_formatted field in the data.
 
 You can manually set the route shape colors as follows:
@@ -62,14 +62,14 @@ You can manually set the route shape colors as follows:
 
 Note: If you plan to publish your layer to ArcGIS Online, you should manually set the symbology because attribute-driven symbology will not work.
 
-###Rearranging the drawing order of your transit shapes###
+###Rearranging the drawing order of your transit shapes
 If you want to rearrange the draw order of your different transit shapes, do the following:
 
-####In ArcMap#### 
+####In ArcMap 
 - In the symbology tab, click the Advanced button on the bottom right.
 - Select Symbol Levels.  A dialog box appears.
 - Check the box for "Draw this layer using the symbol levels specified below."
 - Rearrange your symbols however you wish.  The ones at the top will be drawn on top of the ones at the bottom.
 
-####In ArcGIS Pro####
+####In ArcGIS Pro
 Coming soon...
