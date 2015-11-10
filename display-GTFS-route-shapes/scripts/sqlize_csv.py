@@ -1,6 +1,6 @@
 ################################################################################
 # sqlize_csv.py, originally written by Luitien Pan
-# Last updated 8 June 2015 by Melinda Morang, Esri
+# Last updated 10 November 2015 by Melinda Morang, Esri
 ################################################################################
 '''Copyright 2015 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,8 +92,7 @@ db = None
 
 def connect(dbname):
     global db
-    if db == None:
-        db = sqlite3.connect(dbname)
+    db = sqlite3.connect(dbname)
 
 def make_remove_extra_fields(tablename, columns):
     '''Make a function that removes extraneous columns from the CSV rows.
