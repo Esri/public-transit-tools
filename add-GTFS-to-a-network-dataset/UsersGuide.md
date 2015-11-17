@@ -26,6 +26,7 @@ Network Analyst is a powerful and complex ArcGIS extension.  The procedure descr
 ## Workflow
 
 In order to use GTFS routes, stops, and schedules in a network dataset, you must do the following steps, which are explained in further detail in this document:
+
 1. Download and install the tools
 2. Acquire your data and prepare your feature dataset
 3. Generate feature classes for transit lines and stops and a SQL database of the schedules
@@ -222,6 +223,7 @@ The input for this tool is just your network dataset.  There is no output.  It s
 Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS.  If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
 
 Recall that the basic workflow for running network analyses is as follows:
+
 1. Make your network analysis layer (Service Area, OD Cost Matrix, Closest Facility, etc.)
 2. Update the analysis layer properties as needed
 3. Add locations (facilities, stops, origins, destinations, etc.) to your analysis layer
