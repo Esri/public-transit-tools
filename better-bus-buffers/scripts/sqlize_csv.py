@@ -1,8 +1,8 @@
 ################################################################################
 # sqlize_csv.py, originally written by Luitien Pan
-# Last updated 8 June 2015 by Melinda Morang, Esri
+# Last updated 17 January 2016 by Melinda Morang, Esri
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -399,9 +399,9 @@ this tool: %s" % (label, str(missing_files)))
         return Errors_To_Return
 
     except UnicodeDecodeError:
-        Errors_To_Return.append("Unicode decoding of GTFS file %s failed. Please \
+        Errors_To_Return.append(u"Unicode decoding of GTFS dataset %s failed. Please \
 ensure that your GTFS files have the proper utf-8 encoding required by the GTFS \
-specification." % fname)
+specification." % label)
         return Errors_To_Return
     except CustomError:
         return Errors_To_Return
