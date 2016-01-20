@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 1) Generate Transit Lines and Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 16 November 2015
+## Last updated: 17 January 2016
 ################################################################################
 ''' This tool generates feature classes of transit stops and lines from the
 information in the GTFS dataset.  The stop locations are taken directly from the
@@ -14,7 +14,7 @@ line is generated unless the routes have different mode types.  This tool also
 generates a SQL database version of the GTFS data which is used by the network
 dataset for schedule lookups.'''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -144,6 +144,18 @@ try:
 
 # ----- Make dictionary of {trip_id: route_type} -----
 
+    # First, make sure there are no duplicate trip_id values, as this will mess things up later.
+    tripDuplicateFetch = "SELECT trip_id, count(*) from trips group by trip_id having count(*) > 1"
+    c.execute(tripDuplicateFetch)
+    tripdups = c.fetchall()
+    tripdupslist = [tripdup for tripdup in tripdups]
+    if tripdupslist:
+        arcpy.AddError("Your GTFS trips table is invalid.  It contains multiple trips with the same trip_id.")
+        for tripdup in tripdupslist:
+            arcpy.AddError("There are %s instances of the trip_id value '%s'." % (str(tripdup[1]), unicode(tripdup[0])))
+        raise CustomError
+
+    # Now make the dictionary
     trip_routetype_dict = {}
     tripsfetch = '''
         SELECT trip_id, route_id

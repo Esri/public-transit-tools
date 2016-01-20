@@ -557,7 +557,7 @@ namespace TransitEvaluator
 
                         // Ignore this trip if it starts after our current shortest travel time
                         double seconds_since_midnight_tomorrow = (final_travel_time - secondsLeftInDay);
-                        bool tripStartsTooLate = (instance.start_time >= seconds_since_midnight_tomorrow);
+                        bool tripStartsTooLate = (instance.start_time >= seconds_since_midnight_tomorrow-0.5); // Pad by half a second to avoid rounding errors
                         if (tripStartsTooLate) continue;
 
                         // Get the date range and days of the week that this trip run
@@ -587,10 +587,8 @@ namespace TransitEvaluator
                         if (isGeneralDayWithTrip || isSpecificDayWithAddedException || isSpecificDayInTripRange)
                         {
                             // Select only those trips starting before our current min travel time.
-                            if (instance.start_time <= (final_travel_time - secondsLeftInDay))
+                            if (instance.start_time <= seconds_since_midnight_tomorrow-0.5)
                             {
-                                //double wait_time = trip.start_time + secondsLeftInDay;
-                                //double travel_time = trip.end_time - seconds_since_midnight;
                                 double travel_time = SECONDS_IN_A_DAY + instance.end_time - seconds_since_midnight;
                                 if (travel_time < final_travel_time)
                                 {
@@ -611,7 +609,7 @@ namespace TransitEvaluator
 
                 // Special conditions if our trip is occurring early in the day
                 // Only do this part if our trip is occurring before trips from the previous day have stopped running
-                if (seconds_since_midnight <= max_trip_start_time - SECONDS_IN_A_DAY)
+                if (seconds_since_midnight-0.5 <= max_trip_start_time - SECONDS_IN_A_DAY)
                 {
                     // Figure out the query time in seconds since the previous day's midnight
                     double secondsSinceMidnightYesterday = SECONDS_IN_A_DAY + seconds_since_midnight;
@@ -678,7 +676,7 @@ namespace TransitEvaluator
                 {
                     // Return the final minimum travel time across the element.
                     // Divide by 60 to convert to minutes.
-                    return final_travel_time / 60;
+                    return final_travel_time / 60.0;
                 }
             }
             // If the EID wasn't even in our list, return -1.  This should never happen.
@@ -774,9 +772,9 @@ namespace TransitEvaluator
             if (timeUsage == esriNetworkTimeUsage.esriNTUBeforeTraversal)
             {
                 // Select only those trips with a start time after the query time.
-                if (instance.start_time >= secondsSinceMidnight)
+                // Use a half-second for padding to avoid small rounding errors that come out of core Network Analyst
+                if (instance.start_time >= secondsSinceMidnight-0.5)
                 {
-                    //double wait_time = trip.start_time - secondsSinceMidnight;
                     double travel_time = instance.end_time - secondsSinceMidnight;
                     if (travel_time < final_travel_time)
                     {
@@ -791,7 +789,7 @@ namespace TransitEvaluator
             else //esriNetworkTimeUsage.esriNTUAfterTraversal
             {
                 // Select only those trips with an end time before the query time.
-                if (instance.end_time <= secondsSinceMidnight)
+                if (instance.end_time <= secondsSinceMidnight+0.5)
                 {
                     // How long between the query time and the time you ended your trip at that stop.
                     double travel_time = secondsSinceMidnight - instance.start_time;
