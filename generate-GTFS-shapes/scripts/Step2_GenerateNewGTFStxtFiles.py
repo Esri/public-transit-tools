@@ -2,7 +2,7 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 2: Generate new GTFS text files
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 8 October 2015
+## Last updated: 31 January 2016
 ###############################################################################
 '''Using the GDB created in Step 1, this tool adds shape information to the
 user's GTFS dataset.  A shapes.txt file is created, and the trips.txt and
@@ -82,7 +82,7 @@ You have ArcGIS version %s." % ArcVersion)
 
     try:
         # Open the CSV file
-        with codecs.open(outTripsFile, "wb", encoding="utf-8") as f:
+        with open(outTripsFile, "wb") as f:
             wr = csv.writer(f)
 
             # Get the columns for trips.txt and write them to the file
@@ -104,9 +104,16 @@ You have ArcGIS version %s." % ArcVersion)
             c.execute(selecttripsstmt)
             alltrips = c.fetchall()
             for trip in alltrips:
-                wr.writerow(trip)
+                # Encode trip in utf-8.
+                tripToWrite = tuple([t.encode("utf-8-sig") if isinstance(t, basestring) else t for t in trip])
+                try:
+                    wr.writerow(tripToWrite)
+                except UnicodeEncodeError:
+                    arcpy.AddMessage("Ahh, got a Unicode Error!")
+                    arcpy.AddMessage(trip)
+                    raise
                 # While we're at it, create a dictionary of {trip_id: shape_id}
-                trip_shape_dict[unicode(trip[trip_id_idx])] = trip[shape_id_idx]
+                trip_shape_dict[tripToWrite[trip_id_idx]] = trip[shape_id_idx]
 
         arcpy.AddMessage("Successfully created new trips.txt file.")
 
@@ -367,7 +374,8 @@ str(shapes_with_warnings))
             for stoptime in allstoptimes:
                 shape_id = trip_shape_dict[stoptime[trip_id_idx]]
                 stop_id = stoptime[stop_id_idx]
-                stoptimelist = list(stoptime)
+                # Encode in utf-8.
+                stoptimelist = [t.encode("utf-8-sig") if isinstance(t, basestring) else t for t in stoptime]
                 try:
                     shape_dist_traveled = final_stoptimes_tabledata[shape_id][stop_id]
                     stoptimelist[shape_dist_traveled_idx] = shape_dist_traveled
