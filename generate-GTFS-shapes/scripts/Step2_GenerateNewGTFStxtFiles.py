@@ -2,13 +2,13 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 2: Generate new GTFS text files
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 31 January 2016
+## Last updated: 4 February 2016
 ###############################################################################
 '''Using the GDB created in Step 1, this tool adds shape information to the
 user's GTFS dataset.  A shapes.txt file is created, and the trips.txt and
 stop_times.txt files are updated.'''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -59,17 +59,22 @@ try:
 
 # ----- Set some things up -----
 
-    orig_overwrite = arcpy.env.overwriteOutput
-    # It's okay to overwrite stuff.
-    arcpy.env.overwriteOutput = True
-
     # Check the user's version
     ArcVersionInfo = arcpy.GetInstallInfo("desktop")
     ArcVersion = ArcVersionInfo['Version']
+    ProductName = ArcVersionInfo['ProductName']
     if ArcVersion in ["10.0", "10.1", "10.2"]:
         arcpy.AddError("You must have ArcGIS 10.2.1 or higher to run this tool.\
 You have ArcGIS version %s." % ArcVersion)
         raise CustomError
+    if ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
+        arcpy.AddError("You must have ArcGIS Pro 1.2 or higher to run this \
+tool. You have ArcGIS Pro version %s." % ArcVersion)
+        raise CustomError
+
+    orig_overwrite = arcpy.env.overwriteOutput
+    # It's okay to overwrite stuff.
+    arcpy.env.overwriteOutput = True
 
     # Connect to the SQL database
     conn = sqlite3.connect(SQLDbase)
@@ -81,10 +86,9 @@ You have ArcGIS version %s." % ArcVersion)
     arcpy.AddMessage("Generating new trips.txt file...")
 
     try:
-        # Open the CSV file
-        with open(outTripsFile, "wb") as f:
+        
+        def WriteTripsFile(f):
             wr = csv.writer(f)
-
             # Get the columns for trips.txt and write them to the file
             c.execute("PRAGMA table_info(trips)")
             trips_table_info = c.fetchall()
@@ -92,32 +96,38 @@ You have ArcGIS version %s." % ArcVersion)
             for col in trips_table_info:
                 columns = columns + (col[1],)
             wr.writerow(columns)
-
+    
             # Find the shape_id and trip_id column indexes
             shape_id_idx = columns.index("shape_id")
             trip_id_idx = columns.index("trip_id")
-            # Initialize a dictionary of {trip_id: shape_id} for later use
-            trip_shape_dict = {}
-
+    
             # We added shape_ids in step 1, so just print the SQL table.
             selecttripsstmt = "SELECT * FROM trips;"
             c.execute(selecttripsstmt)
             alltrips = c.fetchall()
             for trip in alltrips:
                 # Encode trip in utf-8.
-                tripToWrite = tuple([t.encode("utf-8-sig") if isinstance(t, basestring) else t for t in trip])
-                try:
-                    wr.writerow(tripToWrite)
-                except UnicodeEncodeError:
-                    arcpy.AddMessage("Ahh, got a Unicode Error!")
-                    arcpy.AddMessage(trip)
-                    raise
+                if ProductName == "ArcGISPro":
+                    tripToWrite = tuple([t for t in trip])
+                else:
+                    tripToWrite = tuple([t.encode("utf-8") if isinstance(t, basestring) else t for t in trip])
+                wr.writerow(tripToWrite)
                 # While we're at it, create a dictionary of {trip_id: shape_id}
-                trip_shape_dict[tripToWrite[trip_id_idx]] = trip[shape_id_idx]
-
+                trip_shape_dict[tripToWrite[trip_id_idx]] = tripToWrite[shape_id_idx]
+        
+        
+        # Initialize a dictionary of {trip_id: shape_id} for later use
+        trip_shape_dict = {}
+        if ProductName == "ArcGISPro":
+            with codecs.open(outTripsFile, "wb", encoding="utf-8") as f:
+                WriteTripsFile(f)
+        else:         
+            with open(outTripsFile, "wb") as f:
+                WriteTripsFile(f)
+ 
         arcpy.AddMessage("Successfully created new trips.txt file.")
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error generating new trips.txt file.")
         raise
 
@@ -162,7 +172,7 @@ You have ArcGIS version %s." % ArcVersion)
         tenperc = 0.1 * numshapes
         arcpy.AddMessage("Your dataset contains " + str(numshapes) + " shapes.")
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error preparing Shapes for measurement.")
         raise
 
@@ -196,22 +206,20 @@ You have ArcGIS version %s." % ArcVersion)
             for vert in vertexcursor:
                 vert_dict[vert[1]] = vert[0]
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error creating a feature class of Shape vertices.")
         raise
 
     # Prepare the new shapes.txt file
     try:
-        # Open the new shapes.txt file.
-        with codecs.open(outShapesFile, "wb", encoding="utf-8") as f:
+        
+        def WriteShapesFile(f):
             wr = csv.writer(f)
             # Write the headers
             wr.writerow(["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence", "shape_dist_traveled"])
 
             # Find the location of each vertex along the line
             # Linear reference the vertices of each shape and write to shapes.txt
-            shapes_with_warnings = []
-            shapes_with_no_geometry = []
             progress = 0
             perc = 10
             for line in linetable:
@@ -252,6 +260,16 @@ You have ArcGIS version %s." % ArcVersion)
                 if sortedList_dist != sortedList_sequence:
                     shapes_with_warnings.append(shape_id)
 
+        shapes_with_warnings = []
+        shapes_with_no_geometry = []
+        # Open the new shapes.txt file and write output.
+        if ProductName == "ArcGISPro":
+            with codecs.open(outShapesFile, "wb", encoding="utf-8") as f:
+                WriteShapesFile(f)
+        else:         
+            with open(outShapesFile, "wb") as f:
+                WriteShapesFile(f)
+
         # Add warnings for shapes that have them.
         if shapes_with_warnings:
             arcpy.AddWarning("Warning! For some Shapes, the order of the measured \
@@ -272,7 +290,7 @@ str(shapes_with_no_geometry))
 
         arcpy.AddMessage("Successfully generated new shapes.txt file.")
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error writing new shapes.txt file.")
         raise
 
@@ -318,7 +336,10 @@ str(shapes_with_no_geometry))
                         shape_dist_traveled = lineGeom.measureOnLine(ptGeom)
                     # Data to be added to stop_times.txt
                     shape_rows.append([sequence, shape_dist_traveled])
-                    shape_dist_dict_item[unicode(stop_id)] = shape_dist_traveled
+                    if ProductName == "ArcGISPro":
+                        shape_dist_dict_item[str(stop_id)] = shape_dist_traveled
+                    else:
+                        shape_dist_dict_item[unicode(stop_id)] = shape_dist_traveled
                     sequence += 1
                 final_stoptimes_tabledata[str(shape_id)] = shape_dist_dict_item
             # Check if the stops came out in the right order. If they
@@ -342,14 +363,14 @@ Please review and fix your shape geometry, then run this tool \
 again.  See the user's guide for more information.  shape_ids affected:" + \
 str(shapes_with_warnings))
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error linear referencing stops.")
         raise
 
     # Write the new stop_times.txt file
     try:
-        # Open the new stop_times CSV for writing
-        with codecs.open(outStopTimesFile, "wb", encoding="utf-8") as f:
+
+        def WriteStopTimesFile(f):
             wr = csv.writer(f)
 
             # Get the columns for stop_times.txt.
@@ -370,12 +391,14 @@ str(shapes_with_warnings))
             selectstoptimesstmt = "SELECT * FROM stop_times;"
             c.execute(selectstoptimesstmt)
             allstoptimes = c.fetchall()
-            bad_shapes_stops = []
             for stoptime in allstoptimes:
-                shape_id = trip_shape_dict[stoptime[trip_id_idx]]
-                stop_id = stoptime[stop_id_idx]
                 # Encode in utf-8.
-                stoptimelist = [t.encode("utf-8-sig") if isinstance(t, basestring) else t for t in stoptime]
+                if ProductName == "ArcGISPro":
+                    stoptimelist = [t for t in stoptime]
+                else:
+                    stoptimelist = [t.encode("utf-8") if isinstance(t, basestring) else t for t in stoptime]
+                shape_id = trip_shape_dict[stoptimelist[trip_id_idx]]
+                stop_id = stoptimelist[stop_id_idx]
                 try:
                     shape_dist_traveled = final_stoptimes_tabledata[shape_id][stop_id]
                     stoptimelist[shape_dist_traveled_idx] = shape_dist_traveled
@@ -383,6 +406,15 @@ str(shapes_with_warnings))
                     bad_shapes_stops.append([shape_id, stop_id])
                 stoptimetuple = tuple(stoptimelist)
                 wr.writerow(stoptimetuple)
+
+        bad_shapes_stops = []
+        # Open the new stop_times CSV for writing
+        if ProductName == "ArcGISPro":
+            with codecs.open(outStopTimesFile, "wb", encoding="utf-8") as f:
+                WriteStopTimesFile(f)
+        else:         
+            with open(outStopTimesFile, "wb") as f:
+                WriteStopTimesFile(f)
 
         if bad_shapes_stops:
             arcpy.AddWarning("Warning! This tool could not calculate the \
@@ -393,7 +425,7 @@ will show up as blank values in the stop_times.txt table.")
 
         arcpy.AddMessage("Successfully generated new stop_times.txt file.")
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error writing new stop_times.txt file.")
         raise
 
@@ -413,7 +445,7 @@ except CustomError:
     arcpy.AddError("Error generating new GTFS files.")
     pass
 
-except Exception, err:
+except:
     arcpy.AddError("Error generating new GTFS files.")
     raise
 

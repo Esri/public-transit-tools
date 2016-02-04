@@ -2,7 +2,7 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 1: Generate Shapes on Map
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 8 October 2015
+## Last updated: 4 February 2016
 ###############################################################################
 ''' This tool generates a feature class of route shapes for GTFS data.
 The route shapes show the geographic paths taken by the transit vehicles along
@@ -12,7 +12,7 @@ feature class shapes as desired.  Then, the user should use this feature class
 and the other associated files in the output GDB as input to Step 2 in order
 to create updated .txt files for use in the GTFS dataset.'''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -24,12 +24,17 @@ to create updated .txt files for use in the GTFS dataset.'''
    limitations under the License.'''
 ################################################################################
 
-import sqlite3, operator, os, re, csv, itertools
+import sqlite3, operator, os, re, csv, itertools, sys
 import arcpy
 
 class CustomError(Exception):
     pass
 
+
+# Check the user's version
+ArcVersionInfo = arcpy.GetInstallInfo("desktop")
+ArcVersion = ArcVersionInfo['Version']
+ProductName = ArcVersionInfo['ProductName']
 
 # User input variables, set in the scripts that get input from the GUI
 inGTFSdir = None
@@ -70,13 +75,7 @@ def RunStep1():
     generates the actual GTFS shapes.txt file.'''
 
     try:
-        # It's okay to overwrite stuff.
-        orig_overwrite = arcpy.env.overwriteOutput
-        arcpy.env.overwriteOutput = True
-
-        # Check the user's version
-        ArcVersionInfo = arcpy.GetInstallInfo("desktop")
-        ArcVersion = ArcVersionInfo['Version']
+        # Check version
         if ArcVersion == "10.0":
             arcpy.AddError("You must have ArcGIS 10.1 or higher to run this \
 tool. You have ArcGIS version %s." % ArcVersion)
@@ -85,14 +84,22 @@ tool. You have ArcGIS version %s." % ArcVersion)
             arcpy.AddWarning("Warning!  You can run Step 1 of this tool in \
 ArcGIS 10.1 or 10.2, but you will not be able to run Step 2 without ArcGIS \
 10.2.1 or higher.  You have ArcGIS version %s." % ArcVersion)
+        if ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
+            arcpy.AddError("You must have ArcGIS Pro 1.2 or higher to run this \
+tool. You have ArcGIS Pro version %s." % ArcVersion)
+            raise CustomError
 
-        #Check out the Network Analyst extension license
+        # Check out the Network Analyst extension license
         if useNA:
             if arcpy.CheckExtension("Network") == "Available":
                 arcpy.CheckOutExtension("Network")
             else:
                 arcpy.AddError("The Network Analyst license is unavailable.")
                 raise CustomError
+
+        # It's okay to overwrite stuff.
+        orig_overwrite = arcpy.env.overwriteOutput
+        arcpy.env.overwriteOutput = True
 
 
     # ----- Set up the run, fix some inputs -----
@@ -181,7 +188,7 @@ ArcGIS 10.1 or 10.2, but you will not be able to run Step 2 without ArcGIS \
 
         try:
             SQLize_GTFS(files_to_sqlize)
-        except Exception, err:
+        except:
             arcpy.AddError("Error SQLizing the GTFS data.")
             raise
 
@@ -227,7 +234,10 @@ ArcGIS 10.1 or 10.2, but you will not be able to run Step 2 without ArcGIS \
                         search_criteria=search_criteria,
                         snap_to_position_along_network="NO_SNAP",
                         exclude_restricted_elements="EXCLUDE")
-            StopsLayer = arcpy.mapping.ListLayers(RLayer, stopsSubLayer)[0]
+            if ProductName == "ArcGISPro":
+                StopsLayer = RLayer.listLayers(stopsSubLayer)[0]
+            else:
+                StopsLayer = arcpy.mapping.ListLayers(RLayer, stopsSubLayer)[0]
 
             # Iterate over the located stops and create a dictionary of location fields
             global stoplocfielddict
@@ -443,7 +453,7 @@ ArcGIS 10.1 or 10.2, but you will not be able to run Step 2 without ArcGIS \
         arcpy.AddError("Error generating shapes feature class from GTFS data.")
         pass
 
-    except Exception, err:
+    except:
         raise
 
     finally:
@@ -513,15 +523,21 @@ def SQLize_GTFS(files_to_sqlize):
 
         # Open the file for reading
         fname = os.path.join(inGTFSdir, GTFSfile) + ".txt"
-        f = open(fname, "rb")
+        if ProductName == "ArcGISPro":
+            f = open(fname, encoding="utf-8")
+        else:
+            f = open(fname)
         reader = csv.reader(f)
 
         # Put everything in utf-8 to handle BOMs and weird characters.
         # Eliminate blank rows (extra newlines) while we're at it.
-        reader = ([x.decode('utf-8-sig').strip() for x in r] for r in reader if len(r) > 0)
+        if ProductName == "ArcGISPro":
+            reader = ([x.strip() for x in r] for r in reader if len(r) > 0)
+        else:
+            reader = ([x.decode('utf-8').strip() for x in r] for r in reader if len(r) > 0)
 
         # First row is column names:
-        columns = [name.strip() for name in reader.next ()]
+        columns = [name.strip() for name in next(reader)]
 
         # Set up the table schema
         schema = ""
@@ -624,7 +640,12 @@ coordinates.  Please double-check all lat/lon values in your stops.txt file.\
             arcpy.AddError(msg)
             raise CustomError
         return row
-    return itertools.imap(check_latlon_cols, rows)
+    if ProductName == "ArcGISPro":
+        return map(check_latlon_cols, rows)
+    else:
+        return itertools.imap(check_latlon_cols, rows)
+    
+    
 
 
 def Generate_Shapes_Street():
@@ -653,7 +674,7 @@ def Generate_Shapes_Street():
     # Chunk the sequences so we don't run out of memory in the Route solver.
     ChunkSize = 100
     sequences_Streets_chunked = []
-    for i in xrange(0, len(sequences_Streets), ChunkSize):
+    for i in range(0, len(sequences_Streets), ChunkSize):
         sequences_Streets_chunked.append(sequences_Streets[i:i+ChunkSize])
 
     # Huge loop over each chunk.
@@ -749,7 +770,10 @@ def Generate_Shapes_Street():
                 unlocated_stops.append(thingsInQuotes[0])
 
         # Make layer objects for each sublayer we care about.
-        RoutesLayer = arcpy.mapping.ListLayers(RLayer, naSubLayerNames["Routes"])[0]
+        if ProductName == "ArcGISPro":
+            RoutesLayer = RLayer.listLayers(naSubLayerNames["Routes"])[0]
+        else:
+            RoutesLayer = arcpy.mapping.ListLayers(RLayer, naSubLayerNames["Routes"])[0]
 
 
     # ----- Save routes to feature class -----
@@ -781,7 +805,12 @@ network dataset for connectivity problems.")
 
     if badStops:
         badStops = sorted(list(set(badStops)))
-        arcpy.AddWarning("Your stop_times.txt lists times for the following stops which are not included in your stops.txt file. These stops will be ignored. " + unicode(badStops))
+        messageText = "Your stop_times.txt lists times for the following stops which are not included in your stops.txt file. These stops will be ignored. "
+        if ProductName == "ArcGISPro":
+            messageText += str(badStops)
+        else:
+            messageText += unicode(badStops)
+        arcpy.AddWarning(messageText)
 
     if unlocated_stops:
         unlocated_stops = sorted(list(set(unlocated_stops)))
@@ -860,4 +889,9 @@ def Generate_Shapes_Straight(Created_Street_Output):
 
     if badStops:
         badStops = list(set(badStops))
-        arcpy.AddWarning("Your stop_times.txt lists times for the following stops which are not included in your stops.txt file. These stops will be ignored. " + unicode(badStops))
+        messageText = "Your stop_times.txt lists times for the following stops which are not included in your stops.txt file. These stops will be ignored. "
+        if ProductName == "ArcGISPro":
+            messageText += str(badStops)
+        else:
+            messageText += unicode(badStops)
+        arcpy.AddWarning(messageText)
