@@ -1,8 +1,8 @@
 ################################################################################
 # sqlize_csv.py, originally written by Luitien Pan
-# Last updated 10 November 2015 by Melinda Morang, Esri
+# Last updated 25 January 2016 by Melinda Morang, Esri
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -420,9 +420,9 @@ this tool: %s" % (label, str(missing_files)))
         return Errors_To_Return
 
     except UnicodeDecodeError:
-        Errors_To_Return.append("Unicode decoding of GTFS files failed. Please \
+        Errors_To_Return.append(u"Unicode decoding of GTFS dataset %s failed. Please \
 ensure that your GTFS files have the proper utf-8 encoding required by the GTFS \
-specification.")
+specification." % label)
         return Errors_To_Return
     except CustomError:
         return Errors_To_Return
@@ -485,15 +485,21 @@ def check_nonoverlapping_dateranges():
             for eid in serviceidlist:
                 if startdatedict[sid] > enddatedict[eid]:
                     nonoverlappingsids.append([sid, eid])
+                if len(nonoverlappingsids) >= 10:
+                    break
+            if len(nonoverlappingsids) >= 10:
+                    break
         if nonoverlappingsids:
-            overlapwarning = "Warning! Your calendar.txt file(s) contain(s) \
+            overlapwarning = u"Warning! Your calendar.txt file(s) contain(s) \
 non-overlapping date ranges. As a result, your analysis might double \
 count the number of trips available if you are analyzing a generic weekday \
 instead of a specific date.  This is especially likely if the \
 non-overlapping pairs are in the same GTFS dataset.  Please check the date \
 ranges in your calendar.txt file(s). See the User's Guide for further \
-assistance.  Date ranges do not overlap in the following pairs of service_ids: \
-" + str(nonoverlappingsids)
+assistance.  Date ranges do not overlap in the following pairs of service_ids: "
+            if len(nonoverlappingsids) == 10:
+                overlapwarning += "(Showing the first 10 non-overlaps) "
+            overlapwarning += str(nonoverlappingsids)
 
     # Close up the SQL file.
     c.close()
