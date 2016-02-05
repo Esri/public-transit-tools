@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips in Polygon Buffers Around Stops
 ## Step 2: Count Trips in Buffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 November 2015
+## Last updated: 4 February 2016
 ####################################################
 '''BetterBusBuffers - Count Trips in Polygon Buffers Around Stops - Step 2: Count Trips in Buffers
 
@@ -19,7 +19,7 @@ Step 2: Count Trips in Buffers uses the template feature class created in Step
 1 and counts the trips in a specific time window.
 '''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -45,6 +45,13 @@ try:
 
     # ----- Set up the run -----
     try:
+        # Figure out what version of ArcGIS they're running
+        BBB_SharedFunctions.DetermineArcVersion()
+        if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
+            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
+            raise CustomError
+        
         # Get the files from Step 1 to work with.
         inStep1GDB = arcpy.GetParameterAsText(0)
         # Step1_GTFS.sql and Step1_FlatPolys must exist in order for the tool to run.
@@ -88,9 +95,6 @@ try:
             DepOrArr = "departure_time"
         elif TravelFromTo == "Arrivals":
             DepOrArr = "arrival_time"
-
-        # Figure out what version of ArcGIS they're running
-        BBB_SharedFunctions.DetermineArcVersion()
 
         # It's okay to overwrite stuff.
         OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.

@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips for Individual Route
 ## Step 1 - Preprocess Route Buffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 November 2015
+## Last updated: 4 February 2016
 ############################################################################
 ''' BetterBusBuffers - Count Trips for Individual Route: Step 1 - Preprocess Route Buffers
 
@@ -19,7 +19,7 @@ Step 1 - Preprocess Route Buffers creates the service areas around the stops.
 The trip count information is filled in Step 2.
 '''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -46,6 +46,13 @@ conn = None
 try:
     # ------ Get input parameters and set things up. -----
     try:
+        # Figure out what version of ArcGIS they're running
+        BBB_SharedFunctions.DetermineArcVersion()
+        if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
+            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
+            raise CustomError
+        
         #Check out the Network Analyst extension license
         if arcpy.CheckExtension("Network") == "Available":
             arcpy.CheckOutExtension("Network")
@@ -87,7 +94,6 @@ try:
             TrimPolys = "NO_TRIM_POLYS"
             TrimPolysValue = ""
         
-        BBB_SharedFunctions.DetermineArcVersion()
         OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
         arcpy.env.overwriteOutput = True
         # Source FC names are not prepended to field names.

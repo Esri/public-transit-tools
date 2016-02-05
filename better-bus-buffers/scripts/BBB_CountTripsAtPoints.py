@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 November 2015
+## Last updated: 4 February 2016
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Points
 
@@ -15,7 +15,7 @@ also calculates the number of trips per hour, the maximum time between
 subsequent trips, and the number of stops within range of the input point.
 '''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -36,6 +36,14 @@ class CustomError(Exception):
 
 
 try:
+    # Figure out what version of ArcGIS they're running
+    BBB_SharedFunctions.DetermineArcVersion()
+    ArcVersion = BBB_SharedFunctions.ArcVersion
+    ProductName = BBB_SharedFunctions.ProductName
+    if BBB_SharedFunctions.ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
+        arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+You have ArcGIS Pro version %s." % ArcVersion)
+        raise CustomError
 
     #----- Get input parameters -----
     # Output files and location
@@ -94,12 +102,6 @@ try:
     # Output file designated by user
     outDir = os.path.dirname(outFile)
     outFilename = os.path.basename(outFile)
-
-    # Figure out what version of ArcGIS they're running
-    # (for compatibility reasons and general diagnostic info).
-    BBB_SharedFunctions.DetermineArcVersion()
-    ArcVersion = BBB_SharedFunctions.ArcVersion
-    ProductName = BBB_SharedFunctions.ProductName
 
     #Check out the Network Analyst extension license
     # (note that this does NOT check out the extension in ArcMap.

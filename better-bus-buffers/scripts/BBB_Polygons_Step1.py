@@ -1,7 +1,7 @@
 ####################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 November 2015
+## Last updated: 4 February 2016
 ####################################################
 ''' BetterBusBuffers Polygon Tool: Step 1 - Preprocess Buffers
 
@@ -24,7 +24,7 @@ You should only have to run Step 1 once for the geography and buffer size you
 are analyzing.  Step 1 will take a while to run for larger transit systems.
 '''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -53,6 +53,10 @@ try:
 
         # Figure out what version of ArcGIS they're running
         BBB_SharedFunctions.DetermineArcVersion()
+        if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
+            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
+            raise CustomError
 
         ArcLicense = arcpy.ProductInfo()
         if ArcLicense != "ArcInfo":
