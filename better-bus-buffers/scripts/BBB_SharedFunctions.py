@@ -2,11 +2,11 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 November 2015
+## Last updated: 5 February 2016
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -601,8 +601,10 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
     facilities = naSubLayerNames["Facilities"]
 
     # Add a field for stop_id as a unique identifier for service areas.
-    arcpy.na.AddFieldToAnalysisLayer(SALayer, facilities,
-                                    "stop_id", "TEXT")
+    if ProductName == "ArcGISPro":
+        arcpy.na.AddFieldToAnalysisLayer(SALayer, facilities, "stop_id", "TEXT")
+    else:
+        arcpy.na.AddFieldToAnalysisLayer(outNALayer_SA, facilities, "stop_id", "TEXT")
 
     # Specify the field mappings for the stop_id field.
     if ArcVersion == "10.0":
@@ -613,12 +615,20 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
         fieldMappingSA["stop_id"].mappedFieldName = "stop_id"
 
     # Add the GTFS stops as locations for the analysis.
-    arcpy.na.AddLocations(SALayer, facilities, StopsLayer,
+    if ProductName == "ArcGISPro":
+        arcpy.na.AddLocations(SALayer, facilities, StopsLayer,
+                            fieldMappingSA, "50 meters", "", "", "", "", "", "",
+                            ExcludeRestricted)
+    else:
+        arcpy.na.AddLocations(outNALayer_SA, facilities, StopsLayer,
                             fieldMappingSA, "50 meters", "", "", "", "", "", "",
                             ExcludeRestricted)
 
     # Solve the service area.
-    arcpy.na.Solve(SALayer)
+    if ProductName == "ArcGISPro":
+        arcpy.na.Solve(SALayer)
+    else:
+        arcpy.na.Solve(outNALayer_SA)
 
     # Make layer objects for each sublayer we care about.
     if ProductName == 'ArcGISPro':
