@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips for Individual Route
 ## Step 2: Count Trips for Route
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 29 September 2015
+## Last updated: 3 November 2015
 ############################################################################
 '''BetterBusBuffers - Count Trips for Individual Route - Step 2: Count Trips for Route
 
@@ -79,6 +79,13 @@ def RetrieveStatsForStop(stop_id, rtdirtuple):
 try:
     # ------ Get input parameters and set things up. -----
     try:
+        # Figure out what version of ArcGIS they're running
+        BBB_SharedFunctions.DetermineArcVersion()
+        if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
+            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
+            raise CustomError
+
         # Stops and Polygons from Step 1 (any number and route combo)
         FCs = arcpy.GetParameterAsText(0)
         FCList = FCs.split(";")
@@ -134,14 +141,10 @@ fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
         elif DepOrArrChoice == "Departures":
             DepOrArr = "departure_time"
 
-        # Figure out what version of ArcGIS they're running
-        ArcVersionInfo = arcpy.GetInstallInfo("desktop")
-        ArcVersion = ArcVersionInfo['Version']
-
         OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
         arcpy.env.overwriteOutput = True
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error getting inputs.")
         raise
 
@@ -152,7 +155,7 @@ fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
         FC_route_dir_dict = {} # {FC: [route_id, direction_id]}
         route_dir_list = [] # [[route_id, direction_id], ...]
         for FC in FCList:
-            if ArcVersion == "10.0":
+            if BBB_SharedFunctions.ArcVersion == "10.0":
                 cur = arcpy.SearchCursor(FC, "", "", "route_id;direction_id")
                 row = cur.next()
                 rt_dir = (row.getValue("route_id"), row.getValue("direction_id"))
@@ -166,7 +169,7 @@ fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
             if not route_dir_pair in route_dir_list:
                 route_dir_list.append(route_dir_pair)
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error getting route_id and direction_id values from input feature classes.")
         raise
 
@@ -238,7 +241,7 @@ this analysis: " + str(nonoverlappingsids_used)
             arcpy.AddWarning(overlapwarning)
 
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error getting trips associated with route.")
         raise
 
@@ -292,7 +295,7 @@ the values will be 0 or <Null>." % (rtdirpair[0], str(rtdirpair[1]), DayOfWeek))
             for field in fields_to_fill:
                 if field not in FieldNames[FC]:
                     arcpy.management.AddField(FC, field, field_type_dict[field])
-            if ArcVersion == "10.0":
+            if BBB_SharedFunctions.ArcVersion == "10.0":
                 cur2 = arcpy.UpdateCursor(FC, "", "", ";".join(fields_to_read))
                 for row in cur2:
                     rtpairtuple = (row.getValue("route_id"), row.getValue("direction_id"))
@@ -317,7 +320,7 @@ the values will be 0 or <Null>." % (rtdirpair[0], str(rtdirpair[1]), DayOfWeek))
                     cur2.updateRow(row)
             del cur2
 
-    except Exception, err:
+    except:
         arcpy.AddError("Error writing output to feature class(es).")
         raise
 
@@ -334,7 +337,7 @@ except CustomError:
     arcpy.AddError("Failed to calculate transit statistics for this route and time window.")
     pass
 
-except Exception, err:
+except:
     arcpy.AddError("Failed to calculate transit statistics for this route and time window.")
     raise
 

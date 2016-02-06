@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 29 September 2015
+## Last updated: 4 February 2016
 ############################################################################
 ''' BetterBusBuffers: Preprocess GTFS
 
@@ -21,7 +21,7 @@ used as input by all the BetterBusBuffers tools.
 
 ''' This tool uses code written by Luitien Pan for GTFS_NATools.'''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -35,11 +35,19 @@ used as input by all the BetterBusBuffers tools.
 
 import arcpy
 import sqlize_csv
+import BBB_SharedFunctions
 
 class CustomError(Exception):
     pass
 
 try:
+    
+    # Figure out what version of ArcGIS they're running
+    BBB_SharedFunctions.DetermineArcVersion()
+    if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
+        arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
+        raise CustomError
 
     #----- SQLize the GTFS data-----
     arcpy.AddMessage("SQLizing the GTFS data...")

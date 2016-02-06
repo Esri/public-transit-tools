@@ -30,7 +30,6 @@
 # and so on, because then they'll all be labelled as ``data''.
 
 import csv
-from cStringIO import StringIO
 import datetime
 import itertools
 import os
@@ -40,9 +39,10 @@ import sys
 
 import hms
 
-
 class CustomError(Exception):
     pass
+
+ispy3 = sys.version_info >= (3, 0)
 
 Errors_To_Return = []
 
@@ -128,8 +128,7 @@ db = None
 
 def connect(dbname):
     global db
-    if db == None:
-        db = sqlite3.connect(dbname)
+    db = sqlite3.connect(dbname)
 
 
 def check_time_str(s):
@@ -221,7 +220,10 @@ dataset for your analysis."
                     Errors_To_Return.append(msg)
                     raise CustomError
         return out_row
-    return itertools.imap (convert_time_columns, rows)
+    if ispy3:
+        return map(convert_time_columns, rows)
+    else:
+        return itertools.imap(convert_time_columns, rows)
 
 
 def check_date_fields(rows, col_names, tablename, fname):
@@ -242,7 +244,10 @@ Date fields must be in YYYYMMDD format. Please check the date field formatting i
                 Errors_To_Return.append(msg)
                 raise CustomError
         return row
-    return itertools.imap(check_date_cols, rows)
+    if ispy3:
+        return map(check_date_cols, rows)
+    else:
+        return itertools.imap(check_date_cols, rows)
 
 
 def check_latlon_fields(rows, col_names, fname):
@@ -282,7 +287,10 @@ coordinates.  Please double-check all lat/lon values in your stops.txt file.\
             Errors_To_Return.append(msg)
             raise CustomError
         return row
-    return itertools.imap(check_latlon_cols, rows)
+    if ispy3:
+        return map(check_latlon_cols, rows)
+    else:
+        return itertools.imap(check_latlon_cols, rows)
 
 
 def column_specs(tablename):
@@ -318,14 +326,21 @@ def handle_file(fname, service_label):
     tablename = os.path.basename(tablename)
 
     #-- Read in everything from the CSV table
-    f = open(fname)
+    if ispy3:
+        f = open(fname, encoding="utf-8-sig")
+    else:
+        f = open(fname)
     reader = csv.reader(f)
     # Put everything in utf-8 to handle BOMs and weird characters.
     # Eliminate blank rows (extra newlines) while we're at it.
-    reader = ([x.decode('utf-8-sig').strip() for x in r] for r in reader if len(r) > 0)
+    if ispy3:
+        reader = ([x.strip() for x in r] for r in reader if len(r) > 0)
+    else:
+        reader = ([x.decode('utf-8-sig').strip() for x in r] for r in reader if len(r) > 0)
+
 
     # First row is column names:
-    columns = [name.strip() for name in reader.next()]
+    columns = [name.strip() for name in next(reader)]
 
     #-- Do some data validity checking and reformatting
     # Check that all required fields are present
@@ -350,9 +365,15 @@ def handle_file(fname, service_label):
     # Remove unnecessary columns
     columns = columns_filter(columns)
     # Add agency labels for merged datasets
-    rows = itertools.imap(labeller, rows)
+    if ispy3:
+        rows = map(labeller, rows)
+    else:
+        rows = itertools.imap(labeller, rows)
     # Remove data from columns that aren't in the spec
-    rows = itertools.imap(columns_filter, rows)
+    if ispy3:
+        rows = map(columns_filter, rows)
+    else:
+        rows = itertools.imap(columns_filter, rows)
 
     # Add to the SQL table
     values_placeholders = ["?"] * len(columns)

@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 23 October 2015
+## Last updated: 4 February 2016
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Points
 
@@ -15,7 +15,7 @@ also calculates the number of trips per hour, the maximum time between
 subsequent trips, and the number of stops within range of the input point.
 '''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -36,6 +36,14 @@ class CustomError(Exception):
 
 
 try:
+    # Figure out what version of ArcGIS they're running
+    BBB_SharedFunctions.DetermineArcVersion()
+    ArcVersion = BBB_SharedFunctions.ArcVersion
+    ProductName = BBB_SharedFunctions.ProductName
+    if BBB_SharedFunctions.ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
+        arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+You have ArcGIS Pro version %s." % ArcVersion)
+        raise CustomError
 
     #----- Get input parameters -----
     # Output files and location
@@ -95,11 +103,6 @@ try:
     outDir = os.path.dirname(outFile)
     outFilename = os.path.basename(outFile)
 
-    # Figure out what version of ArcGIS they're running
-    # (for compatibility reasons and general diagnostic info).
-    ArcVersionInfo = arcpy.GetInstallInfo("desktop")
-    ArcVersion = ArcVersionInfo['Version']
-
     #Check out the Network Analyst extension license
     # (note that this does NOT check out the extension in ArcMap.
     # It has to be done manually there.)
@@ -108,6 +111,19 @@ try:
     else:
         arcpy.AddError("You must have a Network Analyst license to use this tool.")
         raise CustomError
+
+    # If running in Pro, make sure an fgdb workspace is set so NA layers can be created.
+    if BBB_SharedFunctions.ProductName == "ArcGISPro":
+        if not arcpy.env.workspace:
+            arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
+            print(BBB_SharedFunctions.CurrentGPWorkspaceError)
+            raise CustomError
+        else:
+            workspacedesc = arcpy.Describe(arcpy.env.workspace)
+            if not workspacedesc.workspaceFactoryProgID.startswith('esriDataSourcesGDB.FileGDBWorkspaceFactory'):
+                arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
+                print(BBB_SharedFunctions.CurrentGPWorkspaceError)
+                raise CustomError
 
     # Extract impedance attribute and units from text string
     # The input is formatted as "[Impedance] (Units: [Units])"
@@ -126,9 +142,9 @@ try:
     # ----- Create a feature class of stops ------
     try:
         arcpy.AddMessage("Getting GTFS stops...")
-        StopsLayer, StopList = BBB_SharedFunctions.MakeStopsFeatureClass(os.path.join("in_memory", "Temp_Stops"))
+        StopsLayer, StopList = BBB_SharedFunctions.MakeStopsFeatureClass(os.path.join(outDir, "Temp_Stops"))
     except:
-        arcpy.AddError("Error creating in_memory feature class of GTFS stops.")
+        arcpy.AddError("Error creating feature class of GTFS stops.")
         raise
 
 
@@ -190,7 +206,14 @@ try:
         arcpy.na.Solve(outNALayer_OD)
 
         # Make layer objects for each sublayer we care about.
-        subLayers = dict((lyr.datasetName, lyr) for lyr in arcpy.mapping.ListLayers(ODLayer)[1:])
+        if ProductName == 'ArcGISPro':
+            naSubLayerNames = arcpy.na.GetNAClassNames(ODLayer)
+            subLayerDict = dict((lyr.name, lyr) for lyr in ODLayer.listLayers())
+            subLayers = {}
+            for subL in naSubLayerNames:
+                subLayers[subL] = subLayerDict[naSubLayerNames[subL]]
+        else:
+            subLayers = dict((lyr.datasetName, lyr) for lyr in arcpy.mapping.ListLayers(ODLayer)[1:])
         linesSubLayer = subLayers["ODLines"]
         pointsSubLayer = subLayers["Origins"]
         stopsSubLayer = subLayers["Destinations"]
