@@ -1,6 +1,6 @@
 ################################################################################
 # sqlize_csv.py, originally written by Luitien Pan
-# Last updated 25 January 2016 by Melinda Morang, Esri
+# Last updated 9 February 2016 by Melinda Morang, Esri
 ################################################################################
 '''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,7 +46,7 @@ ispy3 = sys.version_info >= (3, 0)
 
 Errors_To_Return = []
 
-csv_fnames = ["stops.txt", "calendar.txt", "stop_times.txt", "trips.txt", "routes.txt", "frequencies.txt"]
+csv_fnames = ["stops.txt", "calendar.txt", "calendar_dates.txt", "stop_times.txt", "trips.txt", "routes.txt", "frequencies.txt"]
 
 sql_types = {
         str :   "TEXT" ,
@@ -82,6 +82,11 @@ sql_schema = {
                 "sunday" :      (int, True) ,
                 "start_date" :      (str, True) ,
                 "end_date" :        (str, True) ,
+            } ,
+        "calendar_dates" : {
+                "service_id" :  (str, True) ,
+                "date" :      (str, True) ,
+                "exception_type" :         (int, True) ,
             } ,
         "stop_times" : {
                 "trip_id" :     (str, True) ,
@@ -351,7 +356,7 @@ def handle_file(fname, service_label):
     elif tablename == "frequencies":
         rows = smarter_convert_times(reader, columns, fname, service_label, ('start_time', 'end_time'))
     # Make sure date fields are in YYYYMMDD format
-    elif tablename == "calendar":
+    elif tablename in ["calendar", "calendar_dates"]:
         rows = check_date_fields(reader, columns, tablename, fname)
     # Make sure lat/lon values are valid
     elif tablename == "stops":
@@ -400,15 +405,22 @@ def handle_agency(gtfs_dir):
 
         # Verify that the required files are present
         missing_files = []
+        has_a_calendar = 0
         for fname in csv_fnames:
             fname2 = os.path.join(gtfs_dir, fname)
             if os.path.exists(fname2):
                 csvs_withPaths.append(fname2)
+                # We must have at least one of calendar or calendar_dates
+                if fname in ["calendar_dates.txt", "calendar.txt"]:
+                    has_a_calendar = 1
             else:
-                if fname not in ["frequencies.txt"]:
+                # These files aren't required
+                if fname not in ["calendar.txt", "calendar_dates.txt", "frequencies.txt"]:
                     missing_files.append(fname)
+        if not has_a_calendar:
+            missing_files.append("calendar.txt or calendar_dates.txt")
         if missing_files:
-            Errors_To_Return.append("GTFS dataset %s is missing files required for \
+            Errors_To_Return.append(u"GTFS dataset %s is missing files required for \
 this tool: %s" % (label, str(missing_files)))
             return Errors_To_Return
 
@@ -440,6 +452,7 @@ def create_indices():
     cur.execute("CREATE INDEX stopTimes_index_tripIdsDep ON stop_times (trip_id, departure_time);")
     cur.execute("CREATE INDEX stopTimes_index_tripIdsArr ON stop_times (trip_id, arrival_time);")
     cur.execute("CREATE INDEX calendar_index_serviceIds ON calendar (service_id);")
+    cur.execute("CREATE INDEX calendardates_index_date ON calendar_dates (date);")
     db.commit()
     cur.close()
 

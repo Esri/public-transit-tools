@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips for Individual Route
 ## Step 2: Count Trips for Route
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 November 2015
+## Last updated: 9 February 2016
 ############################################################################
 '''BetterBusBuffers - Count Trips for Individual Route - Step 2: Count Trips for Route
 
@@ -19,7 +19,7 @@ Step 2: Count Trips for Route uses the template feature class created in Step
 1 and counts the trips in a specific time window.
 '''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -112,9 +112,18 @@ fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
         conn = sqlite3.connect(SQLDbase)
         c = BBB_SharedFunctions.c = conn.cursor()
 
-        # Day and time window to analyze
-        DayOfWeek = arcpy.GetParameterAsText(2)
-        dayshort = DayOfWeek[0:3] # For field names in the output file
+        # Weekday or specific date to analyze.
+        # Note: Datetime format check is in tool validation code
+        dayString = arcpy.GetParameterAsText(2)
+        if dayString in BBB_SharedFunctions.days: #Generic weekday
+            Specific = False
+            day = dayString
+            dayshort = dayString[0:3] # For field names in the output file
+        else: #Specific date
+            Specific = True
+            day = datetime.datetime.strptime(dayString, '%Y%m%d')
+            dayshort = BBB_SharedFunctions.days[day.weekday()][0:3] # For field names in the output file
+        
         # Lower end of time window (HH:MM in 24-hour time)
         start_time = arcpy.GetParameterAsText(3)
         # Default start time is midnight if they leave it blank.
@@ -181,7 +190,7 @@ fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
 
         # Get the service_ids serving the correct days
         serviceidlist, serviceidlist_yest, serviceidlist_tom, nonoverlappingsids = \
-            BBB_SharedFunctions.GetServiceIDListsAndNonOverlaps(DayOfWeek, start_sec, end_sec, DepOrArr)
+            BBB_SharedFunctions.GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific)
 
         trip_route_dict = {} #{(route_id, direction_id): [trip_id, trip_id,..]}
         serviceids_used = []
@@ -222,7 +231,7 @@ the values will be 0 or <Null>." % (route_id, str(direction_id)))
             if not trip_route_dict:
                 arcpy.AddWarning("There is no service for route %s in direction %s \
 on %s during the time window you selected. Output fields will be generated, but \
-the values will be 0 or <Null>." % (route_id, str(direction_id), DayOfWeek))
+the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
 
         # Give a warning for non-overlapping service_ids if necessary.
         serviceids_used = list(set(serviceids_used))
@@ -271,7 +280,7 @@ this analysis: " + str(nonoverlappingsids_used)
             if not stoptimedict:
                 arcpy.AddWarning("There is no service for route %s in direction %s \
 on %s during the time window you selected. Output fields will be generated, but \
-the values will be 0 or <Null>." % (rtdirpair[0], str(rtdirpair[1]), DayOfWeek))
+the values will be 0 or <Null>." % (rtdirpair[0], str(rtdirpair[1]), dayString))
 
     except:
         arcpy.AddError("Error counting arrivals or departures at stop during time window.")
