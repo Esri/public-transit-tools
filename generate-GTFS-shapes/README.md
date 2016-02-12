@@ -14,7 +14,7 @@ The Generate GTFS Shapes toolbox produces a shapes.txt file for your GTFS datase
 
 ## Requirements
 
-* ArcGIS 10.2.1 or higher with a Desktop Basic (ArcView) license. This tool does not work in ArcGIS Pro yet.
+* ArcGIS 10.2.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher.
 * Network Analyst extension. (You can run a limited version of the tool without the Network Analyst extension.)
 
 ## Resources
@@ -31,7 +31,7 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing).
 
 ## Licensing
-Copyright 2015 Esri
+Copyright 2016 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
