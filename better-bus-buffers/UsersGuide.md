@@ -28,7 +28,7 @@ Detailed instructions for each of these tools is given later in this document.
 * You need the Desktop Advanced (ArcInfo) license in order to run the *Count Trips in Polygon Buffers around Stops* tool.
 
 ##Data requirements
-* A valid GTFS dataset.  Your GTFS dataset must contain a calendar.txt file.  If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.
+* A valid GTFS dataset.  If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.
 * For some functionality, a network dataset with street data for your area of interest.
 * For the *Count Trips at Points* tool, a feature class of your points of interest.
 
