@@ -1,6 +1,6 @@
 ################################################################################
 # sqlize_csv.py, originally written by Luitien Pan
-# Last updated 25 January 2016 by Melinda Morang
+# Last updated 3 March 2016 by Melinda Morang
 ################################################################################
 '''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,7 +49,7 @@ Errors_To_Return = []
 
 
 csv_fnames = ["stops.txt", "calendar.txt", "calendar_dates.txt",
-                "trips.txt", "routes.txt", "frequencies.txt"]
+                "trips.txt", "stop_times.txt", "routes.txt", "frequencies.txt"]
 
 sql_types = {
         str :   "TEXT" ,
