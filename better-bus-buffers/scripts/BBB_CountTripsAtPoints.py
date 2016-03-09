@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 9 February 2016
+## Last updated: 8 March 2016
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Points
 
@@ -149,7 +149,10 @@ You have ArcGIS Pro version %s." % ArcVersion)
     # ----- Create a feature class of stops ------
     try:
         arcpy.AddMessage("Getting GTFS stops...")
-        StopsLayer, StopList = BBB_SharedFunctions.MakeStopsFeatureClass(os.path.join(outDir, "Temp_Stops"))
+        tempstopsname = "Temp_Stops"
+        if ".shp" in outFilename:
+            tempstopsname += ".shp"
+        StopsLayer, StopList = BBB_SharedFunctions.MakeStopsFeatureClass(os.path.join(outDir, tempstopsname))
     except:
         arcpy.AddError("Error creating feature class of GTFS stops.")
         raise

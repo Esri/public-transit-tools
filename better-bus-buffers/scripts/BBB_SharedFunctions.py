@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 8 February 2016
+## Last updated: 9 March 2016
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -130,86 +130,20 @@ def MakeServiceIDList(day, Specific=False):
             for eid in serviceidlist:
                 if startdatedict[sid] > enddatedict[eid]:
                     nonoverlappingsids.append((sid, eid))
+                if len(nonoverlappingsids) >= 10:
+                    break
+
+        # Check for non-overlapping date ranges.
+        for sid in serviceidlist:
+            for eid in serviceidlist:
+                if startdatedict[sid] > enddatedict[eid]:
+                    nonoverlappingsids.append([sid, eid])
+                if len(nonoverlappingsids) >= 10:
+                    break
+            if len(nonoverlappingsids) >= 10:
+                    break
 
     return serviceidlist, nonoverlappingsids
-
-
-def MakeServiceIDList_orig(day):
-    '''Find the service ids for the selected day of the week and check for
-    non-overlapping date ranges.'''
-
-    # Find the service_ids that describe trips on our selected days of the week.
-    serviceidlist = []
-    startdatedict = {}
-    enddatedict = {}
-    serviceidfetch = '''
-        SELECT service_id, start_date, end_date FROM calendar
-        WHERE %s == "1"
-        ;''' % day.lower()
-    c.execute(serviceidfetch)
-    ids = c.fetchall()
-    for id in ids:
-        # Add to the list of service_ids
-        serviceidlist.append(id[0])
-        startdatedict[id[0]] = id[1]
-        enddatedict[id[0]] = id[2]
-
-    # Check for non-overlapping date ranges to prevent double-counting.
-    nonoverlappingsids = []
-    for sid in serviceidlist:
-        for eid in serviceidlist:
-            if startdatedict[sid] > enddatedict[eid]:
-                nonoverlappingsids.append((sid, eid))
-
-    return serviceidlist, nonoverlappingsids
-
-
-def GetServiceIDListsAndNonOverlaps_backup(DayOfWeek, start_sec, end_sec, DepOrArr):
-    ''' Get the lists of service ids for today, yesterday, and tomorrow, and
-    combine non-overlapping date range list for all days'''
-
-    # Determine if it's early enough in the day that we need to consider trips
-    # still running from yesterday - these set global variables
-    if not ConsiderYesterday:
-        ShouldConsiderYesterday(start_sec, DepOrArr)
-    # If our time window spans midnight, we need to check tomorrow's trips, too.
-    if not ConsiderTomorrow:
-        ShouldConsiderTomorrow(end_sec)
-    # And what weekdays are yesterday and tomorrow?
-    Yesterday = days[(days.index(DayOfWeek) - 1)%7] # %7 wraps it around
-    Tomorrow = days[(days.index(DayOfWeek) + 1)%7] # %7 wraps it around
-
-    try:
-        # Get the service ids applicable for the current day of the week
-        # Furthermore, get list of service ids with non-overlapping date ranges.
-        serviceidlist, nonoverlappingsids = MakeServiceIDList(DayOfWeek)
-
-        # If we need to consider yesterday's trips, get the service ids.
-        serviceidlist_yest = []
-        nonoverlappingsids_yest = []
-        if ConsiderYesterday:
-            serviceidlist_yest, nonoverlappingsids_yest = MakeServiceIDList(Yesterday)
-
-        # If we need to consider tomorrow's trips, get the service ids.
-        serviceidlist_tom = []
-        nonoverlappingsids_tom = []
-        if ConsiderTomorrow:
-            serviceidlist_tom, nonoverlappingsids_tom = MakeServiceIDList(Tomorrow)
-    except:
-        arcpy.AddError("Error getting list of service_ids for time window.")
-        raise
-
-    # Make sure there is service on the day we're analyzing.
-    if not serviceidlist and not serviceidlist_yest and not serviceidlist_tom:
-        arcpy.AddWarning("There is no transit service during this time window. \
-No service_ids cover the weekday you have selected.")
-
-    # Combine lists of non-overlapping date range pairs of service ids
-    nonoverlappingsids += nonoverlappingsids_yest
-    nonoverlappingsids += nonoverlappingsids_tom
-    nonoverlappingsids = list(set(nonoverlappingsids))
-
-    return serviceidlist, serviceidlist_yest, serviceidlist_tom, nonoverlappingsids
 
 
 def GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific=False):
@@ -260,8 +194,24 @@ No service_ids cover the weekday or specific date you have selected.")
     nonoverlappingsids += nonoverlappingsids_yest
     nonoverlappingsids += nonoverlappingsids_tom
     nonoverlappingsids = list(set(nonoverlappingsids))
-
-    return serviceidlist, serviceidlist_yest, serviceidlist_tom, nonoverlappingsids
+    nonoverlappingsids = nonoverlappingsids[:10] # Truncate to 10 records
+    
+    if nonoverlappingsids:
+        overlapwarning = u"Warning! The trips being counted in this analysis \
+have service_ids with non-overlapping date ranges in your GTFS dataset's \
+calendar.txt file(s). As a result, your analysis might double count the number \
+of trips available if you are analyzing a generic weekday instead of a specific \
+date.  This is especially likely if the non-overlapping pairs are in the same \
+GTFS dataset.  Please check the date ranges in your calendar.txt file(s), and \
+consider running this analysis for a specific date instead of a generic weekday. \
+See the User's Guide for further assistance.  Date ranges do not overlap in the \
+following pairs of service_ids: "
+        if len(nonoverlappingsids) == 10:
+            overlapwarning += "(Showing the first 10 non-overlaps) "
+        overlapwarning += str(nonoverlappingsids)
+        arcpy.AddWarning(overlapwarning)   
+    
+    return serviceidlist, serviceidlist_yest, serviceidlist_tom
 
 
 def MakeTripList(serviceidlist):
@@ -421,90 +371,12 @@ def ShouldConsiderTomorrow(end_sec):
         ConsiderTomorrow = 1
 
 
-def CountTripsAtStops_backup(DayOfWeek, start_sec, end_sec, DepOrArr):
-    '''Given a time window, return a dictionary of
-    {stop_id: [[trip_id, stop_time]]}'''
-
-    serviceidlist, serviceidlist_yest, serviceidlist_tom, nonoverlappingsids = \
-        GetServiceIDListsAndNonOverlaps(DayOfWeek, start_sec, end_sec, DepOrArr)
-
-    # If there are nonoverlapping date ranges in our data, raise a warning.
-    if nonoverlappingsids:
-        overlapwarning = "Warning! Your calendar.txt file(s) contain(s) \
-non-overlapping date ranges. Your output might be double counting the number \
-of trips available. Please check the date ranges in your calendar.txt file(s). \
-See the User's Guide for further assistance.  Date ranges do not overlap in the \
-following pairs of service_ids used in \
-this analysis: " + str(nonoverlappingsids)
-        arcpy.AddWarning(overlapwarning)
-
-    try:
-        # Get the list of trips with these service ids.
-        triplist = MakeTripList(serviceidlist)
-
-        triplist_yest = []
-        if ConsiderYesterday:
-            # To save time, only get yesterday's trips if yesterday's service ids
-            # are different than today's.
-            if serviceidlist_yest != serviceidlist:
-                triplist_yest = MakeTripList(serviceidlist_yest)
-            else:
-                triplist_yest = triplist
-
-        triplist_tom = []
-        if ConsiderTomorrow:
-            # To save time, only get tomorrow's trips if tomorrow's service ids
-            # are different than today's.
-            if serviceidlist_tom == serviceidlist:
-                triplist_tom = triplist
-            elif serviceidlist_tom == serviceidlist_yest:
-                triplist_tom = triplist_yest
-            else:
-                triplist_tom = MakeTripList(serviceidlist_tom)
-    except:
-        arcpy.AddError("Error creating list of trips for time window.")
-        raise
-
-    # Make sure there is service on the day we're analyzing.
-    if not triplist and not triplist_yest and not triplist_tom:
-        arcpy.AddWarning("There is no transit service during this time window. \
-No trips are running.")
-
-    try:
-        # Get the stop_times that occur during this time window
-        stoptimedict = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today")
-        stoptimedict_yest = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "yesterday")
-        stoptimedict_tom = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "tomorrow")
-
-        # Combine the three dictionaries into one master
-        for stop in stoptimedict_yest:
-            stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_yest[stop]
-        for stop in stoptimedict_tom:
-            stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_tom[stop]
-
-    except:
-        arcpy.AddError("Error creating dictionary of stops and trips in time window.")
-        raise
-
-    return stoptimedict
-
-
 def CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific=False):
     '''Given a time window, return a dictionary of
     {stop_id: [[trip_id, stop_time]]}'''
 
-    serviceidlist, serviceidlist_yest, serviceidlist_tom, nonoverlappingsids = \
+    serviceidlist, serviceidlist_yest, serviceidlist_tom, = \
         GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific)
-
-    # If there are nonoverlapping date ranges in our data, raise a warning.
-    if nonoverlappingsids:
-        overlapwarning = "Warning! Your calendar.txt file(s) contain(s) \
-non-overlapping date ranges. Your output might be double counting the number \
-of trips available. Please check the date ranges in your calendar.txt file(s). \
-See the User's Guide for further assistance.  Date ranges do not overlap in the \
-following pairs of service_ids used in \
-this analysis: " + str(nonoverlappingsids)
-        arcpy.AddWarning(overlapwarning)
 
     try:
         # Get the list of trips with these service ids.
@@ -649,7 +521,7 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
         selectstoptablestmt = "SELECT stop_id, stop_code, stop_name, stop_desc, stop_lat, stop_lon, zone_id, stop_url, location_type, parent_station FROM stops;"
         c.execute(selectstoptablestmt)
         StopTable = c.fetchall()
-    possiblenulls = [1, 3, 4, 6, 9, 10]
+    possiblenulls = [1, 3, 6, 7, 8, 9]
 
     # Make a list of stop_ids for use later.
     StopIDList = []
@@ -671,21 +543,21 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
                         stop[idx] = ""
             row = cur3.newRow()
             pt = arcpy.Point()
-            pt.X = float(stop[7])
-            pt.Y = float(stop[2])
+            pt.X = float(stop[5])
+            pt.Y = float(stop[4])
             row.shape = pt
-            row.setValue("stop_id", stop[5])
-            row.setValue("stop_code", stop[4])
-            row.setValue("stop_name", stop[8])
-            row.setValue("stop_desc", stop[6])
-            row.setValue("zone_id", stop[10])
-            row.setValue("stop_url", stop[9])
+            row.setValue("stop_id", stop[0])
+            row.setValue("stop_code", stop[1])
+            row.setValue("stop_name", stop[2])
+            row.setValue("stop_desc", stop[3])
+            row.setValue("zone_id", stop[6])
+            row.setValue("stop_url", stop[7])
             if ".shp" in stopsfc_name:
-                row.setValue("loc_type", stop[3])
-                row.setValue("parent_sta", stop[1])
+                row.setValue("loc_type", stop[8])
+                row.setValue("parent_sta", stop[9])
             else:
-                row.setValue("location_type", stop[3])
-                row.setValue("parent_station", stop[1])
+                row.setValue("location_type", stop[8])
+                row.setValue("parent_station", stop[9])
             cur3.insertRow(row)
         del row
 
@@ -803,11 +675,11 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
     # Add the GTFS stops as locations for the analysis.
     if ProductName == "ArcGISPro":
         arcpy.na.AddLocations(SALayer, facilities, StopsLayer,
-                            fieldMappingSA, "50 meters", "", "", "", "", "", "",
+                            fieldMappingSA, "500 meters", "", "", "", "", "", "",
                             ExcludeRestricted)
     else:
         arcpy.na.AddLocations(outNALayer_SA, facilities, StopsLayer,
-                            fieldMappingSA, "50 meters", "", "", "", "", "", "",
+                            fieldMappingSA, "500 meters", "", "", "", "", "", "",
                             ExcludeRestricted)
 
     # Solve the service area.

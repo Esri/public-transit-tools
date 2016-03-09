@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips for Individual Route
 ## Step 2: Count Trips for Route
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 9 February 2016
+## Last updated: 8 March 2016
 ############################################################################
 '''BetterBusBuffers - Count Trips for Individual Route - Step 2: Count Trips for Route
 
@@ -189,11 +189,10 @@ fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
         arcpy.AddMessage("Getting list of trips...")
 
         # Get the service_ids serving the correct days
-        serviceidlist, serviceidlist_yest, serviceidlist_tom, nonoverlappingsids = \
+        serviceidlist, serviceidlist_yest, serviceidlist_tom = \
             BBB_SharedFunctions.GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific)
 
         trip_route_dict = {} #{(route_id, direction_id): [trip_id, trip_id,..]}
-        serviceids_used = []
         for rtpair in route_dir_list:
             key = tuple(rtpair)
             route_id = rtpair[0]
@@ -225,30 +224,12 @@ the values will be 0 or <Null>." % (route_id, str(direction_id)))
             for triproute in triproutelist:
                 # Only keep trips running on the correct day
                 if triproute[1] in serviceidlist or triproute[1] in serviceidlist_tom or triproute[1] in serviceidlist_yest:
-                    serviceids_used.append(triproute[1])
                     trip_route_dict.setdefault(key, []).append(triproute[0])
 
             if not trip_route_dict:
                 arcpy.AddWarning("There is no service for route %s in direction %s \
 on %s during the time window you selected. Output fields will be generated, but \
 the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
-
-        # Give a warning for non-overlapping service_ids if necessary.
-        serviceids_used = list(set(serviceids_used))
-        nonoverlappingsids_used = []
-        for nonoverlap in nonoverlappingsids:
-            if nonoverlap[0] in serviceids_used and nonoverlap[1] in serviceids_used:
-                nonoverlappingsids_used.append(nonoverlap)
-        if nonoverlappingsids_used:
-            overlapwarning = "Warning! The service_ids used in counting trips \
-for this route and time window contain \
-non-overlapping date ranges. Your output might be double counting the number \
-of trips available. Please check the date ranges in your calendar.txt file(s). \
-See the User's Guide for further assistance.  Date ranges do not overlap in the \
-following pairs of service_ids used in \
-this analysis: " + str(nonoverlappingsids_used)
-            arcpy.AddWarning(overlapwarning)
-
 
     except:
         arcpy.AddError("Error getting trips associated with route.")
