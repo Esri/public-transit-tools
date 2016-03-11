@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Preproces stop_times
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 10 March 2016
+## Last updated: 11 March 2016
 ############################################################################
 '''
 This tool creates a SQL table from a GTFS stop_times.txt file and analyzes
@@ -33,19 +33,8 @@ try:
     stop_times_file = arcpy.GetParameterAsText(0)
     SQLDbase = arcpy.GetParameterAsText(1)
     
-    #Create the SQL database and table
-    relevant_cols = ["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence"]
-    table_schema = "trip_id CHAR,\n\
-arrival_time CHAR NULL,\n\
-departure_time CHAR NULL,\n\
-stop_id CHAR,\n\
-stop_sequence INT,\n\
-id INTEGER PRIMARY KEY"
-    conn = sqlite3.connect(SQLDbase)
-    conn.execute("DROP TABLE IF EXISTS stop_times;")
-    create_stmt = "CREATE TABLE stop_times (%s);" % table_schema
-    conn.execute(create_stmt)
-    conn.commit()
+    
+    # ----- Turn stop_times.txt into a SQL table -----
     
     # Grab the data from the stop_times.txt file and insert it into the SQL table
     arcpy.AddMessage("Inserting stop_times.txt data into SQL table...")
@@ -57,21 +46,36 @@ id INTEGER PRIMARY KEY"
         reader = ([x.decode('utf-8-sig').strip() for x in r] for r in reader if len(r) > 0)
         columns = [name.strip() for name in next(reader)]
         
-        # Figure out which columns in stop_time we care about
+        # Make sure the necessary columns are there to start with
+        relevant_cols = {"trip_id": "trip_id CHAR,\n",
+                        "arrival_time": "arrival_time CHAR,\n",
+                        "departure_time": "departure_time CHAR,\n",
+                        "stop_id": "stop_id CHAR,\n",
+                        "stop_sequence": "stop_sequence INT,\n"}
+        table_schema = "sqliteprimarykeyid INTEGER PRIMARY KEY,\n"
         for col in relevant_cols:
-            try:
-                col_idxs.append(columns.index(col))
-            except ValueError:
-                # The input data is missing a required column.
+            if not col in columns:
                 arcpy.AddError("Your GTFS dataset's stop_times.txt file is missing a required column: %s" % col)
                 raise CustomError
-        reader = ([r[idx] for idx in col_idxs] for r in reader)
-    
+        
+        # Create the SQL database and table with the appropriate schema
+        for col in columns:
+            if col in relevant_cols:
+                table_schema += relevant_cols[col]
+            else:
+                table_schema += col + " CHAR,\n"
+        table_schema = table_schema.strip(",\n")
+        conn = sqlite3.connect(SQLDbase)
+        conn.execute("DROP TABLE IF EXISTS stop_times;")
+        create_stmt = "CREATE TABLE stop_times (%s);" % table_schema
+        conn.execute(create_stmt)
+        conn.commit()
+        
         # Add the stop_times data to the SQL table
-        values_placeholders = ["?"] * len(relevant_cols)
+        values_placeholders = ["?"] * len(columns)
         c = conn.cursor()
         c.executemany("INSERT INTO stop_times (%s) VALUES (%s);" %
-                            (",".join(relevant_cols),
+                            (",".join(columns),
                             ",".join(values_placeholders))
                             , reader)
         conn.commit()
@@ -82,9 +86,22 @@ id INTEGER PRIMARY KEY"
         c.execute("CREATE INDEX idx_arrivaltime_stopid ON stop_times (stop_id, arrival_time);")
         c.execute("CREATE INDEX idx_tripid ON stop_times (trip_id);")
         conn.commit()
+
+
+    # ----- Analyze the stop_times.txt file to try to understand how it's constructed -----
     
     # Gather some information about the data
     arcpy.AddMessage("Analyzing the stop_times.txt data...")
+    
+    # Make sure there are at least some non-blank values
+    CountStmt = "SELECT COUNT(sqliteprimarykeyid) FROM stop_times WHERE arrival_time!=''"
+    c.execute(CountStmt)
+    numnotblank = c.fetchone()[0]
+    if numnotblank == 0:
+        arcpy.AddError("Your stop_times.txt does not contain any arrival_time values \
+that are not blank.  No interpolation will be possible because there is no data to \
+start with!")
+        raise CustomError
     
     # Count total number of unique trip_ids
     CountStmt = "SELECT COUNT (DISTINCT trip_id) FROM stop_times;"
@@ -111,12 +128,12 @@ id INTEGER PRIMARY KEY"
         # If there are also no blank departure_times, then this data doesn't need to be fixed.
         if numblanktrips == 0:
             arcpy.AddWarning("Your stop_times.txt file does not contain any blank arrival_time \
-or departure_time values.")
+or departure_time values. No interpolation is needed.")
             raise CustomError
     
     # Calculate the percent of trips which have blank stop times and then make some assumptions
     percentblanktrips = round((float(numblanktrips) / float(numtrips)) * 100, 1)
-    arcpy.AddMessage("Percent of trips with blank stop times: %s" % str(percentblanktrips))
+    arcpy.AddMessage("Percent of trips with blank stop times: %s%%" % str(percentblanktrips))
     time_points_message = "Because %s of your trips contain blank stop times, it is likely that your GTFS dataset was \
 intentionally constructed using time points.  The stops in between time points are not given a specific \
 stop time value because the the arrival and departure time are not guaranteed to be consistent or exact. A lot of \
@@ -142,10 +159,10 @@ interpolation will be necessary for this data, and the procedure could take some
         CountStmt = "SELECT COUNT (DISTINCT stop_id) FROM stop_times WHERE %s='';" % stop_time
         c.execute(CountStmt)
         numblankstops = c.fetchone()[0]
-        arcpy.AddMessage("Number of stop_ids with blank %s: %s" % (stop_time, numblanktrips))
+        arcpy.AddMessage("Number of stop_ids with blank %s: %s" % (stop_time, numblankstops))
         
         percentblankstops = round((float(numblankstops) / float(numstops)) * 100, 1)
-        arcpy.AddMessage("Percent of stops with blank stop times: %s" % str(numblankstops))
+        arcpy.AddMessage("Percent of stops with blank stop times: %s%%" % str(percentblankstops))
         
         # Take some more guesses
         if percentblankstops <= 10: # Note: this limit is fairly arbitrary
