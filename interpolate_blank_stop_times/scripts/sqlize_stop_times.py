@@ -29,6 +29,10 @@ class CustomError(Exception):
     pass
 
 try:
+    # Check the user's version
+    ArcVersionInfo = arcpy.GetInstallInfo("desktop")
+    ProductName = ArcVersionInfo['ProductName']
+    
     # Collect user inputs
     stop_times_file = arcpy.GetParameterAsText(0)
     SQLDbase = arcpy.GetParameterAsText(1)
@@ -43,7 +47,10 @@ try:
         
         # Get the csv data
         reader = csv.reader(f)
-        reader = ([x.decode('utf-8-sig').strip() for x in r] for r in reader if len(r) > 0)
+        if ProductName == "ArcGISPro":
+            reader = ([x.strip() for x in r] for r in reader if len(r) > 0)
+        else:
+            reader = ([x.decode('utf-8-sig').strip() for x in r] for r in reader if len(r) > 0)
         columns = [name.strip() for name in next(reader)]
         
         # Make sure the necessary columns are there to start with
