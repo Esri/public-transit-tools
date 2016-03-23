@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 9 March 2016
+## Last updated: 23 March 2016
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -131,16 +131,6 @@ def MakeServiceIDList(day, Specific=False):
                 if startdatedict[sid] > enddatedict[eid]:
                     nonoverlappingsids.append((sid, eid))
                 if len(nonoverlappingsids) >= 10:
-                    break
-
-        # Check for non-overlapping date ranges.
-        for sid in serviceidlist:
-            for eid in serviceidlist:
-                if startdatedict[sid] > enddatedict[eid]:
-                    nonoverlappingsids.append([sid, eid])
-                if len(nonoverlappingsids) >= 10:
-                    break
-            if len(nonoverlappingsids) >= 10:
                     break
 
     return serviceidlist, nonoverlappingsids
