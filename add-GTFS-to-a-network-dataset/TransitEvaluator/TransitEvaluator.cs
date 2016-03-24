@@ -33,6 +33,25 @@ using System.IO;
 
 namespace TransitEvaluator
 {
+    public class Cache
+    {
+        // Dictionary of trip information to be keyed by trip_id
+        public Dictionary<string, Trip> m_trips = new Dictionary<string, Trip>();
+
+        // Dictionary of trip instances to be keyed by EID. A given EID will have multiple trip instances associated with it.
+        public Dictionary<long, List<trip_instance>> m_eids = new Dictionary<long, List<trip_instance>>();
+
+        // Dictionary relating SourceOID and EID
+        public Dictionary<long, long> m_linefeatures = new Dictionary<long, long>();
+
+        // Dictionary for each service id in the calendar.txt file - for days of week and date range
+        public Dictionary<string, Calendar> m_calendars = new Dictionary<string, Calendar>();
+
+        // Dictionary for exceptions to regular service.  {service_id: {date: exception_type}}
+        public Dictionary<string, Dictionary<DateTime, CalendarExceptionType>> m_calExceptions = new Dictionary<string, Dictionary<DateTime, CalendarExceptionType>>();
+
+    }
+
     public class Trip
     {
         // A trip corresponds to a GTFS trip (minus a few unneeded characteristics)
@@ -100,20 +119,8 @@ namespace TransitEvaluator
         public static string m_CurrentProduct;
         public static string m_RegistryKeyRoot;
 
-        // Dictionary of trip information to be keyed by trip_id
-        private Dictionary<string, Trip> m_trips = new Dictionary<string, Trip>();
-
-        // Dictionary of trip instances to be keyed by EID. A given EID will have multiple trip instances associated with it.
-        private Dictionary<long, List<trip_instance>> m_eids = new Dictionary<long, List<trip_instance>>();
-
-        // Dictionary relating SourceOID and EID
-        private Dictionary<long, long> m_linefeatures = new Dictionary<long, long>();
-
-        // Dictionary for each service id in the calendar.txt file - for days of week and date range
-        private Dictionary<string, Calendar> m_calendars = new Dictionary<string, Calendar>();
-
-        // Dictionary for exceptions to regular service.  {service_id: {date: exception_type}}
-        private Dictionary<string, Dictionary<DateTime, CalendarExceptionType>> m_calExceptions = new Dictionary<string, Dictionary<DateTime, CalendarExceptionType>>();
+        // Dictionary of cache items so you can have multiple networks cached at once.
+        private static Dictionary<string, Cache> m_caches = new Dictionary<string, Cache>();
 
         private string m_workspace_path_name;
 
@@ -370,10 +377,13 @@ namespace TransitEvaluator
 
         private void CacheSchedules()
         {
-            // if our schedules haven't been cached yet, attempt it now.
-            if (m_CacheOnEverySolve || m_trips.Count == 0)
+            // Only cache if we haven't done so already, unless we specifically want it to cache every time.
+            if (m_CacheOnEverySolve || !m_caches.ContainsKey(m_workspace_path_name))
             {
-                if (m_VerboseLogging) WriteToOutputFile(m_LogFile, "CacheSchedules because m_trips.Count == 0 or m_CacheOnEverySolve == true");
+                // Instantiate new cache object, which we will fill
+                Cache m_cache = new Cache();
+
+                if (m_VerboseLogging) WriteToOutputFile(m_LogFile, "CacheSchedules because we don't already have a cache object for this network, or m_CacheOnEverySolve == true");
                 try
                 {
                     // For Server and 64bit GP, we don't want to display a dialog. 
@@ -390,11 +400,11 @@ namespace TransitEvaluator
 
                         if (frmProgress.CachingComplete)
                         {
-                            m_trips = frmProgress.Trips;
-                            m_eids = frmProgress.eids;
-                            m_calendars = frmProgress.Calendars;
-                            m_calExceptions = frmProgress.Cal_Exceptions;
-                            if (m_VerboseLogging) WriteToOutputFile(m_LogFile, "Cache complete. m_trips: " + m_trips.Count + " m_calendars: " + m_calendars.Count + " m_calExceptions: " + m_calExceptions.Count + " m_eids: " + m_eids.Count);
+                            m_cache.m_trips = frmProgress.Trips;
+                            m_cache.m_eids = frmProgress.eids;
+                            m_cache.m_calendars = frmProgress.Calendars;
+                            m_cache.m_calExceptions = frmProgress.Cal_Exceptions;
+                            if (m_VerboseLogging) WriteToOutputFile(m_LogFile, "Cache complete. m_trips: " + m_cache.m_trips.Count + " m_calendars: " + m_cache.m_calendars.Count + " m_calExceptions: " + m_cache.m_calExceptions.Count + " m_eids: " + m_cache.m_eids.Count);
                         }
                         else
                         {
@@ -414,9 +424,9 @@ namespace TransitEvaluator
                         TransitScheduleCacher.CacheSchedules(ref caching_completed, m_workspace_path_name,
                             ref total_row_count, null, ref one_percent, ref caching_message,
                             ref current_table_name, null, null,
-                            ref m_calExceptions, ref m_calendars, ref m_trips, ref m_eids, ref m_linefeatures);
+                            ref m_cache.m_calExceptions, ref m_cache.m_calendars, ref m_cache.m_trips, ref m_cache.m_eids, ref m_cache.m_linefeatures);
 
-                        if (m_VerboseLogging) WriteToOutputFile(m_LogFile, "Cache complete. m_trips: " + m_trips.Count + " m_calendars: " + m_calendars.Count + " m_calExceptions: " + m_calExceptions.Count + " m_eids: " + m_eids.Count);
+                        if (m_VerboseLogging) WriteToOutputFile(m_LogFile, "Cache complete. m_trips: " + m_cache.m_trips.Count + " m_calendars: " + m_cache.m_calendars.Count + " m_calExceptions: " + m_cache.m_calExceptions.Count + " m_eids: " + m_cache.m_eids.Count);
 
                         if (!caching_completed)
                         {
@@ -425,6 +435,12 @@ namespace TransitEvaluator
                             throw new Exception(error_message);
                         }
                     }
+
+                    // Add the current cache to a dictionary of caches we can choose from at solve time.
+                    if (m_caches.ContainsKey(m_workspace_path_name)) { m_caches[m_workspace_path_name] = m_cache; }
+                    else { m_caches.Add(m_workspace_path_name, m_cache); }
+                    
+
                 }
                 catch (Exception e)
                 {
@@ -438,6 +454,13 @@ namespace TransitEvaluator
         long m_queryValueAtTime_Count = 0;
         public object QueryValueAtTime(INetworkElement element, DateTime queryTime, esriNetworkTimeUsage timeUsage)
         {
+            // Grab the correct cache for this network
+            Dictionary<string, Trip> m_trips = m_caches[m_workspace_path_name].m_trips;
+            Dictionary<long, long> m_linefeatures  = m_caches[m_workspace_path_name].m_linefeatures;
+            Dictionary<string, Calendar> m_calendars = m_caches[m_workspace_path_name].m_calendars;
+            Dictionary<string, Dictionary<DateTime, CalendarExceptionType>> m_calExceptions = m_caches[m_workspace_path_name].m_calExceptions;
+            Dictionary<long, List<trip_instance>> m_eids = m_caches[m_workspace_path_name].m_eids;
+
             if (m_VerboseLogging) ++m_queryValueAtTime_Count;
                         
             int eid = element.EID;
