@@ -1,24 +1,28 @@
-# display-gtfs-route-shapes
+# display-GTFS-in-ArcGIS
+
+The Display GTFS in ArcGIS toolbox allows you to add GTFS transit stops and route shapes to ArcMap or ArcGIS Pro.
 
 The Display GTFS Route Shapes tool converts the information from the GTFS routes.txt and shapes.txt files into an ArcGIS feature class, allowing you to view your transit lines on a map.  The output will contain one line feature for each unique shape in your GTFS data.  The attributes for each line contain all the information about the routes represented by the shape.
 
+The Display GTFS Stops tool makes a feature class of stops using information from the GTFS stops.txt file.
+
 ## Features
-* Conversion - Convert GTFS shapes.txt data to an ArcGIS feature class
+* Conversion - Convert GTFS shapes.txt and stops.txt data to an ArcGIS feature class
 * ArcGIS toolbox - No coding is required to use this tool.  Just add the toolbox to ArcMap and use the tools like any other geoprocessing tools.
 
 ## Instructions
 
-1. To simply use the tool, download the latest release and follow the included User's Guide.
+1. To simply use the tools, download the latest release and follow the included User's Guide.
 2. If you want to play with the code, fork it and have fun.
 
 ## Requirements
 
 * ArcGIS 10.0 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro.
-* A valid GTFS dataset that contains the optional shapes.txt file.
+* A valid GTFS dataset. To use the Display GTFS Route Shapes tool, your GTFS dataset must include the optional shapes.txt file.
 
 ## Resources
 
-* [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/display-gtfs-route-shapes/UsersGuide.md)
+* [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/display-GTFS-in-ArcGIS/UsersGuide.md)
 * [GTFS specification](https://developers.google.com/transit/gtfs/reference)
 
 ## Issues
@@ -30,7 +34,7 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing).
 
 ## Licensing
-Copyright 2015 Esri
+Copyright 2016 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,5 +50,5 @@ limitations under the License.
 
 A copy of the license is available in the repository's [license.txt](../License.txt?raw=true) file.
 
-[](Esri Tags: ArcGIS GTFS shapes.txt public transit transport transportation routes shapes toolbox geoprocessing)
+[](Esri Tags: ArcGIS GTFS shapes.txt stops.txt public transit transport transportation routes shapes stops toolbox geoprocessing)
 [](Esri Language: Python)​

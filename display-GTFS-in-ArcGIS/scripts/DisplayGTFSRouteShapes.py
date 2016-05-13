@@ -1,14 +1,14 @@
 ############################################################################
-## Tool name: Display GTFS Route Shapes
+## Tool name: Display GTFS in ArcGIS
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 10 November 2015
+## Last updated: 12 May 2016
 ############################################################################
 ''' Display GTFS Route Shapes
 Display GTFS Route Shapes converts GTFS route and shape data into an ArcGIS
 feature class so you can visualize your GTFS routes on a map.
 '''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at

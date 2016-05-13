@@ -1,19 +1,23 @@
-#Display GTFS Route Shapes User's Guide
+#Display GTFS in ArcGIS User's Guide
 
 Created by Melinda Morang, Esri  
 Contact: <mmorang@esri.com>
 
-Copyright 2015 Esri  
+Copyright 2016 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ##What this tool does
-The Display GTFS Route Shapes tool converts the information from the GTFS routes.txt and shapes.txt files into an ArcGIS feature class, allowing you to view your transit lines on a map.  The output will contain one line feature for each unique shape in your GTFS data.  The attributes for each line contain all the information about the routes represented by the shape.
+The Display GTFS in ArcGIS toolbox allows you to add GTFS transit stops and route shapes to ArcMap or ArcGIS Pro.
+
+The [Display GTFS Stops](#Stops) tool makes a feature class of stops using information from the GTFS stops.txt file.
+
+The [Display GTFS Route Shapes](#Shapes) tool converts the information from the GTFS routes.txt and shapes.txt files into an ArcGIS feature class, allowing you to view your transit lines on a map.  The output will contain one line feature for each unique shape in your GTFS data.  The attributes for each line contain all the information about the routes represented by the shape.
 
 ##Software requirements
 - ArcGIS 10.0 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro.
 
 ##Data requirements
-- A valid GTFS dataset that contains the optional shapes.txt file.
+- A valid GTFS dataset. To use the Display GTFS Route Shapes tool, your GTFS dataset must include the optional shapes.txt file.
 
 ##Getting started
 - Download the tool and save it anywhere on your computer.
@@ -21,7 +25,18 @@ The Display GTFS Route Shapes tool converts the information from the GTFS routes
 - No installation is necessary.  You can run the tool from ArcCatalog, ArcMap, or ArcGIS Pro.  In any of those products, just navigate to the folder containing the .tbx file, and it should show up as a toolbox with tools you can run.  You can also add the tool to ArcToolbox to make it easier to find later.
 - *Warning: If you wish to move the toolbox to a different location on your computer, make sure you move the entire package (the .tbx file, the scripts folder, and the user's guide) together so that the toolbox does not become disconnected from the scripts.*
 
-##Running *Display GTFS Route Shapes*
+##<a name="Stops"></a>Running *Display GTFS Stops*
+
+![Screenshot of Display GTFS Stops dialog](./images/Screenshot_DisplayGTFSStops_Dialog.png)
+
+###Inputs
+- **GTFS stops.txt file to edit**:  The stops.txt file you wish to edit
+- **Output GTFS stops feature class**:  The feature class version of your GTFS stops that will be created. *Note: a file geodatabase feature class is recommended over a shapefile because shapefiles will truncate the longer field names to 10 characters.*
+
+###Outputs
+- **[Your designated output feature class]**: This feature class will be an exact copy of your stops.txt file and will display the stop locations on the map.
+
+##<a name="Shapes"></a>Running *Display GTFS Route Shapes*
 
 ![Screenshot of tool dialog](./images/Screenshot_DisplayGTFSRouteShapes_Dialog.png)
 
