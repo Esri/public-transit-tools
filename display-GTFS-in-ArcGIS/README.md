@@ -1,4 +1,4 @@
-# display-gtfs-in-arcgis
+# display-GTFS-in-ArcGIS
 
 The Display GTFS in ArcGIS toolbox allows you to add GTFS transit stops and route shapes to ArcMap or ArcGIS Pro.
 
@@ -22,7 +22,7 @@ The Display GTFS Stops tool makes a feature class of stops using information fro
 
 ## Resources
 
-* [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/display-gtfs-in-arcgis/UsersGuide.md)
+* [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/display-GTFS-in-ArcGIS/UsersGuide.md)
 * [GTFS specification](https://developers.google.com/transit/gtfs/reference)
 
 ## Issues
