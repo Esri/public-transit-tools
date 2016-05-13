@@ -3,7 +3,7 @@ This project contains tools for working with public transit data in ArcGIS.  Eac
 
 - [add-GTFS-to-a-network-dataset](add-GTFS-to-a-network-dataset/README.md)
 - [better-bus-buffers](better-bus-buffers/README.md)
-- [display-GTFS-route-shapes](display-GTFS-route-shapes/README.md)
+- [display-GTFS-in-ArcGIS](display-GTFS-in-ArcGIS/README.md)
 - [edit-GTFS-stop-locations](edit-GTFS-stop-locations/README.md)
 - [generate-GTFS-shapes](generate-GTFS-shapes/README.md)
 - [send-GTFS-rt-to-GeoEvent](send-GTFS-rt-to-GeoEvent/README.md)
