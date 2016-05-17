@@ -30,7 +30,7 @@ Generate GTFS Shapes is targeted primarily toward transit agencies seeking to im
 ##Workflow
 This tool has three steps:  
 
-1. Create a reasonable estimate of your transit shapes by running one of the following tools: [*Step 1: Generate Shapes with Network Analyst*](#GenerateShapesNA), [*Step 1: Generate Shapes with ArcGIS Online](#GenerateShapesAGOL) [*Step 1: Generate Shapes with Straight Lines*](#GenerateShapesStraight).
+1. Create a reasonable estimate of your transit shapes by running one of the following tools: [*Step 1: Generate Shapes with Network Analyst*](#GenerateShapesNA), [*Step 1: Generate Shapes with ArcGIS Online*](#GenerateShapesAGOL) [*Step 1: Generate Shapes with Straight Lines*](#GenerateShapesStraight).
 2. Make whatever edits you need to make to your transit shape feature class using the editing tools in ArcMap or ArcGIS Pro.
 3. Run the tool called [*Step 2: Generate new GTFS text files*](#GenerateNewGTFSTextFiles) to generate a shapes.txt file and add the appropriate  shape-related fields to your trips.txt and stop_times.txt files.
 
