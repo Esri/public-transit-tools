@@ -14,36 +14,39 @@ The Generate GTFS Shapes toolbox produces a shapes.txt file for your GTFS datase
 Generate GTFS Shapes is targeted primarily toward transit agencies seeking to improve their GTFS datasets.
 
 ##Software requirements
-* ArcGIS 10.2.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher.
+* ArcGIS 10.2.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher. (To run the ArcGIS Online version of Step 1, you will need ArcGIS 10.3 or higher or ArcGIS Pro.)
 * Network Analyst extension. (You can run a limited version of the tool without the Network Analyst extension.)
 
 ##Data requirements
 - A valid GTFS dataset.
-- An ArcGIS network dataset of streets covering the same geographic area as your GTFS data.
+- If you want to generate on-street route shapes (as opposed to straight lines connecting stops), you will need either a Network Analyst extension and a network dataset or an ArcGIS Online account with routing privileges and sufficient credits for your analysis.
 
 ##Getting started
 - Download the tool and save it anywhere on your computer.
 - Unzip the file you downloaded.  The unzipped package contains a .tbx toolbox file, a folder of python scripts needed to run the toolbox, and a copy of this user's guide.
-- No installation is necessary.  You can run the tool from ArcCatalog or ArcMap (ArcGIS Pro not supported yet).  In any of those products, just navigate to the folder containing the .tbx file, and it should show up as a toolbox with tools you can run.  You can also add the tool to ArcToolbox to make it easier to find later.
+- No installation is necessary.  You can run the tools from ArcCatalog, ArcMap, or ArcGIS Pro.  In any of those products, just navigate to the folder containing the .tbx file, and it should show up as a toolbox with tools you can run.  You can also add the tool to ArcToolbox to make it easier to find later.
 - *Warning: If you wish to move the toolbox to a different location on your computer, make sure you move the entire package (the .tbx file, the scripts folder, and the user's guide) together so that the toolbox does not become disconnected from the scripts.*
 
 ##Workflow
 This tool has three steps:  
 
-1. Run the tool called [*Step 1: Generate Shapes on Map*](#GenerateShapesOnMap) or [*Step 1: Generate Shapes on Map (no Network Analyst)*](#GenerateShapesOnMapNoNA) to create a reasonable estimate of your transit shapes.
-2. Make whatever edits you need to make to your transit shape feature class using the editing tools in ArcMap.
+1. Create a reasonable estimate of your transit shapes by running one of the following tools:
+    - [*Step 1: Generate Shapes with Network Analyst*](#GenerateShapesNA)
+    - [*Step 1: Generate Shapes with ArcGIS Online*](#GenerateShapesAGOL)
+    - [*Step 1: Generate Shapes with Straight Lines*](#GenerateShapesStraight).
+2. Make whatever edits you need to make to your transit shape feature class using the editing tools in ArcMap or ArcGIS Pro.
 3. Run the tool called [*Step 2: Generate new GTFS text files*](#GenerateNewGTFSTextFiles) to generate a shapes.txt file and add the appropriate  shape-related fields to your trips.txt and stop_times.txt files.
 
 
-##<a name="GenerateShapesOnMap"></a>Running *Step 1: Generate Shapes on Map*
+##<a name="GenerateShapesNA"></a>Running *Step 1: Generate Shapes with Network Analyst*
 
-*Step 1: Generate Shapes on Map* uses your GTFS schedule information and the Network Analyst Route solver to produce a feature class showing the most probable geographic paths taken by transit vehicles in your system.
+*Step 1: Generate Shapes with Network Analyst* uses your GTFS schedule information and the Network Analyst Route solver to produce a feature class showing the most probable geographic paths taken by transit vehicles in your system.
 
 This step will take some time to run for large transit systems.  Smaller transit systems should only take a few minutes, but larger systems may take a significant amount of time.
 
-Note: If you do not have the Network Analyst extension or wish to simply generate straight-line estimates for your route shapes, use the [*Step 1: Generate Shapes on Map (no Network Analyst)*](#GenerateShapesOnMapNoNA) version of this tool (described below).
+To run this tool, you must have a good network dataset of streets that covers the area served by your transit agency.  If you do not have the Network Analyst extension and an adequate network dataset, you can generate shapes that follow the streets by using the [*Step 1: Generate Shapes with ArcGIS Online*](#GenerateShapesAGOL) tool, or you can generate simple straight-line estimates for your route shapes with the [*Step 1: Generate Shapes with Straight Lines*](#GenerateShapesStraight) version of this tool.
 
-![Screenshot of tool dialog](./images/Screenshot_GenerateShapesOnMap_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_GenerateShapesNA_Dialog.png)
 
 ###Inputs
 * **GTFS directory**:  The folder containing your (unzipped) GTFS .txt files.
@@ -66,11 +69,43 @@ A file geodatabase with the name and location you specified will be created and 
 * **SQLDbase.sql**: A SQL database of your GTFS data.  You shouldn't need to look at this for anything, but don't delete it because it is necessary for running Step 2.
 
 
-##<a name="GenerateShapesOnMapNoNA"></a>Running *Step 1: Generate Shapes on Map (no Network Analyst)*
+##<a name="GenerateShapesAGOL"></a>Running *Step 1: Generate Shapes with ArcGIS Online*
 
-This version of Step 1 does not use a streets network to estimate your route shapes.  It generates shapes by drawing a straight line between connected stops instead of tracing the pattern of the streets.  You should only use this version of Step 1 if you do not have the Network Analyst extension or wish to simply generate straight-line estimates for your route shapes.
+*Step 1: Generate Shapes with ArcGIS Online* uses your GTFS schedule information and the ArcGIS Online route service to produce a feature class showing the most probable geographic paths taken by transit vehicles in your system.
 
-![Screenshot of tool dialog](./images/Screenshot_GenerateShapesOnMapNoNetworkAnalyst_Dialog.png)
+Warning: This version of Step 1 requires ArcGIS 10.3 or higher or ArcGIS Pro.
+
+ArcGIS Online's route service is available for most parts of the world. If you are uncertain whether the route service covers the geographic location served by your transit system, check the [ArcGIS Online Network Dataset Coverage map](http://www.arcgis.com/home/webmap/viewer.html?webmap=b7a893e8e1e04311bd925ea25cb8d7c7).
+
+To use this tool, you must be [signed in to an ArcGIS Online account] (http://desktop.arcgis.com/en/arcmap/latest/map/web-maps-and-services/signing-into-arcgis-online-in-arcgis-for-desktop.htm) with routing privileges and sufficient credits.  Talk to your organization's ArcGIS Online administrator if you need help checking or setting up your account.  This tool will generate one ArcGIS Online route per shape in your GTFS data.  So, if your transit system has 100 unique shapes, the tool will solve 100 routes using ArcGIS Online.  As of this writing, "Simple Routes" cost 0.04 credits each, so the total number of credits incurred by the tool would be 0.4. Please refer to the [ArcGIS Online Service Credits Overview page](http://www.esri.com/software/arcgis/arcgisonline/credits) for more detailed and up-to-date information.  The number of shapes to be generated will be at minimum equal to the number of unique route_id values in your routes.txt file.  Most datasets have more shapes than routes because routes can include trips with different sequences of stops.
+
+Note: If your transit lines have a large number of stops, it may not be possible to generate an on-street route shape using ArcGIS Online because the ArcGIS Online route service limits the total number of stops allowed per route (150 as of this writing - check the [route service documentation](http://resources.arcgis.com/en/help/arcgis-rest-api/#/Route_service_with_synchronous_execution/02r300000036000000/) for the latest information).  Shapes that exceed the stop limit will be estimated by connecting the stops with straight lines, and the tool will show a warning telling you which shape_id values have encountered this problem.
+
+This tool will take some time to run for large transit systems.  Smaller transit systems should only take a few minutes, but larger systems may take a significant amount of time.
+
+Note: If you don't or can't use ArcGIS Online, you can instead generate shapes that follow the streets by using the [*Step 1: Generate Shapes with Network Analyst*](#GenerateShapesNA) tool, or you can generate simple straight-line estimates for your route shapes with the [*Step 1: Generate Shapes with Straight Lines*](#GenerateShapesStraight) version of this tool.
+
+![Screenshot of tool dialog](./images/Screenshot_GenerateShapesAGOL_Dialog.png)
+
+###Inputs
+* **GTFS directory**:  The folder containing your (unzipped) GTFS .txt files.
+* **Output directory**: The folder where your output geodatabase will be written.
+* **Name for output geodatabase**: The name of your output geodatabase, which will be created when the tool runs.  The geodatabase must not currently exist.
+* **Generate shapes that follow the streets for these route types (optional)**: This tool creates a best guess for the geographic routes traveled by transit vehicles in your system.  However, some modes of transit, like subways, do not travel on the street network since they have their own underground tracks.  In this box, you should select which modes of transit should use the street network to generate shapes.
+* **Generate shapes by connecting stops with straight lines for these route types (optional)**: For modes that don't travel along streets, you can choose to create shapes by drawing straight lines between connected transit stops.
+
+###Outputs
+A file geodatabase with the name and location you specified will be created and will contain the following files:
+* **Shapes**: A lines feature class with your route shapes. You can edit these shapes before you use them to create a shapes.txt file.
+* **Stops_wShapeIDs**: A feature class of your GTFS stops, including the shape_id field so you can match them up with the shape they go to.  In cases where the same GTFS stop gets visited by multiple shapes, the Stops_wShapeIDs feature class will contain multiple copies of that stop, one for each shape it is associated with.
+* **SQLDbase.sql**: A SQL database of your GTFS data.  You shouldn't need to look at this for anything, but don't delete it because it is necessary for running Step 2.
+
+
+##<a name="GenerateShapesStraight"></a>Running *Step 1: Generate Shapes with Straight Lines*
+
+This version of Step 1 does not use a streets network to estimate your route shapes.  It generates shapes by drawing a straight line between connected stops instead of tracing the pattern of the streets.  You should only use this version of Step 1 if you do not have the Network Analyst extension or the ability to use ArcGIS Online, or wish to simply generate straight-line estimates for your route shapes.
+
+![Screenshot of tool dialog](./images/Screenshot_GenerateShapesStraight_Dialog.png)
 
 ###Inputs
 * **GTFS directory**:  The folder containing your (unzipped) GTFS .txt files.  The tool uses the .txt files directly, so you need not turn them into shapefiles or process them in any way.
@@ -147,6 +182,7 @@ This tool will run very quickly for small GTFS datasets, but it may take signifi
 * **The tool takes forever to run**: This tool does take a long time to run for large GTFS datasets, and both Step 1 and Step 2 should give you regular progress updates.  If everything is running correctly, the following conditions will cause the tool to take longer to run:
   - Very large transit datasets with a large number of shapes will take longer to process.
   - The tool will run slower if you are writing to and from a network drive.
+  - The ArcGIS Online version of Step 1 will likely run slower than the Network Analyst version using local data.
 * **I got a warning message saying "Warning! For some Shapes, the order of the measured shape_dist_traveled for vertices along the shape does not match the correct sequence of the vertices. This likely indicates a problem with the geometry of your shapes.  Your new shapes.txt file will be generated, and the shapes may look correct, but the shape_dist_traveled value may be incorrect. Please review and fix your shape geometry, then run this tool again.  See the user's guide for more information."**: This warning occurs during shapes.txt generation and usually means that part of your shape doubles back on itself.  The tool tries to find the distance along the line that each shape vertex occurs in order to add this value to the shape_dist_traveled field in shapes.txt.  However, if the shape line doubles back on itself, the vertex might actually land at more than one point along the line.  The tool simply finds the first location along the line and ignores the rest, which means that sometimes the correct order of the shape vertices will not match the order in the shape_dist_traveled field.  Examine the shapes in question and look for places where the buses erroneously made U-turns or turned into side roads. More information about this problem can be found in the [*Common Shape problems and how to fix them* section](#ShapeProblems) of this document.
 * **I got a warning message saying "Warning! For some Shapes, the order of the measured shape_dist_traveled for stops along the shape does not match the correct sequence of the stops. This likely indicates a problem with the geometry of your shapes.  The shape_dist_traveled field will be added to your stop_times.txt file and populated, but the values may be incorrect. Please review and fix your shape geometry, then run this tool again.  See the user's guide for more information."**:  Similar to the problem above, if the shapes double back on themselves, a transit stop might be equidistant to more than one point on the shape, and the correct sequence of stops might not match the order of your shape_dist_traveled values.  This could indicate an underlying geometry problems in your shapes.  It could also occur when a transit shape legitimately traverses the same road in both directions.
 * **I got a warning message saying "Warning! Some shapes had no geometry or 0 length. These shapes were written to shapes.txt, but all shape_dist_traveled values for the shape will have a value of 0.0."**: This occurs if one of the shapes in your Shapes feature class has 0 length or no geometry.  This could occur if the transit line has only two stops, both of which are in the same location.  This is probably an error in the GTFS data.

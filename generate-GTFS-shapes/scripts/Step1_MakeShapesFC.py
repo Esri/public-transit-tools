@@ -2,7 +2,7 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 1: Generate Shapes on Map
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 4 February 2016
+## Last updated: 17 May 2016
 ###############################################################################
 ''' This tool generates a feature class of route shapes for GTFS data.
 The route shapes show the geographic paths taken by the transit vehicles along
@@ -25,6 +25,7 @@ to create updated .txt files for use in the GTFS dataset.'''
 ################################################################################
 
 import sqlite3, operator, os, re, csv, itertools, sys
+import AGOLRouteHelper
 import arcpy
 
 class CustomError(Exception):
@@ -49,6 +50,8 @@ UTurn_input = None
 restrictions = None
 useJunctions = None
 useNA = None
+useAGOL = None
+badStops = []
 
 # Global derived variables
 outGDB = None
@@ -64,6 +67,7 @@ SPHEROID['WGS_1984',6378137.0,298.257223563]], \
 PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]]; \
 -400 -400 1000000000;-100000 10000;-100000 10000; \
 8.98315284119522E-09;0.001;0.001;IsHighPrecision"
+WGSCoords_WKID = 4326
 
 # These are the GTFS files we need to use in this tool, so we will add them to a SQL database.
 files_to_sqlize = ["stops", "stop_times", "trips", "routes"]
@@ -75,18 +79,27 @@ def RunStep1():
     generates the actual GTFS shapes.txt file.'''
 
     try:
+        
+        # It's okay to overwrite stuff.
+        orig_overwrite = arcpy.env.overwriteOutput
+        arcpy.env.overwriteOutput = True
+        
         # Check version
         if ArcVersion == "10.0":
-            arcpy.AddError("You must have ArcGIS 10.1 or higher to run this \
+            arcpy.AddError("You must have ArcGIS 10.2.1 or higher (or ArcGIS Pro) to run this \
 tool. You have ArcGIS version %s." % ArcVersion)
             raise CustomError
         if ArcVersion in ["10.1", "10.2"]:
             arcpy.AddWarning("Warning!  You can run Step 1 of this tool in \
 ArcGIS 10.1 or 10.2, but you will not be able to run Step 2 without ArcGIS \
-10.2.1 or higher.  You have ArcGIS version %s." % ArcVersion)
+10.2.1 or higher (or ArcGIS Pro).  You have ArcGIS version %s." % ArcVersion)
         if ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
             arcpy.AddError("You must have ArcGIS Pro 1.2 or higher to run this \
 tool. You have ArcGIS Pro version %s." % ArcVersion)
+            raise CustomError
+        if useAGOL and ArcVersion in ["10.2.1", "10.2.2"]:
+            arcpy.AddError("You must have ArcGIS 10.3 (or ArcGIS Pro) to run the ArcGIS Online \
+version of this tool. You have ArcGIS version %s." % ArcVersion)
             raise CustomError
 
         # Check out the Network Analyst extension license
@@ -96,10 +109,18 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
             else:
                 arcpy.AddError("The Network Analyst license is unavailable.")
                 raise CustomError
-
-        # It's okay to overwrite stuff.
-        orig_overwrite = arcpy.env.overwriteOutput
-        arcpy.env.overwriteOutput = True
+        
+        if useAGOL:
+            # Get the user's ArcGIS Online token. They must already be signed in to use this tool.
+            # That way we don't need to collect a username and password.
+            # But, you can't run this script in standalone python.
+            AGOLRouteHelper.get_token()
+            if AGOLRouteHelper.token == None:
+                arcpy.AddError("Unable to retrieve token for ArcGIS Online. To use this tool, \
+you must be signed in to ArcGIS Online with an account that has routing privileges and credits. \
+Talk to your organization's ArcGIS Online administrator for assistance.")
+                raise CustomError
+            arcpy.AddMessage("Successfully retrieved ArcGIS Online token.")
 
 
     # ----- Set up the run, fix some inputs -----
@@ -389,12 +410,26 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
 
         # Generate shapes following the streets
         if route_types_Street:
-            Generate_Shapes_Street()
-            Created_Street_Output = True
+            if useNA:
+                Generate_Shapes_Street()
+                Created_Street_Output = True
+            elif useAGOL:
+                Generate_Shapes_AGOL()
+                Created_Street_Output = True
 
         # Generate routes as straight lines between stops
         if route_types_Straight or NoRouteGenerated:
             Generate_Shapes_Straight(Created_Street_Output)
+            
+        global badStops
+        if badStops:
+            badStops = sorted(list(set(badStops)))
+            messageText = "Your stop_times.txt lists times for the following stops which are not included in your stops.txt file. These stops have been ignored. "
+            if ProductName == "ArcGISPro":
+                messageText += str(badStops)
+            else:
+                messageText += unicode(badStops)
+            arcpy.AddWarning(messageText)
 
 
     # ----- Add route information to output feature class -----
@@ -440,6 +475,9 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
         if useNA:
             arcpy.SetParameterAsText(11, outRoutesfc)
             arcpy.SetParameterAsText(12, outSequencePoints)
+        elif useAGOL:
+            arcpy.SetParameterAsText(5, outRoutesfc)
+            arcpy.SetParameterAsText(6, outSequencePoints)
         else:
             arcpy.SetParameterAsText(6, outRoutesfc)
             arcpy.SetParameterAsText(7, outSequencePoints)
@@ -644,8 +682,6 @@ coordinates.  Please double-check all lat/lon values in your stops.txt file.\
         return map(check_latlon_cols, rows)
     else:
         return itertools.imap(check_latlon_cols, rows)
-    
-    
 
 
 def Generate_Shapes_Street():
@@ -681,7 +717,7 @@ def Generate_Shapes_Street():
     totchunks = len(sequences_Streets_chunked)
     chunkidx = 1
     global NoRouteGenerated
-    badStops = []
+    global badStops
     unlocated_stops = []
     for chunk in sequences_Streets_chunked:
 
@@ -803,20 +839,119 @@ shape_ids instead:")
 analysis with a different u-turn policy and/or network restrictions, and check your \
 network dataset for connectivity problems.")
 
-    if badStops:
-        badStops = sorted(list(set(badStops)))
-        messageText = "Your stop_times.txt lists times for the following stops which are not included in your stops.txt file. These stops will be ignored. "
-        if ProductName == "ArcGISPro":
-            messageText += str(badStops)
-        else:
-            messageText += unicode(badStops)
-        arcpy.AddWarning(messageText)
-
     if unlocated_stops:
         unlocated_stops = sorted(list(set(unlocated_stops)))
         arcpy.AddWarning("The following stop_ids could not be located on your network dataset and were skipped when route shapes were generated.  \
 If you are unhappy with this result, please double-check your stop_lat and stop_lon values in stops.txt and your network dataset geometry \
 to make sure everything is correct.")
+
+
+def Generate_Shapes_AGOL():
+    '''Generate preliminary shapes for each route by calculating the optimal
+    route along the network using the ArcGIS Online route services.'''
+
+    arcpy.AddMessage("Generating on-street route shapes via ArcGIS Online for routes of the following types, if they exist in your data:")
+    for rtype in route_type_Street_textlist:
+        arcpy.AddMessage(rtype)
+    arcpy.AddMessage("(This step may take a while for large GTFS datasets.)")
+
+    global NoRouteGenerated
+    NoRouteGenerated = []
+    Too_Many_Stops = []
+    global badStops
+
+    # ----- Generate a route for each sequence -----
+
+    arcpy.AddMessage("- Generating routes using ArcGIS Online")
+
+    # Set up input parameters for route request
+    service_params = {}
+    service_params["travelMode"] = AGOLRouteHelper.travel_mode
+    service_params["returnRoutes"] = True
+    service_params["outputLines"] = "esriNAOutputLineTrueShapeWithMeasure"
+    service_params["returnDirections"] = False
+    service_params["outSR"] = WGSCoords_WKID
+    
+    # Create the output feature class
+    arcpy.management.CreateFeatureclass(outGDB, outRoutesfcName, "POLYLINE", '', '', '', WGSCoords)
+    arcpy.management.AddField(outRoutesfc, "Name", "TEXT")
+
+    # Set up insertCursors for output shapes polylines and stop sequences
+    # Have to open an edit session to have two simultaneous InsertCursors.
+    edit = arcpy.da.Editor(outGDB)
+    ucursor = arcpy.da.InsertCursor(outRoutesfc, ["SHAPE@", "Name"])
+    cur = arcpy.da.InsertCursor(outSequencePoints, ["SHAPE@X", "SHAPE@Y", "shape_id", "sequence", "stop_id"])
+    edit.startEditing()
+
+    # Generate routes with AGOL for sequences we want to make street-based shapes for.
+    sequences_Streets = []
+    num_shapes = len(sequence_shape_dict)
+    next_threshold = 10
+    progress = 0.0
+    num_routes_calculated = 0
+    for sequence in sequence_shape_dict:
+        # Print some progress indicators
+        progress += 1
+        percdone = (progress / num_shapes) * 100
+        if percdone > next_threshold:
+            last_threshold = percdone - percdone%10
+            arcpy.AddMessage("%s%% finished" % str(int(last_threshold)))
+            next_threshold = last_threshold + 10
+        shape_id = sequence_shape_dict[sequence]
+        route_id = sequence[0]
+        route_type = RouteDict[route_id][4]
+        if route_type not in route_types_Street:
+            continue
+        if len(sequence[1]) > AGOLRouteHelper.route_stop_limit:
+            # There are too many stops in this route to solve with the online services.
+            Too_Many_Stops.append(shape_id)
+            continue
+        stopstring = ""
+        sequence_num = 1
+        pt = arcpy.Point()
+        for stop in sequence[1]:
+            try:
+                stop_lat = stoplatlon_dict[stop][0]
+                stop_lon = stoplatlon_dict[stop][1]
+            except KeyError:
+                badStops.append(stop)
+                sequence_num += 1
+                continue
+            # Add stop sequences to points fc for user to look at.
+            pt.X = float(stop_lon)
+            pt.Y = float(stop_lat)
+            cur.insertRow((float(stop_lon), float(stop_lat), shape_id, sequence_num, stop))
+            sequence_num = sequence_num + 1
+            # Prepare string of stops to pass to AGOL
+            stopstring += str(stop_lon) + ", " + str(stop_lat) + "; "
+        service_params["stops"] = stopstring[:-2]
+        routeshapes, errors = AGOLRouteHelper.generate_routes_from_AGOL_as_polylines(AGOLRouteHelper.token, service_params)
+        if errors:
+            if "User does not have permissions to access" in errors:
+                arcpy.AddError("ArcGIS Online route generation failed. Please ensure that your ArcGIS Online account \
+has routing privileges and sufficient credits for this analysis.")
+                raise CustomError
+            arcpy.AddWarning("ArcGIS Online route generation for shape_id %s failed. A straight-line shape will be generated for this shape_id instead. %s" % (shape_id, errors))
+            NoRouteGenerated.append(shape_id)
+            continue
+        for route in routeshapes: # actually, only one shape should be returned here, but loop just in case
+            ucursor.insertRow((route, shape_id))
+        num_routes_calculated += 1
+
+    del ucursor
+    del cur
+
+    edit.stopEditing(True)
+
+    arcpy.AddMessage("Done generating route shapes with ArcGIS Online. Number of ArcGIS Online routes calculated: %s" % str(num_routes_calculated))
+
+    if Too_Many_Stops:
+        arcpy.AddWarning("On-street route shapes for the following shape_ids could \
+not be generated because the number of stops in the route exceeds the ArcGIS Online \
+service limit of %s stops.  Straight-line route shapes will be generated for these \
+shape_ids instead:" % str(AGOLRouteHelper.route_stop_limit))
+        arcpy.AddWarning(sorted(Too_Many_Stops))
+    NoRouteGenerated.append(shape for shape in Too_Many_Stops)
 
 
 def Generate_Shapes_Straight(Created_Street_Output):
@@ -838,17 +973,14 @@ def Generate_Shapes_Straight(Created_Street_Output):
 
 # ----- Create polylines using stops as vertices -----
 
-    arcpy.AddMessage("- Generating polylines using stops as vertices")
-
     # Set up insertCursors for output shapes polylines and stop sequences
     # Have to open an edit session to have two simultaneous InsertCursors.
-
     edit = arcpy.da.Editor(outGDB)
     ucursor = arcpy.da.InsertCursor(outRoutesfc, ["SHAPE@", "Name"])
     cur = arcpy.da.InsertCursor(outSequencePoints, ["SHAPE@X", "SHAPE@Y", "shape_id", "sequence", "CurbApproach", "stop_id"])
     edit.startEditing()
 
-    badStops = []
+    global badStops
 
     for sequence in sequence_shape_dict:
         shape_id = sequence_shape_dict[sequence]
@@ -886,12 +1018,3 @@ def Generate_Shapes_Straight(Created_Street_Output):
     del cur
 
     edit.stopEditing(True)
-
-    if badStops:
-        badStops = list(set(badStops))
-        messageText = "Your stop_times.txt lists times for the following stops which are not included in your stops.txt file. These stops will be ignored. "
-        if ProductName == "ArcGISPro":
-            messageText += str(badStops)
-        else:
-            messageText += unicode(badStops)
-        arcpy.AddWarning(messageText)
