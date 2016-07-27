@@ -14,12 +14,13 @@ BetterBusBuffers is a toolset to help you quantitatively measure access to publi
 
 ## Requirements
 
-* ArcGIS 10.0 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher.
-* Network Analyst extension. (You can run the *Count Trips at Stops* tool even if you do not have Network Analyst.)
+* ArcGIS 10.0 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher. The *Count Trips at Points Online* tool cannot be run with ArcGIS 10.0.
+* Network Analyst extension. (You can run the *Count Trips at Stops* and *Count Trips at Points Online* tools even if you do not have Network Analyst.)
+* For the *Count Trips at Points Online*, an ArcGIS Online account with routing privileges and sufficient credits for your analysis.
 * You need the Desktop Advanced (ArcInfo) license in order to run the *Count Trips in Polygon Buffers around Stops* tool.
 * A valid GTFS dataset. Your GTFS dataset must contain a calendar.txt file.  If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.
 * For some functionality, a network dataset with street data for your area of interest.
-* For the *Count Trips at Points* tool, a feature class of your points of interest.
+* For the *Count Trips at Points* and *Count Trips at Points Online* tools, a feature class of your points of interest.
 
 ## Resources
 
