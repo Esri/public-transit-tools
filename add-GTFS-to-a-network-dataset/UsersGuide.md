@@ -3,7 +3,7 @@
 Created by Melinda Morang, Esri  
 Contact: <mmorang@esri.com>
 
-Copyright 2015 Esri  
+Copyright 2016 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ##What this tool does
@@ -18,7 +18,7 @@ After using these tools to set up your network dataset, you can use Network Anal
 
 ##Data requirements
 * Street data for the area covered by your transit system, preferably data including pedestrian attributes.
-* A valid GTFS dataset. If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.
+* A valid GTFS dataset. If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool. You can download and use the [Interpolate Blank Stop Times] (http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate blank arrival_time and departure_time values for your dataset if you still want to use it.
 
 ## If you have never used Network Analyst before
 Network Analyst is a powerful and complex ArcGIS extension.  The procedure described in this document and the analyses you will likely want to run when you have completed it involve advanced Network Analyst functionality.  If you have never used Network Analyst before or need a refresher, please work through the [Network Analyst online tutorials] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before attempting to use *Add GTFS to a Network Dataset*.
@@ -58,7 +58,7 @@ If, at any point in the future, you wish to uninstall the special GTFS transit e
 ## 2) Acquire your data and prepare your feature dataset
 
 First, acquire the GTFS data you plan to use.
-* Obtain the GTFS data for the transit authority (or authorities) you wish to analyze.  Check with the transit authority directly or check the [GTFS Data Exchange] (http://www.gtfs-data-exchange.com/).  You may use more than one GTFS dataset if you want (e.g., for two different agencies operating in the same city).
+* Obtain the GTFS data for the transit authority (or authorities) you wish to analyze.  Get GTFS data directly from your transit agency or download it from one of several sites that collects GTFS datasets from around the world, such as [Transitland](https://transit.land/feed-registry/) or [Transitfeeds](http://transitfeeds.com/).  You may use more than one GTFS dataset if you want (e.g., for two different agencies operating in the same city).
 * Unzip the GTFS data into a folder of your choice.
 
 GTFS datasets that use calendar.txt, calendar_dates.txt, and/or frequencies.txt for their schedules are supported.
@@ -88,6 +88,7 @@ In the *Add GTFS to network dataset* toolbox, run the tool called *1) Generate T
 * **TransitLines**: Lines feature class containing your transit lines.  A line has been created between each pair of stops that is directly connected by a transit trip (ie, has no other stops between them).  In cases where two stops are directly connected by multiple modes, such as both bus and tram, a separate line will be created for each mode.  The lines do not correspond to the actual route taken by the transit vehicles.  They are simply straight lines between connected stops.  This feature class will be located in the feature dataset you selected as input.
 * **GTFS.sql**: SQL database containing processed GTFS data.  This database is located in the geodatabase that houses the feature dataset you selected and will be used for further preprocessing.  You shouldn't need to look at this for anything, but don't delete it because it will be used by the network dataset during analysis.
 
+*Note: If you receive an error message saying "GTFS dataset contains empty values for arrival_time or departure_time in stop_times.txt.  Although the GTFS spec allows empty values for these fields, this toolbox requires exact time values for all stops.  You will not be able to use this dataset for your analysis.", you might still be able to use the GTFS dataset by estimating the arrival_time and departure_time values using the [Interpolate Blank Stop Times](http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool.*
 
 ## 4) Create connector features between the transit lines/stops and your other data
 
@@ -169,7 +170,7 @@ To create a travel time cost attribute that uses the GTFS transit evaluator, do 
 
 * Now you need to tell the network dataset how to determine the travel time for each different source feature class, in each direction.  Click the new attribute in your list of attributes and click the "Evaluators" button.  If you are uncertain of what an evaluator is or how they work, please review the [Types of evaluators used by a network] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/types-of-evaluators-used-by-a-network.htm) page before proceeding.
 
-* For your streets, it's up to you how to determine travel time.  If your data already contains a field for pedestrian walk time, you can use that field.  Otherwise, you will probably want to reference the length of the feature and convert to time by assuming a walk speed (as I have done in the example shown in the image).  Be sure to use the correct units for your input data.  You could also define an attribute parameter for walk speed so the user can change it without rebuilding the network.  If you decide to add a walk speed parameter, please review the [Using parameters with network attributes] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/using-parameters-with-network-attributes.htm) page.
+* For your streets, it's up to you how to determine travel time.  If your data already contains a field for pedestrian walk time, you can use that field.  Otherwise, you will probably want to reference the length of the feature and convert to time by assuming a walk speed (as I have done in the example shown in the image: 80.4672 is 3 miles per hour converted to meters per minute to match my data's coordinate system).  Be sure to use the correct units for your input data.  You could also define an attribute parameter for walk speed so the user can change it without rebuilding the network.  If you decide to add a walk speed parameter, please review the [Using parameters with network attributes] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/using-parameters-with-network-attributes.htm) page.
 
 ![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_Evaluators.png)
 
@@ -320,7 +321,7 @@ If you are hosting a service using your transit-enabled network dataset, and you
 
 ##Using your network dataset with 64-bit Background Geoprocessing
 
-If you have ArcGIS Desktop and the 64-bit background geoprocessing extension, you must go through a special registration procedure to make TransitEvaluator.dll work with the 64-bit background geoprocessing.  Follow the procedure outlined here: http://support.esri.com/en/knowledgebase/techarticles/detail/40735
+If you have ArcGIS Desktop and the 64-bit background geoprocessing extension, you must go through a special registration procedure to make TransitEvaluator.dll work with the 64-bit background geoprocessing.  Follow the procedure [outlined in this article](http://support.esri.com/en/knowledgebase/techarticles/detail/40735).
 
 
 ###Limitations and weaknesses
