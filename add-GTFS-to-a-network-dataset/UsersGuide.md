@@ -69,8 +69,10 @@ Once you have obtained GTFS data, acquire a streets or sidewalks feature class f
 
 Finally, create a file geodatabase and feature dataset where you will put your new network dataset.
 If you are unfamiliar with the procedure for creating file geodatabases or feature datasets, please review the documentation:  
-[Creating a file geodatabase] (http://desktop.arcgis.com/en/desktop/latest/manage-data/geodatabases/create-file-geodatabase.htm)  
-[Creating a feature dataset] (http://desktop.arcgis.com/en/desktop/latest/manage-data/feature-datasets/creating-mole-data-in-arccatalog-creating-a-featur.htm)
+- [Creating a file geodatabase] (http://desktop.arcgis.com/en/desktop/latest/manage-data/geodatabases/create-file-geodatabase.htm)  
+- [Creating a feature dataset] (http://desktop.arcgis.com/en/desktop/latest/manage-data/feature-datasets/creating-mole-data-in-arccatalog-creating-a-featur.htm)
+
+Do not create your geodatabase on a shared network drive because the transit evaluator will not work.  Put the geodatabase on a local drive on your machine.
 
 
 ## 3) Generate feature classes for transit lines and stops

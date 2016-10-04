@@ -19,6 +19,7 @@ This document describes some common problems encountered by users of *Add GTFS t
   - [The Get Network EIDs tool failed with a message saying "Error obtaining network EIDs. Exception from HRESULT: 0x80040216".](#HRESULT)
 + Doing analysis / using the network
   - [I got an FDO error when I tried to open my network dataset or add it to the map](#FDO)
+  - [During schedule caching, I got an error that said "unable to open database file"](#noDatabase)
   - [My analysis never uses the transit lines. It only uses the streets.](#NoTransitLines)
   - [My Service Areas have ugly spikes around the transit lines](#Exclude)
 + Other
@@ -83,6 +84,12 @@ Note: Try this solution if you receive any HRESULT code.  Other HRESULT numbers 
 This means that the transit evaluator is not currently registered on the machine you are using.  You need to register the transit evaluator as described in the User's Guide.  You will have to register the transit evaluator on any machine where you intend to use your transit network dataset.
 
 If you try to open or delete your transit network datasets on a machine without the GTFS transit evaluator registered, you will get an error message saying "Failed to edit the selected object(s). The item does not have a definition. FDO error -2147212634".
+
+
+##<a name="noDatabase"></a>During schedule caching, I got an error that said "unable to open database file".
+The error message might also include "Error: Transit schedule caching failure for Transit Evaluator. Error message: Unable to cache transit schedules."
+
+You might see this error if the network dataset is stored on a shared network drive instead of the local machine.  The solution is to move your network to a local drive.
 
 
 ##<a name="NoTransitLines"></a>My analysis never uses the transit lines. It only uses the streets.
