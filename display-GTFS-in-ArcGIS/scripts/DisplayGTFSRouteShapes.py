@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Display GTFS in ArcGIS
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 12 May 2016
+## Last updated: 6 October 2016
 ############################################################################
 ''' Display GTFS Route Shapes
 Display GTFS Route Shapes converts GTFS route and shape data into an ArcGIS
@@ -28,37 +28,53 @@ class CustomError(Exception):
     pass
 
 
-def make_GTFS_lines_from_Shapes(shape, route):
+def make_GTFS_lines_from_Shapes(shape, route=None):
 
-    # Retrieve route info for final output file.
-    ShapeRoute = shape + "_" + route
-    agency_id = RouteDict[route][0]
-    route_short_name = RouteDict[route][1]
-    route_long_name = RouteDict[route][2]
-    if RouteDict[route][3]:
-        route_desc = RouteDict[route][3][:max_route_desc_length]
+    if route:
+        # Retrieve route info for final output file.
+        ShapeRoute = shape + "_" + route
+        agency_id = RouteDict[route][0]
+        route_short_name = RouteDict[route][1]
+        route_long_name = RouteDict[route][2]
+        if RouteDict[route][3]:
+            route_desc = RouteDict[route][3][:max_route_desc_length]
+        else:
+            route_desc = ""
+        route_type = RouteDict[route][4]
+        route_type_text = RouteDict[route][8]
+        route_url = RouteDict[route][5]
+    
+        route_color = RouteDict[route][6]
+        if route_color:
+            if ProductName == "ArcGISPro":
+                route_color_formatted = "#" + RouteDict[route][6]
+            else:
+                route_color_formatted = rgb(RouteDict[route][6])
+        else:
+            route_color_formatted = ""
+    
+        route_text_color = RouteDict[route][7]
+        if route_text_color:
+            if ProductName == "ArcGISPro":
+                route_text_color_formatted = "#" + RouteDict[route][7]
+            else:
+                route_text_color_formatted = rgb(RouteDict[route][7])
+        else:
+            route_text_color_formatted = ""
+
     else:
+        # Couldn't get route info for this shape
+        ShapeRoute = shape
+        agency_id = ""
+        route_short_name = ""
+        route_long_name = ""
         route_desc = ""
-    route_type = RouteDict[route][4]
-    route_type_text = RouteDict[route][8]
-    route_url = RouteDict[route][5]
-
-    route_color = RouteDict[route][6]
-    if route_color:
-        if ProductName == "ArcGISPro":
-            route_color_formatted = "#" + RouteDict[route][6]
-        else:
-            route_color_formatted = rgb(RouteDict[route][6])
-    else:
+        route_type = 0
+        route_type_text = ""
+        route_url = ""
+        route_color = ""
         route_color_formatted = ""
-
-    route_text_color = RouteDict[route][7]
-    if route_text_color:
-        if ProductName == "ArcGISPro":
-            route_text_color_formatted = "#" + RouteDict[route][7]
-        else:
-            route_text_color_formatted = rgb(RouteDict[route][7])
-    else:
+        route_text_color = ""
         route_text_color_formatted = ""
 
     # Fetch the shape info to create the polyline feature.
@@ -199,60 +215,68 @@ try:
     # Create indices to make queries faster.
     sqlize_csv.create_indices()
     sqlize_csv.db.close()
-
-
-# ----- Make dictionary of route info -----
-
-    arcpy.AddMessage("Collecting Route info...")
-
-    # GTFS route_type information
-    ##0 - Tram, Streetcar, Light rail. Any light rail or street level system within a metropolitan area.
-    ##1 - Subway, Metro. Any underground rail system within a metropolitan area.
-    ##2 - Rail. Used for intercity or long-distance travel.
-    ##3 - Bus. Used for short- and long-distance bus routes.
-    ##4 - Ferry. Used for short- and long-distance boat service.
-    ##5 - Cable car. Used for street-level cable cars where the cable runs beneath the car.
-    ##6 - Gondola, Suspended cable car. Typically used for aerial cable cars where the car is suspended from the cable.
-    ##7 - Funicular. Any rail system designed for steep inclines.
-    route_type_dict = {0: "Tram, Streetcar, Light rail",
-                        1: "Subway, Metro",
-                        2: "Rail",
-                        3: "Bus",
-                        4: "Ferry",
-                        5: "Cable car",
-                        6: "Gondola, Suspended cable car",
-                        7: "Funicular"}
-
+    
     # Connect to the SQL database
     conn = sqlite3.connect(SQLDbase)
     c = conn.cursor()
 
-    # Find all routes and associated info.
+
+# ----- Make dictionary of route info -----
+
     RouteDict = {}
-    routesfetch = '''
-        SELECT route_id, agency_id, route_short_name, route_long_name,
-        route_desc, route_type, route_url, route_color, route_text_color
-        FROM routes
-        ;'''
-    c.execute(routesfetch)
-    routelist = c.fetchall()
-    for routeitem in routelist:
-        # Convert from a tuple to a list so the .shp logic below doesn't mess up
-        route = list(routeitem)
-        # {route_id: [all route.txt fields + route_type_text]}
-        try:
-            route_type_text = route_type_dict[int(route[5])]
-        except:
-            route_type_text = ""
-        # Shapefile output can't handle null values, so make them empty strings.
-        if ".shp" in OutShapesFCname:
-            possiblenulls = [1, 4, 6, 7, 8]
-            for idx in possiblenulls:
-                if not route[idx]:
-                    route[idx] = ""
-        RouteDict[route[0]] = [route[1], route[2], route[3], route[4], route[5],
-                                 route[6], route[7], route[8],
-                                 route_type_text]
+
+    if not sqlize_csv.populate_route_info:
+        arcpy.AddWarning("Your GTFS trips.txt file does not have a shape_id column. \
+This tool can still draw the route shapes in the map, but it will not be able to populate \
+the output feature class's attribute table with route information.")
+
+    else: # Only do this if it's possible to populate the route info
+
+        arcpy.AddMessage("Collecting Route info...")
+    
+        # GTFS route_type information
+        ##0 - Tram, Streetcar, Light rail. Any light rail or street level system within a metropolitan area.
+        ##1 - Subway, Metro. Any underground rail system within a metropolitan area.
+        ##2 - Rail. Used for intercity or long-distance travel.
+        ##3 - Bus. Used for short- and long-distance bus routes.
+        ##4 - Ferry. Used for short- and long-distance boat service.
+        ##5 - Cable car. Used for street-level cable cars where the cable runs beneath the car.
+        ##6 - Gondola, Suspended cable car. Typically used for aerial cable cars where the car is suspended from the cable.
+        ##7 - Funicular. Any rail system designed for steep inclines.
+        route_type_dict = {0: "Tram, Streetcar, Light rail",
+                            1: "Subway, Metro",
+                            2: "Rail",
+                            3: "Bus",
+                            4: "Ferry",
+                            5: "Cable car",
+                            6: "Gondola, Suspended cable car",
+                            7: "Funicular"}
+    
+        # Find all routes and associated info.
+        routesfetch = '''
+            SELECT route_id, agency_id, route_short_name, route_long_name,
+            route_desc, route_type, route_url, route_color, route_text_color
+            FROM routes
+            ;'''
+        c.execute(routesfetch)
+        routelist = c.fetchall()
+        for routeitem in routelist:
+            # Convert from a tuple to a list so the .shp logic below doesn't mess up
+            route = list(routeitem)
+            # {route_id: [all route.txt fields + route_type_text]}
+            try:
+                route_type_text = route_type_dict[int(route[5])]
+            except:
+                route_type_text = ""
+            # Shapefile output can't handle null values, so make them empty strings.
+            if ".shp" in OutShapesFCname:
+                possiblenulls = [1, 4, 6, 7, 8]
+                for idx in possiblenulls:
+                    if not route[idx]:
+                        route[idx] = ""
+            RouteDict[route[0]] = [route[1], route[2], route[3], route[4], route[5],
+                                     route[6], route[7], route[8],
+                                     route_type_text]
 
 
 # ----- Create output feature class and prepare InsertCursor -----
@@ -326,16 +350,31 @@ try:
     shapeslist = c.fetchall()
 
     # Actually add the shapes to the feature class
+    unused_shapes = False
     for shape in shapeslist:
-        # Get the route ids that have this shape.
-        # There should probably be a 1-1 relationship, but not sure.
-        shapesroutesfetch = '''
-            SELECT DISTINCT route_id FROM trips WHERE shape_id='%s'
-            ;''' % shape[0]
-        c.execute(shapesroutesfetch)
-        shapesroutes = c.fetchall()
-        for route in shapesroutes:
-            make_GTFS_lines_from_Shapes(shape[0], route[0])
+        if not sqlize_csv.populate_route_info:
+            # Don't worry about populating route info
+            make_GTFS_lines_from_Shapes(shape[0])
+        else:
+            # Get the route ids that have this shape.
+            # There should probably be a 1-1 relationship, but not sure.
+            shapesroutesfetch = '''
+                SELECT DISTINCT route_id FROM trips WHERE shape_id='%s'
+                ;''' % shape[0]
+            c.execute(shapesroutesfetch)
+            shapesroutes = c.fetchall()
+            if len(shapesroutes) == 0:
+                # No trips actually use this shape, so skip adding route info
+                make_GTFS_lines_from_Shapes(shape[0])
+                unused_shapes = True
+            else:
+                for route in shapesroutes:
+                    make_GTFS_lines_from_Shapes(shape[0], route[0])
+
+    if unused_shapes:
+        arcpy.AddWarning("One or more of the shapes in your GTFS shapes.txt file are not used by any \
+trips in your trips.txt file.  These shapes were included in the output from this tool, but route \
+information was not populated.")
 
     # Clean up. Delete the cursor.
     del StopsCursor
