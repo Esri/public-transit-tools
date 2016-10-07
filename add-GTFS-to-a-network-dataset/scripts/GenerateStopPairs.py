@@ -164,7 +164,12 @@ try:
     c.execute(tripsfetch)
     triplist = c.fetchall()
     for trip in triplist:
-        trip_routetype_dict[trip[0]] = RouteDict[trip[1]]
+        try:
+            trip_routetype_dict[trip[0]] = RouteDict[trip[1]]
+        except KeyError:
+            arcpy.AddWarning("Trip_id %s in trips.txt has a route_id value, %s, which does not appear in your routes.txt file.  \
+This trip can still be used for analysis, but it might be an indication of a problem with your GTFS dataset." % (trip[0], trip[1]))
+            trip_routetype_dict[trip[0]] = 100 # 100 is an arbitrary number that doesn't match anything in the GTFS spec
 
 
 # ----- Make dictionary of frequency information (if there is any) -----
