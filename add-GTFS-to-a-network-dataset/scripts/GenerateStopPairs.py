@@ -178,6 +178,10 @@ try:
     freqlist = c.fetchall()
     for freq in freqlist:
         trip_id = freq[0]
+        if freq[3] == 0:
+            arcpy.AddWarning("Trip_id %s in your frequencies.txt file has a headway of 0 seconds. \
+This is invalid, so trips with this id will not be included in your network." % trip_id)
+            continue
         trip_data = [freq[1], freq[2], freq[3]]
         # {trip_id: [start_time, end_time, headway_secs]}
         frequencies_dict.setdefault(trip_id, []).append(trip_data)
