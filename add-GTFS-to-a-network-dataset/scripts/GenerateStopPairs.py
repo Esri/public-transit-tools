@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 1) Generate Transit Lines and Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 7 October 2016
+## Last updated: 25 October 2016
 ################################################################################
 ''' This tool generates feature classes of transit stops and lines from the
 information in the GTFS dataset.  The stop locations are taken directly from the
@@ -196,6 +196,15 @@ This is invalid, so trips with this id will not be included in your network." % 
 
     arcpy.AddMessage("Generating transit stops feature class.")
 
+    # Find parent stations that are actually used
+    used_parent_stations = []
+    selectparentstationsstmt = "SELECT parent_station FROM stops WHERE location_type='0' AND parent_station <> ''"
+    c.execute(selectparentstationsstmt)
+    ParentStationTable = c.fetchall()
+    for station in ParentStationTable:
+        used_parent_stations.append(station[0])
+    used_parent_stations = list(set(used_parent_stations))
+
     # Get the combined stops table.
     selectstoptablestmt = "SELECT stop_id, stop_lat, stop_lon, stop_code, \
                         stop_name, stop_desc, zone_id, stop_url, location_type, \
@@ -236,6 +245,14 @@ This is invalid, so trips with this id will not be included in your network." % 
             location_type = stop[8]
             parent_station = stop[9]
             wheelchair_boarding = unicode(stop[10])
+            if location_type == 1 and stop_id not in used_parent_stations:
+                # Skip this stop because it's an unused parent station
+                # since these will just make useless standalone junctions.
+                continue
+            if location_type == 2 and parent_station not in used_parent_stations:
+                # Remove station entrances that don't have a valid parent_station
+                # since these serve no purpose
+                continue
             pt = arcpy.Point()
             pt.X = float(stop_lon)
             pt.Y = float(stop_lat)

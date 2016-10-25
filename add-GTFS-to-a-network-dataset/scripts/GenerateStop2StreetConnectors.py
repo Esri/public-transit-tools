@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 2) Generate Stop-Street Connectors
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 10 October 2016
+## Last updated: 25 October 2016
 ################################################################################
 ''' This tool snaps the transit stops to the street feature class, generates a
 connector line between the original stop location and the snapped stop location,
@@ -80,23 +80,45 @@ try:
     where = "location_type = '1'"
     with arcpy.da.SearchCursor(outStops, ["Shape@", "stop_id"], where) as cur:
         for row in cur:
-            parent_stations[row[1]] = pt = row[0].firstPoint # Use firstPoint to convert from PointGeometry to Point
+            parent_stations[row[1]] = row[0].firstPoint # Use firstPoint to convert from PointGeometry to Point
 
 
 # ----- Create a feature class for stops snapped to streets -----
 
-    arcpy.AddMessage("Snapping stops to streets network.")
+    arcpy.AddMessage("Snapping stops to streets network...")
 
     # Create a copy of the original stops FC.  We don't want to overwrite it.
     arcpy.management.CopyFeatures(outStops, outStopsSnapped)
-    
+    SR = arcpy.Describe(outStopsSnapped).spatialReference
+
+
+# ----- Handle parent stations and station entrances -----
+
+    # Delete station entrances from Stops - these will only be in the snapped version to connect to streets
+    # Also make a list of parent stations with entrances
+    parent_stations_with_entrances = []
+    where = "location_type = '2'"
+    with arcpy.da.UpdateCursor(outStops, ["parent_station"], where) as cur:
+        for row in cur:
+            parent_stations_with_entrances.append(row[0])
+            cur.deleteRow()
+    parent_stations_with_entrances = list(set(parent_stations_with_entrances))
+                
+    # Remove parent stations with valid entrances from snapped stops. They will be connected to streets through the entrances.
+    if parent_stations_with_entrances:
+        where = "location_type = '1'"
+        with arcpy.da.UpdateCursor(outStopsSnapped, ["stop_id"], where) as cur:
+            for row in cur:
+                if row[0] in parent_stations_with_entrances:
+                    cur.deleteRow()
+
     # Remove any stops that have a parent station.
     # These should be connected to the parent station and not the street
     parent_station_connectors = [] # list of line features
+    parent_stations_to_delete = []
     if parent_stations:
-        SR = arcpy.Describe(outStopsSnapped).spatialReference
-        where = "parent_station <> ''"
-        with arcpy.da.UpdateCursor(outStopsSnapped, ["Shape@", "stop_id", "parent_station"], where) as cur:
+        where = "parent_station <> '' and location_type = '0'"
+        with arcpy.da.UpdateCursor(outStopsSnapped, ["Shape@", "stop_id", "parent_station", "location_type"], where) as cur:
             for row in cur:
                 parent_station_id = row[2]
                 if parent_station_id not in parent_stations:
@@ -108,16 +130,20 @@ try:
                 array.add(row[0].firstPoint) # Use firstPoint to convert from PointGeometry to Point
                 array.add(parent_stations[parent_station_id])
                 polyline = arcpy.Polyline(array, SR)
-                if polyline.length == 0:
+                if polyline.length != 0:
+                    # Keep the line for later when we'll add it to the connectors feature class
+                    parent_station_connectors.append([row[1], polyline, parent_station_id]) # [[stop_id, polyline geometry], [], ...]
+                else:
                     # If the stop and parent station are in the same place, don't generate a line because
-                    # this will cause network build errors.  Just skip this one and connect the stop to the
-                    # street like all the regular stops.
-                    continue
-                # Keep the line for later when we'll add it to the connectors feature class
-                parent_station_connectors.append([row[1], polyline, parent_station_id]) # [[stop_id, polyline geometry], [], ...]
+                    # this will cause network build errors.  Instead, we'll delete the parent_station later.
+                    parent_stations_to_delete.append(parent_station_id)
                 # Delete this row from the snapped stops because the stop snaps to its parent station and not the street
                 cur.deleteRow()
-                  
+        parent_stations_to_delete = list(set(parent_stations_to_delete))
+    
+    
+# ----- Snap stops to streets -----
+    
     # Select only those streets where pedestrians are allowed,
     # as specified by the user's SQL expression
     if SelectExpression:
@@ -134,11 +160,11 @@ following is true: " + SelectExpression
 
     # Clean up.
     arcpy.management.Delete(outTempSelection)
-
+        
 
 # ----- Generate lines connecting streets with stops -----
 
-    arcpy.AddMessage("Creating connector lines between stops and streets.")
+    arcpy.AddMessage("Creating connector lines between stops and streets...")
 
     # Put Stops and Snapped stops into same scratch FC for input to PointsToLine
     outStopsCombined = os.path.join(outGDB, "TempStopswSnapped")
@@ -147,6 +173,8 @@ following is true: " + SelectExpression
 
     # Create Connector lines
     arcpy.management.PointsToLine(outStopsCombined, outConnectors, "stop_id")
+    arcpy.management.AddField(outConnectors, "connector_type", "TEXT")
+    arcpy.management.CalculateField(outConnectors, "connector_type", '"Direct stop to street connection"')
 
     # Clean up.
     arcpy.management.Delete(outStopsCombined)
@@ -154,12 +182,50 @@ following is true: " + SelectExpression
 
 # ----- Generate lines connecting parent stations with their child stops -----
 
+    # Delete parent stations that are coincident with stops.
+    if parent_stations_to_delete:
+        where = "location_type = '1'"
+        with arcpy.da.UpdateCursor(outStops, ["stop_id"], where) as cur:
+            for row in cur:
+                if row[0] in parent_stations_to_delete:
+                    cur.deleteRow()
+
+    # Add connections between child stops and parent stations
     if parent_station_connectors:
         arcpy.management.AddField(outConnectors, "parent_station", "TEXT")
-        with arcpy.da.InsertCursor(outConnectors, ["stop_id", "SHAPE@", "parent_station"]) as cur:
+        with arcpy.da.InsertCursor(outConnectors, ["stop_id", "SHAPE@", "parent_station", "connector_type"]) as cur:
             for connector in parent_station_connectors:
-                cur.insertRow(connector)
+                cur.insertRow(connector + ["Stop to parent station connection"])
 
+
+# ----- Generate lines connecting parent stations with their street entrances
+
+    if parent_stations_with_entrances:
+        station_entrance_connectors = []
+        where = "location_type = '2'"
+        with arcpy.da.UpdateCursor(outStopsSnapped, ["Shape@", "stop_id", "parent_station"], where) as cur:
+            for row in cur:
+                parent_station_id = row[2]
+                # Generate a straight line between the parent station and the street entrance
+                array = arcpy.Array()
+                array.add(parent_stations[parent_station_id]) 
+                array.add(row[0].firstPoint) # Use firstPoint to convert from PointGeometry to Point
+                polyline = arcpy.Polyline(array, SR)
+                if polyline.length == 0:
+                    # If the station entrance and parent station are in the same place, don't generate a line because
+                    # this will cause network build errors.  Just delete the entrance because we don't need it.
+                    # This should only happen if the parent station coincidentally falls exactly on top of a street feature
+                    cur.deleteRow()
+                    continue
+                # Keep the line for later when we'll add it to the connectors feature class
+                station_entrance_connectors.append([row[1], polyline, parent_station_id]) # [[stop_id, polyline geometry], [], ...]
+        
+        # Actually add the lines
+        if station_entrance_connectors:
+            with arcpy.da.InsertCursor(outConnectors, ["stop_id", "SHAPE@", "parent_station", "connector_type"]) as cur:
+                for connector in station_entrance_connectors:
+                    cur.insertRow(connector + ["Parent station to street entrance connection"])
+                    
 
 # ----- Create and populate the wheelchair_boarding field -----
 
@@ -175,6 +241,7 @@ following is true: " + SelectExpression
         col_names.append(col[1])
 
     if "wheelchair_boarding" in col_names:
+        arcpy.AddMessage("Handling wheelchair_boarding...")
 
         # Make a dictionary of stop wheelchair_boarding info
         GetStopInfoStmt = "SELECT stop_id, wheelchair_boarding, parent_station FROM stops"
@@ -206,7 +273,7 @@ following is true: " + SelectExpression
 
 # ----- Create vertices in steets at locations of snapped stops
 
-    arcpy.AddMessage("Creating vertices in streets at location of stops.")
+    arcpy.AddMessage("Creating vertices in streets at location of stops...")
     arcpy.AddMessage("(This step might take a while.)")
 
     # Copy snapped stops before running integrate because we don't want to make

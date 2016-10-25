@@ -27,16 +27,16 @@ Network Analyst is a powerful and complex ArcGIS extension.  The procedure descr
 
 In order to use GTFS routes, stops, and schedules in a network dataset, you must do the following steps, which are explained in further detail in this document:
 
-1. Download and install the tools
-2. Acquire your data and prepare your feature dataset
-3. Generate feature classes for transit lines and stops and a SQL database of the schedules
-4. Create connector features between the transit lines/stops and your other data
-5. Create your network dataset using correct connectivity groups and configure your network attributes
-6. Finalize your transit network using the Get Network EIDs tool
-7. Choose the correct analysis settings
+1. [Download and install the tools] (#Step1)
+2. [Acquire your data and prepare your feature dataset] (#Step2)
+3. [Generate feature classes for transit lines and stops and a SQL database of the schedules] (#Step3)
+4. [Create connector features between the transit lines/stops and your other data] (#Step4)
+5. [Create your network dataset using correct connectivity groups and configure your network attributes] (#Step5)
+6. [Finalize your transit network using the Get Network EIDs tool] (#Step6)
+7. [Choose the correct analysis settings] (#Step7)
 
 
-## 1) Download and install the tools
+## <a name="Step1"></a>1) Download and install the tools
 
 * Download *Add GTFS to a Network Dataset* and save it to a local drive on your computer.  Do not save the tool on a network drive because this will cause problems later.
 
@@ -46,7 +46,7 @@ In order to use GTFS routes, stops, and schedules in a network dataset, you must
 
 ![Screenshot of successful registration pop-up](./images/Screenshot_Registration_Popup.png)
 
-* If registration fails, please see the Troubleshooting Guide.  
+* If registration fails, please see the [Troubleshooting Guide] (http://transit.melindamorang.com/UsersGuides/AddGTFStoaNetworkDataset/TroubleshootingGuide.html).
 
 If, at any point in the future, you wish to uninstall the special GTFS transit evaluator, you can use the Uninstall.bat file to clear it from your computer's registry.
 
@@ -55,7 +55,7 @@ If, at any point in the future, you wish to uninstall the special GTFS transit e
 *Warning: If you wish to move the toolbox to a different location on your computer, make sure you move the entire package (the .tbx file, the scripts folder, etc.) together so that the toolbox does not become disconnected from the scripts.  It would be best to uninstall the evaluator, move the entire folder, and then reinstall the evaluator in its new location.*
 
 
-## 2) Acquire your data and prepare your feature dataset
+## <a name="Step2"></a>2) Acquire your data and prepare your feature dataset
 
 First, acquire the GTFS data you plan to use.
 * Obtain the GTFS data for the transit authority (or authorities) you wish to analyze.  Get GTFS data directly from your transit agency or download it from one of several sites that collects GTFS datasets from around the world, such as [Transitland](https://transit.land/feed-registry/) or [Transitfeeds](http://transitfeeds.com/).  You may use more than one GTFS dataset if you want (e.g., for two different agencies operating in the same city).
@@ -63,7 +63,7 @@ First, acquire the GTFS data you plan to use.
 
 GTFS datasets that use calendar.txt, calendar_dates.txt, and/or frequencies.txt for their schedules are supported.
 
-Note: Some GTFS datasets give specific arrival_times and departure_times only for designated time points in the network, leaving the times for intermediate stops blank.  Although this is a valid way to write a GTFS dataset, *Add GTFS to a Network Dataset* requires an explicit stop time for every stop visit.  If your GTFS dataset has blank stop times, you will not be able to use it in your network dataset.  The *1) Generate Transit Lines and Stops* tool will check your data and give you an error message if it has blank stop times.
+Note: Some GTFS datasets give specific arrival_times and departure_times only for designated time points in the network, leaving the times for intermediate stops blank.  Although this is a valid way to write a GTFS dataset, *Add GTFS to a Network Dataset* requires an explicit stop time for every stop visit.  If your GTFS dataset has blank stop times, you will not be able to use it in your network dataset.  The *1) Generate Transit Lines and Stops* tool will check your data and give you an error message if it has blank stop times.  You can download and use the [Interpolate Blank Stop Times] (http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate stop time values for your dataset if you still want to use it.
 
 Once you have obtained GTFS data, acquire a streets or sidewalks feature class for your area of interest and any other data you wish to include in your network.  You should, at minimum, have a streets feature class.  If you try to create a network dataset using only transit lines, the pedestrians will have no way to walk between transit stops and their origins or destinations or to walk between nearby stops for transfers.
 
@@ -75,7 +75,7 @@ If you are unfamiliar with the procedure for creating file geodatabases or featu
 Do not create your geodatabase on a shared network drive because the transit evaluator will not work.  Put the geodatabase on a local drive on your machine.
 
 
-## 3) Generate feature classes for transit lines and stops
+## <a name="Step3"></a>3) Generate feature classes for transit lines and stops and a SQL database of the schedules
 
 In the *Add GTFS to network dataset* toolbox, run the tool called *1) Generate Transit Lines and Stops*.  This tool will take several minutes to run for a large dataset.
 
@@ -92,25 +92,26 @@ In the *Add GTFS to network dataset* toolbox, run the tool called *1) Generate T
 
 *Note: If you receive an error message saying "GTFS dataset contains empty values for arrival_time or departure_time in stop_times.txt.  Although the GTFS spec allows empty values for these fields, this toolbox requires exact time values for all stops.  You will not be able to use this dataset for your analysis.", you might still be able to use the GTFS dataset by estimating the arrival_time and departure_time values using the [Interpolate Blank Stop Times](http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool.*
 
-## 4) Create connector features between the transit lines/stops and your other data
+## <a name="Step4"></a>4) Create connector features between the transit lines/stops and your other data
 
-A well-constructed network dataset requires connectivity between the source features: streets, transit lines, stops, etc.  Two streets that do not touch one another will not be connected in the network, and travelers will not be able to travel directly between these two streets.  Two streets that touch each other but do not share endpoints or vertices will also not be connected in the network.  A street and a transit line in different connectivity groups will only connect at the points you specify when you set up your network.
+A well-constructed network dataset requires connectivity between the source features: streets, transit lines, stops, etc.  Two streets that do not touch one another will not be connected in the network, and travelers will not be able to travel directly between these two streets.  A street and a transit line in different connectivity groups will only connect at the points you specify when you set up your network.
 
-When you create your network dataset, you want your pedestrians to be able to travel between the streets and the transit lines, but you only want them to be able to transition between streets and transit lines at the locations of stops.  Pedestrians can only enter and exit the bus/train at stops.  They cannot jump off halfway between stops and start walking on the street to get to their destination.  Later, you will set up connectivity groups in your network to model the correct behavior.  But first, you must create connector lines to ensure that the GTFS stops connect to both the transit lines and the streets.
+When you create your network dataset, you want your pedestrians to be able to travel between the streets and the transit lines, but you only want them to be able to transition between streets and transit lines at the locations of stops.  Pedestrians can only enter and exit the bus/train at stops (or designated station entrances).  They cannot jump off halfway between stops and start walking on the street to get to their destination.  Later, you will set up connectivity groups in your network to model the correct behavior.  But first, you must create connector lines to ensure that the GTFS stops connect to both the transit lines and the streets.
 
 The GTFS stops probably do not fall directly on top of your streets data (or sidewalks, etc).  Consequently, you should make some small connector lines that bridge the gap between the stops and the nearest street.  Create a lines feature class of connectors, keeping in mind the following:
 * Connector lines should attach to the streets in the location where pedestrians will enter the transit system – the street location of the bus stop or the entrance to an underground or inside station.
-* If your GTFS data uses parent stations, child stops should connect to the parent station, and the parent station should connect to the street.
+* If your GTFS data uses parent stations, child stops should connect to the parent station, and the parent station should connect to the street, either directly or via designated station entrances.
 * Connector lines can be used in the network dataset to apply a time delay for boarding and/or getting off the transit vehicles.
 * Sometimes street data contains information about whether or not a street is traversable by pedestrians.  If it does, you want to make sure your stop does not get connected to a non-traversable street because then pedestrians will never be able to use that stop.
 * When you create your network dataset, the network won't connect overlapping lines unless they overlap at a vertex or endpoint of both lines.  Consequently, when you create connector lines between the stops and the nearby streets, you will also need to generate vertices or endpoints on your street features to ensure that the streets actually connect with the connector lines.
 
-For a simple way to generate connector lines, you can use the included tool called *2) Generate Stop-Street Connectors*.  However, the method you use should be tailored to the data you are using.  This tool is only a rudimentary method.  If you have more complex data (e.g., multiple street or sidewalk datasets or information about station entrances), you might want to invent your own method for connecting your streets and stops.
+For a simple way to generate connector lines, you can use the included tool called *2) Generate Stop-Street Connectors*.  However, this tool assumes you have a standard GTFS dataset and a single streets feature class.  If you have more complex data (e.g., multiple street or sidewalk datasets), you might want to invent your own method for connecting your streets and stops.
 
 This is what the *Generate Stop-Street Connectors* tool does:
 * First, this tool creates a copy of your stops and [snaps] (http://desktop.arcgis.com/en/desktop/latest/tools/editing-toolbox/snap.htm) them to your street features.  Each snapped stop will land at the closest point of the closest street feature, as long as it falls within a particular distance of that street.  If you entered a SQL expression, the tool will first use this expression to [select] (http://desktop.arcgis.com/en/desktop/latest/tools/analysis-toolbox/select.htm) street features by attributes so that stops will only be snapped to streets that fit this criteria.
 * Next, the tool [generates a line feature] (http://desktop.arcgis.com/en/desktop/latest/tools/data-management-toolbox/points-to-line.htm) connecting the true location of each stop and its snapped counterpart.
 * If your GTFS data uses parent stations, the parent stations are snapped to the streets using the method described above.  Child stops of the parent station are not snapped to the streets.  Instead, a connector line is created between the child stop and the parent station.  Consequently, the child stop is connected to the streets only through the parent station.
+* If your GTFS stops.txt file includes station entrances designated by location_type=2, the station entrances will be snapped to the streets, and a line will be generated between the parent station and each station entrance.  It is assumed that the station entrances are the only places where pedestrians can enter their respective parent stations.
 * Next, the tool creates a "wheelchair_boarding" field to indicate whether or not the stop is wheelchair accessible.  The values used in this field are derived from the wheelchair_boarding field in the [GTFS stops.txt file] (https://developers.google.com/transit/gtfs/reference#stops_fields).  If the stop has a parent station and has a wheelchair_boarding value of 0, the tool populates the field based on the wheelchair_boarding value for the parent station.
 * Finally, the tool [creates vertices] (http://desktop.arcgis.com/en/desktop/latest/tools/data-management-toolbox/integrate.htm) in the street features at the locations of the snapped stops.  These vertices are necessary for establishing connectivity when you create your network dataset.
 
@@ -133,7 +134,7 @@ Note: In order to run the *2) Generate Stop-Street Connectors* tool, you must ha
 * **Streets_UseThisOne**: A copy of the streets feature class you selected as input, modified to have vertices at the locations of your snapped GTFS stops.  This is the streets feature class you should use in your network dataset instead of your original streets feature class.
 
 
-##5) Create your network dataset using correct connectivity groups
+## <a name="Step5"></a>5) Create your network dataset using correct connectivity groups and configure your network attributes
 
 Now you are ready to create your network dataset.  If you have never created a network dataset, please review the ['Creating a multimodal network dataset'] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/exercise-2-creating-a-multimodal-network-dataset.htm) tutorial in the ArcGIS Help before proceeding.
 
@@ -178,7 +179,7 @@ To create a travel time cost attribute that uses the GTFS transit evaluator, do 
 
 ![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_Evaluators.png)
 
-* For Connectors_Stops2Streets: You can set these equal to a constant of 0 if you do not want traveling between streets and transit lines to invoke any time penalty.  However, you can use these features to simulate a time delay for boarding or exiting a vehicle.  For example, if you want it to take 30 seconds to board a vehicle, you could set the To-From direction equal to a constant of 0.5.  You could leave the From-To direction at 0 if you don't want to invoke a delay for exiting a vehicle.  Note that From-To indicates the direction traveling from the stops to the streets, and vice-versa for the To-From direction.  *Note: If you've done something fancy with your stop-street connections, you can ignore the instructions above and do whatever you think most appropriate.  You could, for instance, create a connection feature class containing a field indicating an individual walk time between the station entrance and the stop point (the platform).  You could use this field as the value for travel time.  Also note that if you have stops connected to parent stations, and you use a simple constant to model boarding or exiting time, this constant will be applied twice for these stops because the stop is connected to the parent station, and the parent station is connected to the street.*
+* For Connectors_Stops2Streets: You can set these equal to a constant of 0 if you do not want traveling between streets and transit lines to invoke any time penalty.  However, you can use these features to simulate a time delay for boarding or exiting a vehicle.  For example, if you want it to take 30 seconds to board a vehicle, you could set the To-From direction equal to a constant of 0.5.  You could leave the From-To direction at 0 if you don't want to invoke a delay for exiting a vehicle.  Note that From-To indicates the direction traveling from the stops to the streets, and vice-versa for the To-From direction.  *Note: If you've done something fancy with your stop-street connections, you can ignore the instructions above and do whatever you think most appropriate.  For instance, you could use a field in your feature class to indicate specific walk times between the station entrance and the stop point (the platform).  Also note that if you have stops connected to parent stations, and you use a simple constant to model boarding or exiting time, this constant will be applied twice for these stops because the stop is connected to the parent station, and the parent station is connected to the street.*
 
 * For the TransitLines, you need to use the special GTFS transit evaluator you installed earlier.  This evaluator queries the GTFS transit schedules to figure out how long it takes to travel on your transit lines at the time of day of your analysis.  In the Type field for TransitLines From-To, click to get a drop-down.  There should be an entry in the drop-down list that says "Transit Evaluator".  Select this value.
 
@@ -212,7 +213,7 @@ Finally, review your settings and click finish.
 When the box pops up, choose to Build the network dataset now.  If there are build errors, please check the Troubleshooting Guide.
 
 
-##6) Finalize your transit network using the Get Network EIDs tool
+## <a name="Step6"></a>6) Finalize your transit network using the Get Network EIDs tool
 
 The special GTFS transit evaluator references a SQL database containing your GTFS transit schedule data.  This database is created and processed when you run the *1) Generate Transit Lines and Stops* tool.  However, the database needs one further piece of information, a list of network EIDs, which can only be added after the network dataset has been created and built.  Consequently, you need to run one further tool before your network dataset is ready to use, *3) Get Network EIDs*.  *Warning: every time you rebuild your network dataset, you will have to re-run this tool because the network EIDs might change.*
 
@@ -223,7 +224,7 @@ Note: Occasionally, *3) Get Network EIDs* will fail with a message saying "Error
 The input for this tool is just your network dataset.  There is no output.  It simply updates the SQL database associated with your network.
 
 
-##7) Choose the correct analysis settings
+## <a name="Step7"></a>7) Choose the correct analysis settings
 
 Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS.  If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
 
@@ -320,7 +321,7 @@ To register TransitEvaluator.dll in server, open a command window as an administ
 
 Note: The transit evaluator will *not* work with ArcGIS Server on Linux.  It only works with Windows Server.
 
-If you are hosting a service using your transit-enabled network dataset, and you copy the service's data to the server, you must additionally copy the GTFS.sql file located in the geodatabase where your network dataset is stored.  Without this SQL database, the transit evaluator will not run.
+If you are hosting a service using your transit-enabled network dataset, and you copy the service's data to the server, you must additionally copy the GTFS.sql file located in the geodatabase where your network dataset is stored.  Without this SQL database, the transit evaluator will not run, and ArcGIS does not automatically copy it along with the geodatabase (it leaves it behind).
 
 
 ##Using your network dataset with 64-bit Background Geoprocessing
