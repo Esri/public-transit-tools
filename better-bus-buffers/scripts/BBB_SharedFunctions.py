@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 27 July 2016
+## Last updated: 1 November 2016
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -650,9 +650,9 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
 
     # Add a field for stop_id as a unique identifier for service areas.
     if ProductName == "ArcGISPro":
-        arcpy.na.AddFieldToAnalysisLayer(SALayer, facilities, "stop_id", "TEXT")
+        arcpy.na.AddFieldToAnalysisLayer(SALayer, facilities, "stop_id", "TEXT", field_length=255)
     else:
-        arcpy.na.AddFieldToAnalysisLayer(outNALayer_SA, facilities, "stop_id", "TEXT")
+        arcpy.na.AddFieldToAnalysisLayer(outNALayer_SA, facilities, "stop_id", "TEXT", field_length=255)
 
     # Specify the field mappings for the stop_id field.
     if ArcVersion == "10.0":
