@@ -9,7 +9,13 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 ##What this tool does
 The optional GTFS shapes.txt file contains the actual on-street paths taken by transit vehicles in your system.  A good shapes.txt file is important in order for GTFS-based routing apps to display transit routes correctly on the map.  Read more about the shapes.txt file in the [GTFS reference doc](https://developers.google.com/transit/gtfs/reference).
 
-The Generate GTFS Shapes toolbox produces a shapes.txt file for your GTFS dataset.  You give the tool a valid, existing GTFS dataset, and the tool creates a new shape.txt file and updates the shape_id field in trips.txt and the shape_dist_traveled field in stop_times.txt.  Step 1 of the tool creates a feature class with good estimates for the on-street paths used in your transit system.  You can edit this feature class using your own knowledge in order to ensure that the correct paths are truly represented.  Then, you can use Step 2 to of the tool to update your GTFS files to include this shape information.
+The Generate GTFS Shapes toolbox produces a new shapes.txt file for your GTFS dataset or allows you to edit an existing one.
+
+To create an entirely new shapes.txt file from scratch, you give the tool a valid, existing GTFS dataset, and the tool creates a new shape.txt file and updates the shape_id field in trips.txt and the shape_dist_traveled field in stop_times.txt.  Step 1 of the tool creates a feature class with good estimates for the on-street paths used in your transit system.  You can edit this feature class using your own knowledge in order to ensure that the correct paths are truly represented.  Then, you can use Step 2 to of the tool to update your GTFS files to include this shape information.
+
+To edit one or more existing shapes, you give the tool a valid, existing GTFS with a shapes.txt file and choose the shape(s) you want to edit.  The chosen shapes will be drawn in the map, where you can edit them.  Then, you can use Step 2 to of the tool to update your shapes.txt file and the relevant shape_dist_traveled field entries in stop_times.txt.
+
+The tools will not overwrite any existing GTFS files.  You can choose the output location for the new files, and you can compare them with the old ones before manually replacing the old ones with the updated ones.
 
 Generate GTFS Shapes is targeted primarily toward transit agencies seeking to improve their GTFS datasets.
 
@@ -28,14 +34,18 @@ Generate GTFS Shapes is targeted primarily toward transit agencies seeking to im
 - *Warning: If you wish to move the toolbox to a different location on your computer, make sure you move the entire package (the .tbx file, the scripts folder, and the user's guide) together so that the toolbox does not become disconnected from the scripts.*
 
 ##Workflow
-This tool has three steps:  
+This tool has four steps:  
 
 1. Create a reasonable estimate of your transit shapes by running one of the following tools:
     - [*Step 1: Generate Shapes with Network Analyst*](#GenerateShapesNA)
     - [*Step 1: Generate Shapes with ArcGIS Online*](#GenerateShapesAGOL)
-    - [*Step 1: Generate Shapes with Straight Lines*](#GenerateShapesStraight).
-2. Make whatever edits you need to make to your transit shape feature class using the editing tools in ArcMap or ArcGIS Pro.
+    - [*Step 1: Generate Shapes with Straight Lines*](#GenerateShapesStraight)
+ 
+  OR choose one or more existing shapes from your existing shapes.txt file to draw in the map using the [*Step 1: Update Existing Shapes*](#UpdateExisting) tool.
+
+2. [Make whatever edits you need to make](#Edits) to your transit shape feature class using the editing tools in ArcMap or ArcGIS Pro.
 3. Run the tool called [*Step 2: Generate new GTFS text files*](#GenerateNewGTFSTextFiles) to generate a shapes.txt file and add the appropriate  shape-related fields to your trips.txt and stop_times.txt files.
+4. Review the output, and, if satisfied, replace your existing GTFS files with the new ones.
 
 
 ##<a name="GenerateShapesNA"></a>Running *Step 1: Generate Shapes with Network Analyst*
@@ -110,10 +120,8 @@ This version of Step 1 does not use a streets network to estimate your route sha
 ###Inputs
 * **GTFS directory**:  The folder containing your (unzipped) GTFS .txt files.  The tool uses the .txt files directly, so you need not turn them into shapefiles or process them in any way.
 * **Output directory**: The folder where your output geodatabase will be written.
-* **Name for output geodatabase: The name of your output geodatabase, which will be created when the tool runs.  The geodatabase must not currently exist.
+* **Name for output geodatabase**: The name of your output geodatabase, which will be created when the tool runs.  The geodatabase must not currently exist.
 * **Generate shapes by connecting stops with straight lines for these route types**: Straight-line shapes will be created for these modes.
-* **Which side of the road do your transit vehicles drive on?**: This determines which side of the vehicle stops should fall on.
-* **Where are U-turns at junctions allowed?**: Choose U-turn settings that make sense for your transit system.
 
 ###Outputs
 A file geodatabase with the name and location you specified will be created and will contain the following files:
@@ -122,8 +130,29 @@ A file geodatabase with the name and location you specified will be created and 
 * **SQLDbase.sql**: A SQL database of your GTFS data.  You shouldn't need to look at this for anything, but don't delete it because it is necessary for running Step 2.
 
 
-##Editing your Shapes
-Before using Step 2 to generate your shapes.txt file, you should examine your shapes in ArcMap and make any necessary edits.  You can use the ArcMap editing tools to edit your shapes.  Your workflow will be something like this:
+
+##<a name="UpdateExisting"></a>Running *Step 1: Update Existing Shapes*
+
+Run this version of Step 1 if your GTFS dataset already has a shapes.txt file and you just want to update one or more of the existing shapes.  With this tool, you can select which shapes you want to update, and it will create a feature class with these shapes as they currently appear in your shapes.txt file.
+
+![Screenshot of tool dialog](./images/Screenshot_GenerateShapesUpdate_Dialog.png)
+
+###Inputs
+* **GTFS directory**:  The folder containing your (unzipped) GTFS .txt files.  The tool uses the .txt files directly, so you need not turn them into shapefiles or process them in any way.  Your GTFS directory must contain a shapes.txt file to run this version of Step 1.
+* **Output directory**: The folder where your output geodatabase will be written.
+* **Name for output geodatabase**: The name of your output geodatabase, which will be created when the tool runs.  The geodatabase must not currently exist.
+* **Shapes to update**: This parameter will be populated with a list of shape_id values present in your shapes.txt file after you select a GTFS directory.  You can choose which shapes you want to update.  If you are unsure of which shapes you want to update, try running the [Display GTFS Route Shapes](http://www.arcgis.com/home/item.html?id=380aa7cbf010417ab3ae32a6f11e00d9) tool first to see all your existing shapes in the map.
+
+###Outputs
+A file geodatabase with the name and location you specified will be created and will contain the following files:
+* **Shapes**: A lines feature class with your selected shapes, derived from your shapes.txt file. You can edit these shapes before you use them to create an updated version of your shapes.txt file.
+* **Stops_wShapeIDs**: A feature class of your GTFS stops, including the shape_id field so you can match them up with the shape they go to.  In cases where the same GTFS stop gets visited by multiple shapes, the Stops_wShapeIDs feature class will contain multiple copies of that stop, one for each shape it is associated with.  This is meant for reference only.
+* **SQLDbase.sql**: A SQL database of your GTFS data.  You shouldn't need to look at this for anything, but don't delete it because it is necessary for running Step 2.
+
+
+
+##<a name="Edits"></a>Editing your Shapes
+Before using Step 2 to generate your shapes.txt file, you should examine your shapes in the map and make any necessary edits.  You can use the ArcMap or ArcGIS Pro editing tools to edit your shapes.  Your workflow will be something like this:
 * Start an editing session
 * Add basemaps and/or your network dataset street data to your map so you can see the shapes and stops in context.
 * Look at each shape individually to verify that it is correct.
@@ -131,10 +160,10 @@ Before using Step 2 to generate your shapes.txt file, you should examine your sh
 * Save your edits
 * Stop the editing session
 
-For detailed information on editing in ArcMap, read about editing in the [ArcGIS Help] (http://desktop.arcgis.com/en/desktop/latest/manage-data/editing/what-is-editing-.htm).
+For detailed information on editing in ArcGIS, read about editing in the [ArcMap Help] (http://desktop.arcgis.com/en/desktop/latest/manage-data/editing/what-is-editing-.htm) or the [ArcGIS Pro Help] (http://pro.arcgis.com/en/pro-app/help/editing/overview-of-desktop-editing.htm).
 
 ###Tips for editing
-* To view and edit one shape at a time, open the Shapes feature class properties in ArcMap and go to the Definition Query tab.  You can create a definition query such as "shape_id = 2" to display only the shape for shape_id 2.  All others will be hidden.  You can do the same thing with the Stops_wShapeIDs feature class to see only the stops associated with that shape.
+* To view and edit one shape at a time, open the Shapes feature class properties and go to the Definition Query tab.  You can create a definition query such as "shape_id = 2" to display only the shape for shape_id 2.  All others will be hidden.  You can do the same thing with the Stops_wShapeIDs feature class to see only the stops associated with that shape.
 
 ###<a name="ShapeProblems"></a>Common Shape problems and how to fix them
 * The stop is actually along the main road, but the stop location in the data fell slightly closer to a side road.  Consequently, the stop snapped to the side road, and the bus had to turn into the side road to visit the stop and then make a U-turn to return to the main road.  You can edit these out easily using the Reshape Features Tool.
@@ -160,19 +189,21 @@ For detailed information on editing in ArcMap, read about editing in the [ArcGIS
 
 ##<a name="GenerateNewGTFSTextFiles"></a>Running *Step 2: Generate new GTFS text files*
 
-*Step 2: Generate new GTFS text files* creates a shapes.txt file based on the feature classes you created and edited.  It also creates or updates the shape_id field trips.txt and the shape_dist_travled field in stop_times.txt.  This tool does not overwrite any of your existing GTFS data.  You can review the new files before deleting the originals.
+*Step 2: Generate new GTFS text files* creates or updates a shapes.txt file based on the feature classes you created in Step 1 and edited.  It also creates or updates the shape_id field trips.txt and the shape_dist_travled field in stop_times.txt.  This tool does not overwrite any of your existing GTFS data.  You can review the new files before deleting the originals.
 
-This tool will run very quickly for small GTFS datasets, but it may take significantly longer for larger ones.
+This tool will run very quickly for small GTFS datasets or if you are only updating a few shapes, but it may take significantly longer for larger datasets and many shapes.
 
 ![Screenshot of tool dialog](./images/Screenshot_GenerateNewGTFSTextFiles_Dialog.png)
 
 ###Inputs
 * **Geodatabase created in Step 1**:  The file geodatabase that was created when you ran Step 1 of this tool.  It must contain the Shapes feature class as well as Stops_wShapeIDs and SQLDbase.sql.
 * **Directory for output GTFS text files**: Designate an output directory where the new GTFS files will be written. 
+* **Units for shape_dist_traveled**: Select the unit of measurement to use for the shape_dist_traveled fields in shapes.txt and stop_times.txt.  The values in the shape_dist_traveled field describe the distance along the shape the stop (for stop_times.txt) or the shape vertex (for shapes.txt) is located and is used for rendering partial shapes in the map in trip planning applications.  The GTFS specification does not specify the units to be used.  You can select a real unit of measurement, or use the "percent" option to use the percentage along the line's length.  Valid values are: percent, meters, kilometers, miles, feet, yards.
+* **Update existing shapes**: Check this checkbox if you want to update an existing shapes.txt file (typically if you're just modifying a few shapes and not the whole dataset) instead of creating a new shapes.txt file from scratch.  Note that even if you check on this checkbox, your original shapes.txt file will not be overwritten.  You will have a chance to review the results first.  This option will be disabled if your Step 1 geodatabase does not have the necessary contents for shape updates (you did not create it using the correct [*Step 1: Update Existing Shapes*](#UpdateExisting) tool).
 
 ###Outputs
 * **shapes_new.txt**: The GTFS shapes.txt file generated from your Shapes feature class.
-* **trips_new.txt**:  A copy of your original trips.txt file with the shape_id field added or modified to match the new shapes.txt file.
+* **trips_new.txt**:  A copy of your original trips.txt file with the shape_id field added or modified to match the new shapes.txt file.  Note: If you are updating existing shapes, this file will not be produced because no changes will have been made.
 * **stop_times_new.txt**:  A copy of your original stop_times.txt file with the shape_dist_traveled field added or modified to match the new shapes.txt file.
 
   After reviewing your new GTFS files, remove the "_new" suffix from the filenames and replace the originals.

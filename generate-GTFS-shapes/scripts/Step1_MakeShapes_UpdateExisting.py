@@ -1,6 +1,6 @@
 ###############################################################################
 ## Tool name: Generate GTFS Route Shapes
-## Step 1: Generate Shapes on Map - Straight line version launcher
+## Step 1: Update Existing Shapes - Update existing shapes version launcher
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
 ## Last updated: 25 December 2016
 ###############################################################################
@@ -30,13 +30,18 @@ import arcpy
 Step1_MakeShapesFC.inGTFSdir = arcpy.GetParameterAsText(0)
 Step1_MakeShapesFC.outDir = arcpy.GetParameterAsText(1)
 Step1_MakeShapesFC.outGDBName = arcpy.GetParameterAsText(2)
-Step1_MakeShapesFC.in_route_type_Street = ""
-Step1_MakeShapesFC.in_route_type_Straight = arcpy.GetParameterAsText(3)
 
-Step1_MakeShapesFC.useNA = 0
+shapes_to_update = arcpy.GetParameterAsText(3)
+# Fix up list shapes (it comes in as a ;-separated list)
+shapes_to_update = shapes_to_update.split(";")
+# Remove single quotes ArcGIS puts in if there are spaces in the name.
+for d in shapes_to_update:
+    if d[0] == "'" and d[-1] == "'":
+        loc = shapes_to_update.index(d)
+        shapes_to_update[loc] = d[1:-1]
+
 
 # ----- Call the main Step 1 code and feed it the user input -----
 
 # Pass all the parameters to the main function in the shared Step 1 library.
-Step1_MakeShapesFC.RunStep1()
-
+Step1_MakeShapesFC.RunStep1_existing_shapestxt(shapes_to_update)
