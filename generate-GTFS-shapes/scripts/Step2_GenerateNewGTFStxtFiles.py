@@ -2,7 +2,7 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 2: Generate new GTFS text files
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 4 February 2016
+## Last updated: 25 December 2016
 ###############################################################################
 '''Using the GDB created in Step 1, this tool adds shape information to the
 user's GTFS dataset.  A shapes.txt file is created, and the trips.txt and
@@ -29,6 +29,67 @@ class CustomError(Exception):
     pass
 
 
+def get_table_columns(tablename):
+    '''Get the columns from a SQL table'''
+    c.execute("PRAGMA table_info(%s)" % tablename)
+    table_info = c.fetchall()
+    columns = ()
+    for col in table_info:
+        columns = columns + (col[1],)
+    return columns
+
+
+def write_SQL_table_to_text_file(tablename, csvfile, columns):
+    '''Dump all rows in a SQL table out to a text file'''
+
+    def WriteFile(f):
+        
+        # Initialize csv writer
+        wr = csv.writer(f)
+        
+        # Write columns
+        wr.writerow(columns)
+
+        # Grab all the rows in the SQL Table
+        selectrowsstmt = "SELECT * FROM %s;" % tablename
+        c.execute(selectrowsstmt)
+        allrows = c.fetchall()
+        
+        # Write each row to the csv file
+        for row in allrows:
+            # Encode row in utf-8.
+            if ProductName == "ArcGISPro":
+                rowToWrite = tuple([t for t in row])
+            else:
+                rowToWrite = tuple([t.encode("utf-8") if isinstance(t, basestring) else t for t in row])
+            wr.writerow(rowToWrite)
+
+    if ProductName == "ArcGISPro":
+        with codecs.open(csvfile, "wb", encoding="utf-8") as f:
+            WriteFile(f)
+    else:         
+        with open(csvfile, "wb") as f:
+            WriteFile(f)
+
+
+def get_trips_with_shape_id(shape):
+    tripsfetch = '''SELECT trip_id FROM trips where shape_id="%s";''' % shape
+    c.execute(tripsfetch)
+    trips = c.fetchall()
+    return [trip[0] for trip in trips]
+
+
+def convert_meters_to_other_units(meters, units):
+    if units == "miles":
+        return meters * 0.000621371
+    elif units == "kilometers":
+        return meters / 1000.0
+    elif units == "feet":
+        return meters * 3.28084
+    elif units == "yards":
+        return meters * 1.09361
+
+
 try:
 
 # ----- Define variables -----
@@ -36,6 +97,12 @@ try:
     # User input
     inStep1GDB = arcpy.GetParameterAsText(0)
     outDir = arcpy.GetParameterAsText(1)
+    units = arcpy.GetParameterAsText(2)
+    update_existing = arcpy.GetParameterAsText(3)
+    if update_existing == "true":
+        update_existing = True
+    else:
+        update_existing = False
 
     # Derived
     SQLDbase = os.path.join(inStep1GDB, "SQLDbase.sql")
@@ -83,53 +150,16 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
 
 # ----- Generate new trips.txt with shape_id populated -----
 
-    arcpy.AddMessage("Generating new trips.txt file...")
-
-    try:
-        
-        def WriteTripsFile(f):
-            wr = csv.writer(f)
-            # Get the columns for trips.txt and write them to the file
-            c.execute("PRAGMA table_info(trips)")
-            trips_table_info = c.fetchall()
-            columns = ()
-            for col in trips_table_info:
-                columns = columns + (col[1],)
-            wr.writerow(columns)
-    
-            # Find the shape_id and trip_id column indexes
-            shape_id_idx = columns.index("shape_id")
-            trip_id_idx = columns.index("trip_id")
-    
-            # We added shape_ids in step 1, so just print the SQL table.
-            selecttripsstmt = "SELECT * FROM trips;"
-            c.execute(selecttripsstmt)
-            alltrips = c.fetchall()
-            for trip in alltrips:
-                # Encode trip in utf-8.
-                if ProductName == "ArcGISPro":
-                    tripToWrite = tuple([t for t in trip])
-                else:
-                    tripToWrite = tuple([t.encode("utf-8") if isinstance(t, basestring) else t for t in trip])
-                wr.writerow(tripToWrite)
-                # While we're at it, create a dictionary of {trip_id: shape_id}
-                trip_shape_dict[tripToWrite[trip_id_idx]] = tripToWrite[shape_id_idx]
-        
-        
-        # Initialize a dictionary of {trip_id: shape_id} for later use
-        trip_shape_dict = {}
-        if ProductName == "ArcGISPro":
-            with codecs.open(outTripsFile, "wb", encoding="utf-8") as f:
-                WriteTripsFile(f)
-        else:         
-            with open(outTripsFile, "wb") as f:
-                WriteTripsFile(f)
- 
-        arcpy.AddMessage("Successfully created new trips.txt file.")
-
-    except:
-        arcpy.AddError("Error generating new trips.txt file.")
-        raise
+    # We don't need to modify the trips.txt file is we're just updating existing shapes.
+    if not update_existing:
+        try:
+            arcpy.AddMessage("Generating new trips.txt file...")
+            trip_columns = get_table_columns("trips")
+            write_SQL_table_to_text_file("trips", outTripsFile, trip_columns)
+            arcpy.AddMessage("Successfully created new trips.txt file.")
+        except:
+            arcpy.AddError("Error generating new trips.txt file.")
+            raise
 
 
 # ----- Prepare projected shapes for use in linear referencing -----
@@ -166,12 +196,34 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
             for line in linecur:
                 linetable.append(line)
         # Sort by shape_id so they'll be written in a nice order.
-        linetable = sorted(linetable, key=itemgetter(1))
+        if update_existing:
+            # If they're using existing shape_ids, we just sort regularly as strings.
+            linetable = sorted(linetable, key=itemgetter(1))
+        else:
+            # Sort the shapes as integers because Step 1 guarantees that the shape_ids are integers written as strings
+            def getKey(listitem):
+                return int(listitem[1])
+            linetable = sorted(linetable, key=getKey)     
         # Prepare the progress reports by finding 10% of the length
         numshapes = len(linetable)
         tenperc = 0.1 * numshapes
-        arcpy.AddMessage("Your dataset contains " + str(numshapes) + " shapes.")
+        if update_existing:
+            arcpy.AddMessage("Updating " + str(numshapes) + " shape(s).")
+        else:
+            arcpy.AddMessage("Your dataset contains " + str(numshapes) + " shapes.")
 
+        trip_shape_dict = {} # {trip_id: shape_id}
+        if update_existing:
+            for line in linetable:
+                for trip in get_trips_with_shape_id(line[1]):
+                    trip_shape_dict[trip] = line[1]
+        else:
+            tripsfetch = '''SELECT trip_id, shape_id FROM trips;'''
+            c.execute(tripsfetch)
+            trips = c.fetchall()
+            for trip in trips:
+                trip_shape_dict[trip[0]] = trip[1]
+            
     except:
         arcpy.AddError("Error preparing Shapes for measurement.")
         raise
@@ -188,7 +240,7 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
         arcpy.management.CreateFeatureclass(inStep1GDB, inShapes_vertices_name,
                                             "POINT", spatial_reference=UTMCoords)
         arcpy.management.AddField(inShapes_vertices, "shapept_id", "LONG")
-        arcpy.management.AddField(inShapes_vertices, "shape_id", "LONG")
+        arcpy.management.AddField(inShapes_vertices, "shape_id", "TEXT")
         with arcpy.da.SearchCursor(outShapes, ["SHAPE@XY", "shape_id"], explode_to_points=True) as linescur:
             with arcpy.da.InsertCursor(inShapes_vertices, ["SHAPE@XY", "shapept_id", "shape_id"]) as ptscur:
                 # Add an ID field for the vertices which will indicate the correct order
@@ -200,7 +252,7 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
                     shapept_id += 1
 
         # Store the lat/long of each vertex.
-        vert_dict = {}
+        vert_dict = {} # {shapept_id: shapegeom}
         # Read in the lat/lon values in WGSCoords
         with arcpy.da.SearchCursor(inShapes_vertices, ["SHAPE@XY", "shapept_id"], '', WGSCoords) as vertexcursor:
             for vert in vertexcursor:
@@ -210,13 +262,14 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
         arcpy.AddError("Error creating a feature class of Shape vertices.")
         raise
 
-    # Prepare the new shapes.txt file
+    # Write to shapes.txt file
     try:
         
         def WriteShapesFile(f):
             wr = csv.writer(f)
             # Write the headers
-            wr.writerow(["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence", "shape_dist_traveled"])
+            if not update_existing:
+                wr.writerow(["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence", "shape_dist_traveled"])
 
             # Find the location of each vertex along the line
             # Linear reference the vertices of each shape and write to shapes.txt
@@ -231,7 +284,7 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
                     progress = 0
                 lineGeom = line[0]
                 shape_id = line[1]
-                where = """"shape_id" = %s""" % str(shape_id)
+                where = """"shape_id" = '%s'""" % str(shape_id)
                 VerticesLayer = arcpy.management.MakeFeatureLayer(inShapes_vertices, "VerticesLayer", where)
                 with arcpy.da.SearchCursor(VerticesLayer, ["SHAPE@", "shapept_id"]) as ptcur:
                     shape_rows = []
@@ -245,13 +298,31 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
                             shapes_with_no_geometry.append(shape_id)
                         # Find the distance along the line the vertex occurs
                         else:
-                            shape_dist_traveled = lineGeom.measureOnLine(ptGeom)
+                            # measureOnLine returns result as either a percent along the line or in the units of the line geometry (meters, in our case)
+                            if units == "percent":
+                                # Even though the parameter is called used_percentage, it returns a proportion between 0 and 1, so multiply by 100 to convert to a true percentage
+                                shape_dist_traveled = 100.0 * lineGeom.measureOnLine(ptGeom, use_percentage=True)
+                            else:
+                                shape_dist_traveled = lineGeom.measureOnLine(ptGeom, use_percentage=False)
+                                if units != "meters":
+                                    # Do a unit conversion if the user wants it
+                                    shape_dist_traveled = convert_meters_to_other_units(shape_dist_traveled, units)
                         # Retrieve the lat/lon values
                         shape_pt_lon = vert_dict[ptid][0]
                         shape_pt_lat = vert_dict[ptid][1]
                         # Prepare a row for the shapes.txt file
                         shape_rows.append([sequence, shape_dist_traveled])
-                        wr.writerow([shape_id, shape_pt_lat, shape_pt_lon, sequence, shape_dist_traveled])
+                        if not update_existing:
+                            row_to_add = [shape_id, shape_pt_lat, shape_pt_lon, sequence, shape_dist_traveled]
+                        else:
+                            # Do a little jiggering because the user's existing shapes.txt might contain extra fields and might not be in the same order
+                            row_to_add = ["" for col in shapes_columns]
+                            row_to_add[shape_id_idx] = shape_id
+                            row_to_add[shape_pt_lat_idx] = shape_pt_lat
+                            row_to_add[shape_pt_lon_idx] = shape_pt_lon
+                            row_to_add[shape_pt_sequence_idx] = sequence
+                            row_to_add[shape_dist_traveled_idx] = shape_dist_traveled
+                        wr.writerow(row_to_add)
                         sequence += 1
                 # Check if the vertices came out in the right order. If they
                 # didn't, something is wrong with the user's input shape.
@@ -260,14 +331,39 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
                 if sortedList_dist != sortedList_sequence:
                     shapes_with_warnings.append(shape_id)
 
+        if update_existing:
+    
+            # Delete previous entries for these shapes from SQL table
+            for line in linetable:
+                shape_id = line[1]
+                delete_stmt = "DELETE FROM shapes WHERE shape_id='%s'" % shape_id
+                c.execute(delete_stmt)
+            
+            # Save some info about column order for later
+            shapes_columns = get_table_columns("shapes")
+            shape_id_idx = shapes_columns.index("shape_id")
+            shape_pt_lat_idx = shapes_columns.index("shape_pt_lat")
+            shape_pt_lon_idx = shapes_columns.index("shape_pt_lon")
+            shape_pt_sequence_idx = shapes_columns.index("shape_pt_sequence")
+            shape_dist_traveled_idx = shapes_columns.index("shape_dist_traveled")
+
+            # Write out the existing entries to shapes.txt
+            write_SQL_table_to_text_file("shapes", outShapesFile, shapes_columns)
+        
+            # We'll append the updated shapes to the existing original shapes
+            mode = "ab"
+            
+        else:
+            mode = "wb"
+
         shapes_with_warnings = []
         shapes_with_no_geometry = []
         # Open the new shapes.txt file and write output.
         if ProductName == "ArcGISPro":
-            with codecs.open(outShapesFile, "wb", encoding="utf-8") as f:
+            with codecs.open(outShapesFile, mode, encoding="utf-8") as f:
                 WriteShapesFile(f)
         else:         
-            with open(outShapesFile, "wb") as f:
+            with open(outShapesFile, mode) as f:
                 WriteShapesFile(f)
 
         # Add warnings for shapes that have them.
@@ -319,7 +415,7 @@ str(shapes_with_no_geometry))
                 progress = 0
             lineGeom = line[0]
             shape_id = line[1]
-            where = """"shape_id" = %s""" % str(shape_id)
+            where = """"shape_id" = '%s'""" % str(shape_id)
             StopsLayer = arcpy.management.MakeFeatureLayer(inStops_wShapeIDs_projected, "StopsLayer", where)
             with arcpy.da.SearchCursor(StopsLayer, ["SHAPE@", "stop_id", "sequence"]) as ptcur:
                 shape_rows = []
@@ -333,7 +429,15 @@ str(shapes_with_no_geometry))
                         shape_dist_traveled = 0.0
                     # Find the distance along the line the stop occurs
                     else:
-                        shape_dist_traveled = lineGeom.measureOnLine(ptGeom)
+                        # measureOnLine returns result as either a percent along the line or in the units of the line geometry (meters, in our case)
+                        if units == "percent":
+                            # Even though the parameter is called used_percentage, it returns a proportion between 0 and 1, so multiply by 100 to convert to a true percentage
+                            shape_dist_traveled = 100.0 * lineGeom.measureOnLine(ptGeom, use_percentage=True)
+                        else:
+                            shape_dist_traveled = lineGeom.measureOnLine(ptGeom, use_percentage=False)
+                            if units != "meters":
+                                # Do a unit conversion if the user wants it
+                                shape_dist_traveled = convert_meters_to_other_units(shape_dist_traveled, units)
                     # Data to be added to stop_times.txt
                     shape_rows.append([sequence, shape_dist_traveled])
                     if ProductName == "ArcGISPro":
@@ -360,7 +464,7 @@ sequence of the stops. This likely indicates a problem with the geometry of \
 your shapes.  The shape_dist_traveled field will be added to your stop_times.txt \
 file and populated, but the values may be incorrect. \
 Please review and fix your shape geometry, then run this tool \
-again.  See the user's guide for more information.  shape_ids affected:" + \
+again.  See the user's guide for more information.  shape_ids affected: " + \
 str(shapes_with_warnings))
 
     except:
@@ -397,13 +501,17 @@ str(shapes_with_warnings))
                     stoptimelist = [t for t in stoptime]
                 else:
                     stoptimelist = [t.encode("utf-8") if isinstance(t, basestring) else t for t in stoptime]
-                shape_id = trip_shape_dict[stoptimelist[trip_id_idx]]
-                stop_id = stoptimelist[stop_id_idx]
-                try:
-                    shape_dist_traveled = final_stoptimes_tabledata[shape_id][stop_id]
-                    stoptimelist[shape_dist_traveled_idx] = shape_dist_traveled
-                except KeyError:
-                    bad_shapes_stops.append([shape_id, stop_id])
+                trip_id = stoptimelist[trip_id_idx]
+                # Only update shape_dist_traveled if we're doing all new shapes or if we're updating this specific shape
+                # Otherwise just skip this part and write out the row as it was already.
+                if not update_existing or (update_existing and trip_id in trip_shape_dict):
+                    shape_id = trip_shape_dict[trip_id]
+                    stop_id = stoptimelist[stop_id_idx]
+                    try:
+                        shape_dist_traveled = final_stoptimes_tabledata[shape_id][stop_id]
+                        stoptimelist[shape_dist_traveled_idx] = shape_dist_traveled
+                    except KeyError:
+                        bad_shapes_stops.append([shape_id, stop_id])
                 stoptimetuple = tuple(stoptimelist)
                 wr.writerow(stoptimetuple)
 
@@ -434,12 +542,12 @@ will show up as blank values in the stop_times.txt table.")
     arcpy.management.Delete(inShapes_vertices)
     arcpy.management.Delete(outShapes)
     arcpy.AddMessage("Finished! Your new GTFS files are:")
-    arcpy.AddMessage("- " + outTripsFile)
+    if not update_existing:
+        arcpy.AddMessage("- " + outTripsFile)
     arcpy.AddMessage("- " + outShapesFile)
     arcpy.AddMessage("- " + outStopTimesFile)
     arcpy.AddMessage("After checking that these files are correct, remove \
-the '_new' from the filenames and add them to your GTFS data folder. You will \
-overwrite your current trips.txt, shapes.txt, and stop_times.txt files.")
+the '_new' from the filenames and add them to your GTFS data folder, overwriting the existing files.")
 
 except CustomError:
     arcpy.AddError("Error generating new GTFS files.")
