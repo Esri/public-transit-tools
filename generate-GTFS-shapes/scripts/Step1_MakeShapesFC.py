@@ -2,7 +2,7 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 1: Generate Shapes on Map
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 December 2016
+## Last updated: 12 January 2017
 ###############################################################################
 ''' This tool generates a feature class of route shapes for GTFS data.
 The route shapes show the geographic paths taken by the transit vehicles along
@@ -13,7 +13,7 @@ feature class shapes as desired.  Then, the user should use this feature class
 and the other associated files in the output GDB as input to Step 2 in order
 to create updated .txt files for use in the GTFS dataset.'''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -647,6 +647,13 @@ create a new shapes.txt file from scratch rather than attempting to update your 
 a shape_dist_traveled field will be added, and it will be populated with valid values for the shape(s) you have chosen to update.  However, the \
 field will remain blank for all other shapes.")
                 c.execute("ALTER TABLE stop_times ADD COLUMN shape_dist_traveled REAL")
+                conn.commit()
+        if GTFSfile == "shapes":
+            if 'shape_dist_traveled' not in columns:
+                arcpy.AddWarning("Your shapes.txt file does not contain a shape_dist_traveled field. When you run Step 2 of this tool, \
+a shape_dist_traveled field will be added, and it will be populated with valid values for the shape(s) you have chosen to update.  However, the \
+field will remain blank for all other shapes.")
+                c.execute("ALTER TABLE shapes ADD COLUMN shape_dist_traveled REAL")
                 conn.commit()
 
         f.close ()
