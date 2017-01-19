@@ -2,7 +2,7 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 1: Generate Shapes on Map
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 18 January 2017
+## Last updated: 19 January 2017
 ###############################################################################
 ''' This tool generates a feature class of route shapes for GTFS data.
 The route shapes show the geographic paths taken by the transit vehicles along
@@ -980,9 +980,7 @@ def Generate_Shapes_AGOL():
             # There are too many stops in this route to solve with the online services.
             Too_Many_Stops.append(shape_id)
             continue
-        #############
         bearingdict = getBearingsForSequence(sequence[1])
-##        stopstring = ""
         sequence_num = 1
         pt = arcpy.Point()
         features = []
@@ -999,7 +997,6 @@ def Generate_Shapes_AGOL():
             pt.Y = float(stop_lat)
             cur.insertRow((float(stop_lon), float(stop_lat), shape_id, sequence_num, stop, CurbApproach, bearingdict[stop], BearingTol))
             sequence_num = sequence_num + 1
-            ################
             geom = {"x": float(stop_lon), 
                       "y": float(stop_lat),
                       "spatialReference": {"wkid": WGSCoords_WKID}}
@@ -1009,9 +1006,6 @@ def Generate_Shapes_AGOL():
                 attributes["Bearing"] = bearingdict[stop]
                 attributes["BearingTol"] = BearingTol
             features.append({"geometry": geom, "attributes": attributes})
-##            # Prepare string of stops to pass to AGOL
-##            stopstring += str(stop_lon) + ", " + str(stop_lat) + "; "
-##        service_params["stops"] = stopstring[:-2]
         service_params["stops"] = {"features": features}
         routeshapes, errors = AGOLRouteHelper.generate_routes_from_AGOL_as_polylines(AGOLRouteHelper.token, service_params)
         if errors:
