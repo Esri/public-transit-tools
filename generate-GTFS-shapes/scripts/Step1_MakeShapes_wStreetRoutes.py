@@ -2,12 +2,12 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 1: Generate Shapes on Map - Network Analyst version launcher
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 8 October 2015
+## Last updated: 18 January 2017
 ###############################################################################
 ''' Reads inputs from ArcMap and passes them to Step1_MakeShapesFC.py
 where all the real work is done.'''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -39,18 +39,14 @@ imp = arcpy.GetParameterAsText(6)
 # The input is formatted as "[Impedance] (Units: [Units])"
 implist = imp.split(" (")
 Step1_MakeShapesFC.impedanceAttribute = implist[0]
-
 Step1_MakeShapesFC.driveSide = arcpy.GetParameterAsText(7)
 Step1_MakeShapesFC.UTurn_input = arcpy.GetParameterAsText(8)
 Step1_MakeShapesFC.restrictions = arcpy.GetParameterAsText(9)
-useJunctionsText = arcpy.GetParameterAsText(10)
-if useJunctionsText == "false":
-    Step1_MakeShapesFC.useJunctions = 0
-elif useJunctionsText == "true":
-    Step1_MakeShapesFC.useJunctions = 1
+Step1_MakeShapesFC.BearingTol = float(arcpy.GetParameterAsText(10))
+Step1_MakeShapesFC.MaxAngle = float(arcpy.GetParameterAsText(11))
 
-
-Step1_MakeShapesFC.useNA = 1
+Step1_MakeShapesFC.useNA = True
+Step1_MakeShapesFC.useBearing = True # Maybe be overridden later if ArcGIS version doesn't support this functionality
 
 # ----- Call the main Step 1 code and feed it the user input -----
 
