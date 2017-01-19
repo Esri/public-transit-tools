@@ -2,12 +2,12 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 1: Generate Shapes on Map - Straight line version launcher
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 December 2016
+## Last updated: 18 January 2017
 ###############################################################################
 ''' Reads inputs from ArcMap and passes them to Step1_MakeShapesFC.py
 where all the real work is done.'''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -33,7 +33,9 @@ Step1_MakeShapesFC.outGDBName = arcpy.GetParameterAsText(2)
 Step1_MakeShapesFC.in_route_type_Street = ""
 Step1_MakeShapesFC.in_route_type_Straight = arcpy.GetParameterAsText(3)
 
-Step1_MakeShapesFC.useNA = 0
+Step1_MakeShapesFC.useNA = False
+Step1_MakeShapesFC.useAGOL = False
+Step1_MakeShapesFC.useBearing = False
 
 # ----- Call the main Step 1 code and feed it the user input -----
 
