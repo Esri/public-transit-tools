@@ -3,7 +3,7 @@
 Created by Melinda Morang, Esri  
 Contact: <mmorang@esri.com>
 
-Copyright 2016 Esri  
+Copyright 2017 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ##What this tool does
@@ -72,7 +72,7 @@ If you are unfamiliar with the procedure for creating file geodatabases or featu
 - [Creating a file geodatabase] (http://desktop.arcgis.com/en/desktop/latest/manage-data/geodatabases/create-file-geodatabase.htm)  
 - [Creating a feature dataset] (http://desktop.arcgis.com/en/desktop/latest/manage-data/feature-datasets/creating-mole-data-in-arccatalog-creating-a-featur.htm)
 
-Do not create your geodatabase on a shared network drive because the transit evaluator will not work.  Put the geodatabase on a local drive on your machine.
+Do not create your geodatabase on a shared network drive because the transit evaluator will not work.  Put the geodatabase on a local drive on your machine.  Additionally, do not try to create more than one network dataset in the same geodatabase.  Create a separate geodatabase for each network.
 
 
 ## <a name="Step3"></a>3) Generate feature classes for transit lines and stops and a SQL database of the schedules

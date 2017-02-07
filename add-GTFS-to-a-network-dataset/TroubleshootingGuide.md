@@ -3,7 +3,7 @@
 Created by Melinda Morang, Esri  
 Contact: <mmorang@esri.com>
 
-Copyright 2016 Esri  
+Copyright 2017 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 
@@ -14,6 +14,7 @@ This document describes some common problems encountered by users of *Add GTFS t
   - [I can't register/install the transit evaluator](#Registration)
 + Creating the network
   - [I tried to run one of the tools in the Add GTFS to a Network Dataset toolbox, but it said it was missing a script reference.](#MissingScript)
+  - [A tool failed with "ExecuteError: ERROR 999999: Error executing function. Failed to execute (CreateFeatureclass)."](#CorruptGDB)
   - [When I'm setting up the evaluators for my transit travel time cost attribute, "TransitEvaluator" doesn't appear in the drop-down list of evaluator types](#DropDown)
   - [When I built my network, I got build errors.](#BuildErrors)
   - [The Get Network EIDs tool failed with a message saying "Error obtaining network EIDs. Exception from HRESULT: 0x80040216".](#HRESULT)
@@ -46,6 +47,10 @@ If none of these solve the problem, talk to your system administrator.  You're a
 
 ##<a name="MissingScript"></a>I tried to run one of the tools in the Add GTFS to a Network Dataset toolbox, but it said it was missing a script reference.
 The *Add GTFS to a Network Dataset* toolbox files (with the .tbx extensions and the red toolbox icon) have associated python script files (with the .py extensions in the scripts folder).  If you move the toolbox files without moving the associated scripts folder with them, then they will no longer be able to find the scripts, and the tools won't work.  Make sure if you want to move the Add GTFS to a Network Dataset files to a new location that you move the entire folder together and don't separate the files.  Additionally, make sure to uninstall the transit evaluator before you move it, and reinstall it in its new location.
+
+
+##<a name="CorruptGDB"></a>A tool failed with "ExecuteError: ERROR 999999: Error executing function. Failed to execute (CreateFeatureclass)."
+This failure is usually a symptom that the geodatabase has gotten corrupted somehow.  Delete your geodatabase, create a new one, and try running the tool again.
 
 
 ##<a name="DropDown"></a>When I'm setting up the evaluators for my transit travel time cost attribute, "TransitEvaluator" doesn't appear in the drop-down list of evaluator types
@@ -120,9 +125,10 @@ Your transit network might actually be working fine.  In places where transit se
 
 **None of the above**
 Here is a technique for debugging your transit network in detail.  The idea is to try to force a Route to use a transit line and in doing so reveal any underlying issues with the network or your analysis settings.
-- Pick a transit line feature in your network.  Any transit line feature will do.
-- Create a Route layer and drop two stops on the streets on either end of the transit line
-- Use the Select tool to select the transit line feature you're working with.
+- Choose a feature in the TransitLines feature class.  Any one will do.
+- Create a Route network analysis layer.
+- Draw in two stops (Route layer stops, not transit stops) using the Create Network Location Tool from the Network Analyst toolbar.  Put these stops near the streets on either end of the TransitLines feature you chose.  Make sure to place the first stop near the beginning of the line and the second stop near the end, according to the transit line's direction of travel.
+- Use the Select tool to select the TransitLines feature you're working with.
 - Use the *Transit Identify* tool (in the Transit Analysis Tools toolbox) to find the times of day and days of week your chosen transit line has service.  See the Transit Analysis Tools User's Guide for instructions on using the *Transit Identify* tool.
 - In your Route analysis settings, set the time of day and day of week to be just before one of the times when the line has service so that the transit line ought to be the quickest way to travel between your two points.
 - Solve the Route and see if it uses the transit line.  If not, adjust the time by a minute or two and try again.  If it doesn't, something is still wrong with your network or your analysis settings, and you should revisit the suggestions above or contact me for help.
