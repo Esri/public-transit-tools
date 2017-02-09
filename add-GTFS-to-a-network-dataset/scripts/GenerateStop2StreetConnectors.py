@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 2) Generate Stop-Street Connectors
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 October 2016
+## Last updated: 9 February 2017
 ################################################################################
 ''' This tool snaps the transit stops to the street feature class, generates a
 connector line between the original stop location and the snapped stop location,
@@ -12,7 +12,7 @@ can be substituted for this step when the user's data contains more information
 about how stops should be connected to streets, such as station entrance
 locations or station interior geometry.'''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
