@@ -174,7 +174,7 @@ following is true: " + SelectExpression
     # Create Connector lines
     arcpy.management.PointsToLine(outStopsCombined, outConnectors, "stop_id")
     arcpy.management.AddField(outConnectors, "connector_type", "TEXT")
-    arcpy.management.CalculateField(outConnectors, "connector_type", '"Direct stop to street connection"')
+    arcpy.management.CalculateField(outConnectors, "connector_type", '"Direct stop to street connection"', "PYTHON_9.3")
 
     # Clean up.
     arcpy.management.Delete(outStopsCombined)
