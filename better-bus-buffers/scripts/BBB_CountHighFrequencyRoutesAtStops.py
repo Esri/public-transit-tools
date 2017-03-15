@@ -1,17 +1,19 @@
 ############################################################################
-## Tool name: BetterBusBuffers - Count Trips at Stops
-## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 8 February 2016
+## Tool name: BetterBusBuffers - Count High Frequency Routes At Stops
+## Created by: David Wasserman, david.wasserman.plan@gmail.com
+## Based on work by: Melinda Morang, Esri, mmorang@esri.com
+## Last updated: 14 March 2017
 ############################################################################
-''' BetterBusBuffers - Count Trips at Stops
+''' BetterBusBuffers - Count High Frequency Routes At Stops
 
 BetterBusBuffers provides a quantitative measure of access to public transit
 in your city by counting the transit trip frequency at various locations.
 
-The Count Trips at Stops tool creates a feature class of your GTFS stops and
-counts the number of trips that visit each one during a time window as well as
-the number of trips per hour and the maximum time between subsequent trips
-during that time window.
+The Count High Frequency Routes At Stops tool creates a feature class of your GTFS stops
+and counts the number of routes that by pass that stop that meet a specified headway threshold.
+In addition, the tool counts the number of trips that visit each one during a time window
+as well as the number of trips per hour, the maximum time between subsequent trips
+during that time window, the average, minimum, and maximum headways of all routes visit that stop.
 '''
 ################################################################################
 '''Copyright 2016 Esri
