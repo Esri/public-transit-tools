@@ -1306,11 +1306,12 @@ def get_route_info():
     for route in routelist:
         # {route_id: [all route.txt fields + route_type_text]}
         try:
-            route_type_text = route_type_dict[int(route[5])]
+            route_type = route[5]
+            route_type_text = route_type_dict[int(route_type)]
         except:
+            route_type = '100'
             route_type_text = "Other / Type not specified"
-            route[5] = '100'
-        RouteDict[route[0]] = [route[1], route[2], route[3], route[4], route[5],
+        RouteDict[route[0]] = [route[1], route[2], route[3], route[4], route_type,
                                  route[6], route[7], route[8],
                                  route_type_text]
 
