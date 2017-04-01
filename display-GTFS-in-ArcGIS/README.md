@@ -17,7 +17,7 @@ The Display GTFS Stops tool makes a feature class of stops using information fro
 
 ## Requirements
 
-* ArcGIS 10.0 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro.
+* ArcGIS 10.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro.
 * A valid GTFS dataset. To use the Display GTFS Route Shapes tool, your GTFS dataset must include the optional shapes.txt file.
 
 ## Resources
@@ -34,7 +34,7 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing).
 
 ## Licensing
-Copyright 2016 Esri
+Copyright 2017 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
