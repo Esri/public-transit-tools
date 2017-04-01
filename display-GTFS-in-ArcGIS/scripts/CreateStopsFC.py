@@ -2,12 +2,12 @@
 ## Toolbox: Display GTFS in ArcGIS
 ## Tool name: Display GTFS Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 12 May 2016
+## Last updated: 24 February 2017
 ################################################################################
 ''' This tool generates feature classes of transit stops from the GTFS stop.txt
 file for display and analysis in ArcGIS for Desktop.'''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -45,6 +45,9 @@ try:
     PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]]; \
     -400 -400 1000000000;-100000 10000;-100000 10000; \
     8.98315284119522E-09;0.001;0.001;IsHighPrecision"
+
+    # Explicitly set max allowed length for stop_desc. Some agencies are wordy.
+    max_stop_desc_length = 250
 
     # Fields other than stop_lat and stop_lon required by the GTFS spec.
     other_required_fields = ["stop_id", "stop_name"]
@@ -98,6 +101,7 @@ try:
         stop_lat_idx = columns.index("stop_lat")
         stop_lon_idx = columns.index("stop_lon")
         stop_id_idx = columns.index("stop_id")
+        stop_desc_idx = columns.index("stop_desc")
 
         # Shapefiles can only handle field names up to 10 characters, so truncate the long ones.
         if ".shp" in outfilename:
@@ -161,6 +165,9 @@ coordinates.  Please double-check all lat/lon values in your stops.txt file.\
     ' % (stop_id, str(stop_lon))
                     arcpy.AddError(msg)
                     raise CustomError
+                if row[stop_desc_idx]:
+                    # Some agencies are wordy. Truncate stop_desc so it fits in the field length.
+                    row[stop_desc_idx] = row[stop_desc_idx][:max_stop_desc_length] 
                 shape = ((stop_lon, stop_lat,),)
                 toInsert = shape + tuple(row)
                 cur.insertRow(toInsert)
