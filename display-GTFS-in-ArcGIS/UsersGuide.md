@@ -3,7 +3,7 @@
 Created by Melinda Morang, Esri  
 Contact: <mmorang@esri.com>
 
-Copyright 2016 Esri  
+Copyright 2017 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ##What this tool does
@@ -14,7 +14,7 @@ The [Display GTFS Stops](#Stops) tool makes a feature class of stops using infor
 The [Display GTFS Route Shapes](#Shapes) tool converts the information from the GTFS routes.txt and shapes.txt files into an ArcGIS feature class, allowing you to view your transit lines on a map.  The output will contain one line feature for each unique shape in your GTFS data.  The attributes for each line contain all the information about the routes represented by the shape.
 
 ##Software requirements
-- ArcGIS 10.0 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro.
+- ArcGIS 10.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro.
 
 ##Data requirements
 - A valid GTFS dataset. To use the Display GTFS Route Shapes tool, your GTFS dataset must include the optional shapes.txt file.
