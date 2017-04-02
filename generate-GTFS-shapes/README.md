@@ -1,9 +1,10 @@
 # generate-GTFS-shapes
 
-The Generate GTFS Shapes toolbox produces a shapes.txt file for your GTFS dataset.  You give the tool a valid, existing GTFS dataset, and the tool creates a new shape.txt file and updates the shape_id field in trips.txt and the shape_dist_traveled field in stop_times.txt.
+The Generate GTFS Shapes toolbox produces a shapes.txt file for your GTFS dataset.  You give the tool a valid, existing GTFS dataset, and the tool creates a new shape.txt file and updates the shape_id field in trips.txt and the shape_dist_traveled field in stop_times.txt.  Alternatively, if you already have a shapes.txt file, you can use this toolbox to edit one or more of the existing shapes.
 
 ## Features
 * Create a shapes.txt file for your GTFS dataset.
+* Edit one or more shapes in your existing shapes.txt file.
 * Start from a reasonable estimate of the shapes and use the editing tools in ArcGIS to make them perfect.
 * ArcGIS toolbox - No coding is required to use this tool.  Just add the toolbox to ArcMap and use the tools like any other geoprocessing tools.
 
@@ -31,7 +32,7 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing).
 
 ## Licensing
-Copyright 2016 Esri
+Copyright 2017 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

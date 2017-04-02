@@ -1,6 +1,6 @@
 ################################################################################
 # sqlize_csv.py, originally written by Luitien Pan
-# Last updated 3 March 2016 by Melinda Morang
+# Last updated 25 October 2016 by Melinda Morang
 ################################################################################
 '''Copyright 2016 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -445,6 +445,7 @@ def create_indices():
     cur = db.cursor()
     cur.execute("CREATE INDEX trips_index_serviceIDs ON trips (service_id);")
     cur.execute("CREATE INDEX trips_index_tripIDs ON trips (trip_id);")
+    cur.execute("CREATE INDEX stops_index_locationtype ON stops (location_type, parent_station);")
     db.commit()
     cur.close()
 

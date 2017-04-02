@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count High Frequency Routes At Stops
 ## Created by: David Wasserman, david.wasserman.plan@gmail.com
 ## Based on work by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 14 March 2017
+## Last updated: 2 April 2017
 ############################################################################
 ''' BetterBusBuffers - Count High Frequency Routes At Stops
 
@@ -16,7 +16,7 @@ as well as the number of trips per hour, the maximum time between subsequent tri
 during that time window, and the average, minimum, and maximum headways of all routes visit that stop.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -28,7 +28,7 @@ during that time window, and the average, minimum, and maximum headways of all r
    limitations under the License.'''
 ################################################################################
 # --------------------------------
-# Copyright 2016 David J. Wasserman
+# Copyright 2017 David J. Wasserman
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,12 +46,8 @@ import arcpy
 import BBB_SharedFunctions
 import numpy as np
 import collections
-import sqlite3, os, operator, datetime
-try:
-    import pandas as pd
-except:
-    arcpy.AddError("This BetterBusBuffers tool requires the python library pandas. Please install the library or use"
-                   "ArcGIS Pro or ArcMap 10.4 and above.")
+import sqlite3, os, datetime
+
 
 class CustomError(Exception):
     pass
@@ -67,7 +63,6 @@ def RetrieveFrequencyStatsForStop(stop_id, rtdirtuple, snap_to_nearest_5_minutes
     except KeyError:
         # We will get a KeyError if there were no trips found for the route/direction
         # pair, which usually happens if the wrong SQL database was selected.
-        print("Could not retrieve Key.")
         stop_time_dictionaries = {}
 
     # Make a list of stop_times
@@ -76,7 +71,6 @@ def RetrieveFrequencyStatsForStop(stop_id, rtdirtuple, snap_to_nearest_5_minutes
         for trip in stop_time_dictionaries[stop_id]:
             StopTimesAtThisPoint.append(trip[1])
     except KeyError:
-        print("Could not retrieve Key.")  # Issue is here
         pass
     StopTimesAtThisPoint.sort()
 
@@ -94,7 +88,7 @@ def RetrieveFrequencyStatsForStop(stop_id, rtdirtuple, snap_to_nearest_5_minutes
             AvgHeadway = round(AvgHeadway / 5.0) * 5
     return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
 def post_process_headways(avg_headway,number_of_trips_per_hour,trip_per_hr_threshold=.5,reset_headway_if_low_trip_count=180):
-    """Used to adjusted headways if there are low trips per hour observed in the GTFS dataset.
+    """Used to adjust headways if there are low trips per hour observed in the GTFS dataset.
     If the number of trips per hour is below the trip frequency interval, headways are changed to
     reset_headway_if_low_trip_count_value (defaults to 180 minutes)."""
     if number_of_trips_per_hour <= trip_per_hr_threshold:  # If Number of Trips Per Hour is less than .5, set to 180.
@@ -104,13 +98,24 @@ def post_process_headways(avg_headway,number_of_trips_per_hour,trip_per_hr_thres
 try:
     # ------ Get input parameters and set things up. -----
     try:
-        arcpy.env.overwriteOutput = True  # Comment out
+        arcpy.env.overwriteOutput = True
+
         # Figure out what version of ArcGIS they're running
         BBB_SharedFunctions.DetermineArcVersion()
+        if (BBB_SharedFunctions.ProductName != "ArcGISPro") and (BBB_SharedFunctions.ArcVersion in ["10.1", "10.2", "10.2.1", "10.2.2", "10.3", "10.3.1"]):
+            arcpy.AddError("This tool requires ArcGIS version 10.4 or higher or ArcGIS Pro.")
+            raise CustomError
         if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
             arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
 You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
             raise CustomError
+
+        try:
+            import pandas as pd
+        except:
+            # Pandas is shipped with ArcGIS Pro and ArcGIS 10.4 and higher.  The previous logic should hopefully prevent users from ever hitting this error.
+            arcpy.AddError("This BetterBusBuffers tool requires the python library pandas, but the tool was unable to import the library.")
+
         # Path for output feature class of GTFS stops.
         # Must be a file geodatabase feature class, not a shapefile.
         outStops =  arcpy.GetParameterAsText(7)
@@ -174,8 +179,7 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
     try:
         arcpy.AddMessage("Calculating the determining trips for route-direction pairs...")
         # Assemble Route and Direction IDS
-        triproutefetch = '''
-                            SELECT DISTINCT route_id,direction_id FROM trips;'''
+        triproutefetch = '''SELECT DISTINCT route_id,direction_id FROM trips;'''
         c.execute(triproutefetch)
         route_dir_list = c.fetchall()
         # Get the service_ids serving the correct days
@@ -209,10 +213,10 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
             triproutelist = c.fetchall()
             if not triproutelist:
                 arcpy.AddWarning("Your GTFS dataset does not contain any trips \
-    corresponding to Route %s and Direction %s. Please ensure that \
-    you have selected the correct GTFS SQL file for this input file or that your \
-    GTFS data is good. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (route_id, str(direction_id)))
+corresponding to Route %s and Direction %s. Please ensure that \
+you have selected the correct GTFS SQL file for this input file or that your \
+GTFS data is good. Output fields will be generated, but \
+the values will be 0 or <Null>." % (route_id, str(direction_id)))
 
             for triproute in triproutelist:
                 # Only keep trips running on the correct day
@@ -223,8 +227,8 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
 
             if not trip_route_dict:
                 arcpy.AddWarning("There is no service for route %s in direction %s \
-    on %s during the time window you selected. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
+on %s during the time window you selected. Output fields will be generated, but \
+the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
 
 
     except:
@@ -232,15 +236,12 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
         raise
     # ----- Query the GTFS data to count the trips at each stop for this time period -----
     try:
-        arcpy.AddMessage(
-            "Calculating the number of transit trips available during the time window of time period ID"
-            " {0}...".format(str(time_period)))
+        arcpy.AddMessage("Calculating the number of transit trips available during the time window of time period ID {0}...".format(str(time_period)))
         stoptimedict_rtedirpair = {}  # #{rtdir tuple:stoptimedict}}
-        ###################################stoptimedict={stop_id: [[trip_id, stop_time]]} Get length of stop_id
         for rtedirpair in trip_route_dict:
             triplist = trip_route_dict[rtedirpair]
 
-            # Get the stop_times that occur during this time window- Not Causing Issues
+            # Get the stop_times that occur during this time window
             stoptimedict = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr,
                                                                                 triplist, "today")
             stoptimedict_yest = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr,
@@ -258,10 +259,9 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
             # Add a warning if there is no service.
             if not stoptimedict:
                 arcpy.AddWarning("There is no service for route %s in direction %s \
-       on %s during the time window you selected. Output fields will be generated, but \
-       the values will be 0 or <Null>." % (rtedirpair[0], str(rtedirpair[1]), str(day)))
+on %s during the time window you selected. Output fields will be generated, but \
+the values will be 0 or <Null>." % (rtedirpair[0], str(rtedirpair[1]), str(day)))
 
-        print(datetime.datetime.now())
     except:
         arcpy.AddError("Error counting arrivals or departures at stop during time window.")
         raise
@@ -311,9 +311,9 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
     arcpy.AddMessage("Your output is located at " + outStops)
 
 except CustomError:
-    arcpy.AddError("Failed to count trips at stops.")
+    arcpy.AddError("Failed to count high frequency routes at stops.")
     pass
 
 except:
-    arcpy.AddError("Failed to count trips at stops.")
+    arcpy.AddError("Failed to count high frequency routes at stops.")
     raise

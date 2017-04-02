@@ -3,7 +3,7 @@
 Created by Melinda Morang, Esri  
 Contact: <mmorang@esri.com>
 
-Copyright 2016 Esri  
+Copyright 2017 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ##What this tool does
@@ -18,19 +18,24 @@ The *[Count Trips in Polygon Buffers around Stops](#CountTripsInPolygonBuffersAr
 
 The *[Count Trips at Points](#CountTripsAtPoints)* tool counts the number of transit trips available within a designated distance of specific point locations during a time window.  The output is a copy of the input point locations with fields indicating the number of transit trips available within a short walk during a time window.
 
+The *[Count Trips at Points Online](#CountTripsAtPointsOnline)* does the same thing as the *Count Trips at Points* tool, but it uses the ArcGIS Online Origin-Destination Cost Matrix service so that you don't need your own network datasets or a Network Analyst license.
+
 The *[Count Trips at Stops](#CountTripsAtStops)* tool counts the number of transit trips that visit the stops in your transit system during a time window.  The output is a feature class of your GTFS stops with fields indicating the number of transit trips that visit those stops.
 
-The *[Count High Frequency Routes at Stops](#CountHighFrequencyRoutesAtStops)* tool counts the number of routes at each stop that meet a desired headway threshold. The output is a feature class of your GTFS stops with field indicating trip and headway statistics along with a count of the number of routes at the stop that has headways of a desired threshold or shorter. 
+The *[Count High Frequency Routes at Stops](#CountHighFrequencyRoutesAtStops)* tool counts the number of routes at each stop that meet a desired headway threshold. The output is a feature class of your GTFS stops with field indicating trip and headway statistics along with a count of the number of routes at the stop that has headways of a desired threshold or shorter.
+
 Detailed instructions for each of these tools is given later in this document.
 
 ##Software requirements
 * ArcGIS 10.0 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher.
-* Network Analyst extension. (You can run the *Count Trips at Stops* tool even if you do not have Network Analyst.)
+* The *Count Trips at Points Online* tool cannot be run with ArcGIS 10.0.
+* The *Count High Frequency Routes at Stops* tool requires ArcGIS 10.4 or higher or ArcGIS Pro 1.2 or higher.
 * You need the Desktop Advanced (ArcInfo) license in order to run the *Count Trips in Polygon Buffers around Stops* tool.
-* You need either Pandas installed in your ArcGIS Python install or ArcGIS 10.4 and above to use the *Count High Frequency Routes At Stops* tool. 
+* * All tools except *Count Trips at Stops*, *Count Trips at Points Online*, and *Count High Frequency Routes at Stops* require the Network Analyst extension.
+* For the *Count Trips at Points Online*, an ArcGIS Online account with routing privileges and sufficient credits for your analysis.
 
 ##Data requirements
-* A valid GTFS dataset.  If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.
+* A valid GTFS dataset.  If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.  You can download and use the [Interpolate Blank Stop Times] (http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate blank arrival_time and departure_time values for your dataset if you still want to use it in BetterBusBuffers.
 * For some functionality, a network dataset with street data for your area of interest.
 * For the *Count Trips at Points* tool, a feature class of your points of interest.
 
@@ -246,6 +251,49 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
 * **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
 
 
+##<a name="CountTripsAtPointsOnline"></a>Running *Count Trips at Points Online*
+
+###What this tool does
+*Count Trips at Points Online* does the same thing as *[Count Trips at Points](#CountTripsAtPoints)*, but instead of using a network dataset to calculate the distance between your input points and nearby stops, it does this using the ArcGIS Online origin-destination cost matrix service.
+
+ArcGIS Online's origin-destination cost matrix service is available for most parts of the world. If you are uncertain whether the service covers the geographic location served by your transit system, check the [ArcGIS Online Network Dataset Coverage map](http://www.arcgis.com/home/webmap/viewer.html?webmap=b7a893e8e1e04311bd925ea25cb8d7c7).
+
+To use this tool, you must be [signed in to an ArcGIS Online account] (http://desktop.arcgis.com/en/arcmap/latest/map/web-maps-and-services/signing-into-arcgis-online-in-arcgis-for-desktop.htm), or you must enter your ArcGIS Online username and password into the tool dialog.  Your ArcGIS Online account must have network service privileges and sufficient credits.  Talk to your organization's ArcGIS Online administrator if you need help checking or setting up your account.
+
+The [origin-destination cost matrix service is currently in beta](https://www.arcgis.com/home/item.html?id=097e4845a63f4bfe89445cb58ed99a17).  Please contact me if you have questions or comments that are not answered on this website.
+
+If you don't want to or can't use ArcGIS Online, use the *[Count Trips at Points](#CountTripsAtPoints)* tool instead.
+
+Note: The *Count Trips at Points Online* tool cannot be run with ArcGIS 10.0.  Please use a newer version of ArcGIS.
+
+![Screenshot of tool dialog](./images/Screenshot_CountTripsatPointsOnline_Dialog.png)
+
+###Inputs
+* **Output feature class**:  Choose a name and location for your output feature class, which will be a copy of your input points with extra fields for transit frequency.  A file geodatabase feature class is recommended.  Shapefiles are not allowed as output for this tool.
+* **SQL database of preprocessed GTFS data**: The SQL database you created in the Preprocess GTFS tool.
+* **Points to Analyze**: A set of point features in your city you wish to analyze.  The tool calculates the frequency of transit service available to these points.
+* **Unique ID field for Points to Analyze**: Field in your points layer that serves as a unique identifier.  The tool needs this in order to correctly keep track of the transit trips available to each point.
+* **Weekday or YYYYMMDD date**:  Choose the day you wish to consider.  You can select a generic weekday, such as Tuesday, and all trips running on a typical Tuesday (as defined in your GTFS calendar.txt file) will be counted.  You cannot use a generic weekday if your GTFS data does not have a calendar.txt file.  Alternatively, you can enter a specific date in YYYYMMDD format, such as 20160212 for February 12, 2016.  All trips running on that specific date, as defined in your GTFS dataset's calendar.txt and calendar_dates.txt file, will be counted.  Specific dates are useful if you want to analyze a holiday, if your calendar.txt file has non-overlapping date ranges, or if your GTFS dataset does not have a calendar.txt file.
+* **Time window start (HH:MM) (24-hour time)**:  The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.
+* **Time window end (HH:MM) (24-hour time)**:  The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.  If you wish to analyze a time window spanning midnight, you can use times greater than 23:59.  For instance, a time window of 11pm to 1am should have a start time of 23:00 and an end time of 25:00.
+* **Max distance between stops and points**: Choose the distance your pedestrians can walk between the points you are analyzing and the transit stops.
+* **Units of max distance**: Select the units of measurement (such as Kilometers or Miles) of the *Max distance between stops and points* parameter.
+* **Calculate maximum time between trips?**: Choose whether or not you want to calculate the maximum time between available trips.  For an explanation of what this means, please see "MaxWaitTime" under "Understanding the Output" below.  If you are analyzing a large number of points, this calculation will slow down the execution of the tool, so if you are not interested in this measure, you should leave this box unchecked.  For a small number of points, the extra calculation time is insignificant.
+* **Count arrivals or departures**: Indicate whether you want to count the number of arrivals available during the time window or the number of departures.
+* **username** and **password**: Your ArcGIS Online username and password.  If you are logged into ArcGIS Online through ArcMap, you do not need to enter your username and password.  Enter your username and password if you are not logged in or if you are running this tool through python.
+
+###Outputs
+* **[Output feature class]**:  This point feature class is simply a modified version of your input points, containing four new fields.  Please see "Understanding the Output" below for an explanation of the fields in this table.
+
+###Understanding the output
+Please see the "Understanding the Output" section for the *[Count Trips at Points](#CountTripsAtPoints)* tool.  The output fields are the same.
+
+###Troubleshooting & potential pitfalls
+* **I got an error about not being able to connect to ArcGIS Online**: Make sure you are signed into your ArcGIS Online account through ArcMap or that you pass a valid ArcGIS Online username and password to the tool.  Your ArcGIS Online account must have network service privileges and sufficient credits.  Talk to your organization's ArcGIS Online administrator if you need help checking or setting up your account.
+* **The tool takes forever to run**: This tool may take a significant amount of time to run for a large number of points.  The origin-destination cost matrix service limits the number of origins and destinations that may be used, so for large datasets, the input points and transit stops will be broken into chunks and passed as multiple calls to the service.  The tool will print regular progress reports.
+* **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
+
+
 ##<a name="CountTripsAtStops"></a>Running *Count Trips at Stops*
 
 ###What this tool does
@@ -289,8 +337,8 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
 ##<a name="CountHighFrequencyRoutesAtStops"></a>Running *Count High Frequency Routes at Stops*
 
 ###What this tool does
-The *[ount High Frequency Routes at Stops* tool counts the number of routes at each stop that meet a desired headway threshold. The output is a feature class of your GTFS stops with field indicating trip and headway statistics along with a count of the number of routes at the stop that has headways of a desired threshold or shorter. 
-Detailed instructions for each of these tools is given later in this document.
+The *Count High Frequency Routes at Stops* tool counts the number of routes at each stop that meet a desired headway threshold. The output is a feature class of your GTFS stops with fields indicating trip and headway statistics along with a count of the number of routes at the stop that have headways of a desired threshold or shorter.
+
 ![Screenshot of tool dialog](./images/Screenshot_CountHighFrequencyRoutesAtStops_Dialog.png)
 
 ###Inputs
@@ -300,15 +348,15 @@ Detailed instructions for each of these tools is given later in this document.
 * **Time window start (HH:MM) (24-hour time)**:  The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.
 * **Time window end (HH:MM) (24-hour time**:  The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.  If you wish to analyze a time window spanning midnight, you can use times greater than 23:59.  For instance, a time window of 11pm to 1am should have a start time of 23:00 and an end time of 25:00.
 * **Count arrivals or departures**: Indicate whether you want to count the number of arrivals at the stop during the time window or the number of departures from the stop.
-* **Headway Threshold**: This is a headway threshold in minutes that is used to determine how many stops have routes that have an average time between buses that is lower than this threshold. For every stop that has a route whose headways are below this threshold, the MetHdWyLim field be incremented. So if there is a stop that has 2 routes that have headways of every 10 minutes and 1 route that has 30 minute headways, and the threshold is set to 15 minutes, the MtHdWyLim field will be set to 2 for that stop. 
+* **Headway Threshold**: This is a headway threshold in minutes.  For each stop, the tool determines the number of routes visiting that stop that have an average time between buses that is less than or equal to this threshold. For example, if a stop is served by two routes with 10-minute headways and one route with a 30-minute headway, and the Headway Threshold is set to 15 minutes, the MtHdWyLim field will be set to 2 for that stop.  The two 10-minute headway routes count, but the 30-minute headway route does not. 
 * **Snap to Nearest 5 Minutes**: Calculated headways will be snapped to the closest 5 minute interval. Sometimes GTFS calculated average headways can be headways such as 11 or 12 minutes rather than the expected 10 due to rounding or other scheduling artifacts. If this is checked, headways will be rounded to the nearest 5 minutes. For example, 11 minutes would become 10, 13 minutes would become 15. 
-* **Output feature class**:  Choose a name and location for your output feature class, which will show information from your GTFS stops.txt file with extra fields for transit frequency.  A file geodatabase feature class is recommended instead of a shapefile.
+* **Output feature class**:  Choose a name and location for your output feature class, which will show information from your GTFS stops.txt file with extra fields for transit frequency.  A file geodatabase feature class is recommended.  Shapefiles are not allowed as output for this tool.
 
 ###Outputs
 * **[Output feature class]**:  This point feature class shows your GTFS stops.  The attributes table contains information from the stops.txt file and fields indicating the transit frequency at each stop.  Please see "Understanding the Output" below for an explanation of the fields in this table.
 
 ###Understanding the output
-This tool produces a points feature class containing the fields described below.  *Note: The field names are shortened for shapefile output.*
+This tool produces a points feature class containing the fields described below.
 * **stop_id**:  The unique stop_id from the GTFS stops.txt file.  The original stop_id now has the GTFS folder name prepended to it, in order to prevent problems when combining multiple GTFS datasets in the same analysis.
 * **stop_code, stop_name, stop_desc, zone_id, stop_url, location_type, parent_station**:  Fields from the GTFS stops.txt file.  For an explanation of these fields, please review the [GTFS reference guide] (https://developers.google.com/transit/gtfs/reference#stops_fields).
 * **NumTrips**:  The total number of transit trips that visit this stop during the time window.
@@ -317,18 +365,17 @@ This tool produces a points feature class containing the fields described below.
 A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWaitTime could not be calculated for one of the following reasons:
   - There were fewer than two transit trips available within the time window.
   - The time between the start of the time window and the first trip or the last trip and the end of the time window was greater than the largest time between trips.
-* **rte_count**: This is simply the number of routes that visit each stop. 
+* **rte_count**: This is simply the number of distinct routes that visit each stop. 
 * **AvgHeadway**: This is a summary statistic of the headways for all routes that visit a particular stop. This returns the mean of all routes that visit a particular stop. It is an average of the calculated average headway for each route.  
 * **MinHeadway**: This is a summary statistic of the headways for all routes that visit a particular stop. This returns the headway of the route with the shortest time between buses. 
 * **MaxHeadway**: This is a summary statistic of the headways for all routes that visit a particular stop. This returns the headway of the route with the longest time between buses. 
-* **MetHdWyLim**: This is the field that indicates how many routes that visit a particualr stop meet the specified headway threshold. 
-  When choosing symbology, make sure to check for values of \<Null\> or -1.
+* **MetHdWyLim**: This is the field that indicates how many routes that visit a particualr stop meet the specified headway threshold.
 
 ###Troubleshooting & potential pitfalls
 * **The tool takes forever to run**: Under normal conditions, this tool should finish very quickly.  If everything is working correctly, the following conditions will cause the tool to run slower:
   - Very large time windows will take longer to process
   - Very large transit datasets will take longer to process.
-  - This tool generally takes longer than other Count Trips at Stops Tool. If you do not need headway statistics, use another tool. 
-  - This tool requires pandas be installed into the ArcGIS Python install. You can do this yourself or you can use ArcGIS 10.4 and above. 
+  - This tool generally takes longer than the *Count Trips at Stops* tool. If you do not need headway statistics, use *Count Trips at Stops*.
   - The tool will run slower if you are writing to and from a network drive.
+* This tool requires the python pandas package to be installed.  Pandas is included with the python installation for ArcGIS 10.4 and above and ArcGIS Pro.  It is not recommended to manually install pandas for older versions of ArcGIS because it will require an upgrade of the numpy package, which in turn could cause problems for tools and other dependencies within ArcGIS. 
 * **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).

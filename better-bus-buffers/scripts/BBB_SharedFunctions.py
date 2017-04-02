@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 23 March 2016
+## Last updated: 1 November 2016
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -650,9 +650,9 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
 
     # Add a field for stop_id as a unique identifier for service areas.
     if ProductName == "ArcGISPro":
-        arcpy.na.AddFieldToAnalysisLayer(SALayer, facilities, "stop_id", "TEXT")
+        arcpy.na.AddFieldToAnalysisLayer(SALayer, facilities, "stop_id", "TEXT", field_length=255)
     else:
-        arcpy.na.AddFieldToAnalysisLayer(outNALayer_SA, facilities, "stop_id", "TEXT")
+        arcpy.na.AddFieldToAnalysisLayer(outNALayer_SA, facilities, "stop_id", "TEXT", field_length=255)
 
     # Specify the field mappings for the stop_id field.
     if ArcVersion == "10.0":
@@ -701,6 +701,27 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
                             facilities_OID, ["stop_id"])
 
     return polygonsSubLayer
+
+
+def import_AGOLservice(service_name, username="", password="", ags_connection_file="", token="", referer=""):
+    '''Imports the AGOL service toolbox based on the specified credentials and returns the toolbox object'''
+
+    #Construct the connection string to import the service toolbox
+    if username and password:
+        tbx = "http://logistics.arcgis.com/arcgis/services;{0};{1};{2}".format(service_name, username, password)
+    elif ags_connection_file:
+        tbx = "{0};{1}".format(ags_connection_file, service_name)
+    elif token and referer:
+        tbx = "http://logistics.arcgis.com/arcgis/services;{0};token={1};{2}".format(service_name, token, referer)
+    else:
+        arcpy.AddError("No valid option specified to connect to the {0} service".format(service_name))
+        raise CustomError
+
+    #Import the service toolbox
+    tbx_alias = "agol"
+    arcpy.ImportToolbox(tbx, tbx_alias)
+
+    return getattr(arcpy, tbx_alias)
 
 
 def ConnectToSQLDatabase(SQLDbase):

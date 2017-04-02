@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 1) Generate Transit Lines and Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 17 January 2016
+## Last updated: 25 October 2016
 ################################################################################
 ''' This tool generates feature classes of transit stops and lines from the
 information in the GTFS dataset.  The stop locations are taken directly from the
@@ -164,7 +164,12 @@ try:
     c.execute(tripsfetch)
     triplist = c.fetchall()
     for trip in triplist:
-        trip_routetype_dict[trip[0]] = RouteDict[trip[1]]
+        try:
+            trip_routetype_dict[trip[0]] = RouteDict[trip[1]]
+        except KeyError:
+            arcpy.AddWarning("Trip_id %s in trips.txt has a route_id value, %s, which does not appear in your routes.txt file.  \
+This trip can still be used for analysis, but it might be an indication of a problem with your GTFS dataset." % (trip[0], trip[1]))
+            trip_routetype_dict[trip[0]] = 100 # 100 is an arbitrary number that doesn't match anything in the GTFS spec
 
 
 # ----- Make dictionary of frequency information (if there is any) -----
@@ -178,6 +183,10 @@ try:
     freqlist = c.fetchall()
     for freq in freqlist:
         trip_id = freq[0]
+        if freq[3] == 0:
+            arcpy.AddWarning("Trip_id %s in your frequencies.txt file has a headway of 0 seconds. \
+This is invalid, so trips with this id will not be included in your network." % trip_id)
+            continue
         trip_data = [freq[1], freq[2], freq[3]]
         # {trip_id: [start_time, end_time, headway_secs]}
         frequencies_dict.setdefault(trip_id, []).append(trip_data)
@@ -186,6 +195,15 @@ try:
 # ----- Generate transit stops feature class (for the final ND) -----
 
     arcpy.AddMessage("Generating transit stops feature class.")
+
+    # Find parent stations that are actually used
+    used_parent_stations = []
+    selectparentstationsstmt = "SELECT parent_station FROM stops WHERE location_type='0' AND parent_station <> ''"
+    c.execute(selectparentstationsstmt)
+    ParentStationTable = c.fetchall()
+    for station in ParentStationTable:
+        used_parent_stations.append(station[0])
+    used_parent_stations = list(set(used_parent_stations))
 
     # Get the combined stops table.
     selectstoptablestmt = "SELECT stop_id, stop_lat, stop_lon, stop_code, \
@@ -227,6 +245,14 @@ try:
             location_type = stop[8]
             parent_station = stop[9]
             wheelchair_boarding = unicode(stop[10])
+            if location_type == 1 and stop_id not in used_parent_stations:
+                # Skip this stop because it's an unused parent station
+                # since these will just make useless standalone junctions.
+                continue
+            if location_type == 2 and parent_station not in used_parent_stations:
+                # Remove station entrances that don't have a valid parent_station
+                # since these serve no purpose
+                continue
             pt = arcpy.Point()
             pt.X = float(stop_lon)
             pt.Y = float(stop_lat)
