@@ -31,7 +31,7 @@ Detailed instructions for each of these tools is given later in this document.
 * The *Count Trips at Points Online* tool cannot be run with ArcGIS 10.0.
 * The *Count High Frequency Routes at Stops* tool requires ArcGIS 10.4 or higher or ArcGIS Pro 1.2 or higher.
 * You need the Desktop Advanced (ArcInfo) license in order to run the *Count Trips in Polygon Buffers around Stops* tool.
-* * All tools except *Count Trips at Stops*, *Count Trips at Points Online*, and *Count High Frequency Routes at Stops* require the Network Analyst extension.
+* All tools except *Count Trips at Stops*, *Count Trips at Points Online*, and *Count High Frequency Routes at Stops* require the Network Analyst extension.
 * For the *Count Trips at Points Online*, an ArcGIS Online account with routing privileges and sufficient credits for your analysis.
 
 ##Data requirements
