@@ -350,13 +350,13 @@ The *Count High Frequency Routes at Stops* tool counts the number of routes at e
 * **Count arrivals or departures**: Indicate whether you want to count the number of arrivals at the stop during the time window or the number of departures from the stop.
 * **Headway Threshold**: This is a headway threshold in minutes.  For each stop, the tool determines the number of routes visiting that stop that have an average time between buses that is less than or equal to this threshold. For example, if a stop is served by two routes with 10-minute headways and one route with a 30-minute headway, and the Headway Threshold is set to 15 minutes, the MtHdWyLim field will be set to 2 for that stop.  The two 10-minute headway routes count, but the 30-minute headway route does not. 
 * **Snap to Nearest 5 Minutes**: Calculated headways will be snapped to the closest 5 minute interval. Sometimes GTFS calculated average headways can be headways such as 11 or 12 minutes rather than the expected 10 due to rounding or other scheduling artifacts. If this is checked, headways will be rounded to the nearest 5 minutes. For example, 11 minutes would become 10, 13 minutes would become 15. 
-* **Output feature class**:  Choose a name and location for your output feature class, which will show information from your GTFS stops.txt file with extra fields for transit frequency.  A file geodatabase feature class is recommended.  Shapefiles are not allowed as output for this tool.
+* **Output feature class**:  Choose a name and location for your output feature class, which will show information from your GTFS stops.txt file with extra fields for transit frequency.  A file geodatabase feature class is recommended instead of a shapefile.
 
 ###Outputs
 * **[Output feature class]**:  This point feature class shows your GTFS stops.  The attributes table contains information from the stops.txt file and fields indicating the transit frequency at each stop.  Please see "Understanding the Output" below for an explanation of the fields in this table.
 
 ###Understanding the output
-This tool produces a points feature class containing the fields described below.
+This tool produces a points feature class containing the fields described below.  Note: The field names are shortened for shapefile output.
 * **stop_id**:  The unique stop_id from the GTFS stops.txt file.  The original stop_id now has the GTFS folder name prepended to it, in order to prevent problems when combining multiple GTFS datasets in the same analysis.
 * **stop_code, stop_name, stop_desc, zone_id, stop_url, location_type, parent_station**:  Fields from the GTFS stops.txt file.  For an explanation of these fields, please review the [GTFS reference guide] (https://developers.google.com/transit/gtfs/reference#stops_fields).
 * **NumTrips**:  The total number of transit trips that visit this stop during the time window.
