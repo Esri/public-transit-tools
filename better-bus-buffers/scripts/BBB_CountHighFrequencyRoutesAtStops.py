@@ -261,7 +261,7 @@ the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
             if not stoptimedict:
                 stoptimedict_service_check_counter+=1
         if stoptimedict_service_check_counter>0:
-            arcpy.AddWarning("There is no service for %s route-direction pair\
+            arcpy.AddWarning("There is no service for %s route-direction pair(s)\
                 on %s during the time window you selected. Output fields will be generated, but \
                 the values will be 0 or <Null>." % (str(stoptimedict_service_check_counter),str(day)))
 
