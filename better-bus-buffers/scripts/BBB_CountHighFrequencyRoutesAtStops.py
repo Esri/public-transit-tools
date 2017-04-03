@@ -117,7 +117,7 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
             arcpy.AddError("This BetterBusBuffers tool requires the python library pandas, but the tool was unable to import the library.")
 
         # Path for output feature class of GTFS stops.
-        # Must be a file geodatabase feature class, not a shapefile.
+        # Prefers FGDB, but can output shapefile.
         outStops =  arcpy.GetParameterAsText(7)
 
         # GTFS SQL dbase - must be created ahead of time.
@@ -222,7 +222,7 @@ the values will be 0 or <Null>." % (route_id, str(direction_id)))
                 # Only keep trips running on the correct day
 
                 if triproute[1] in serviceidlist or triproute[1] in serviceidlist_tom or triproute[
-                    1] in serviceidlist_yest:  # Where FILTERING SHOULD BE happening.
+                    1] in serviceidlist_yest:
                     trip_route_dict.setdefault(key, []).append(triproute[0])  # {(rtdirpair): [trip_id, trip_id,..]}
 
             if not trip_route_dict:
@@ -238,6 +238,7 @@ the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
     try:
         arcpy.AddMessage("Calculating the number of transit trips available during the time window of time period ID {0}...".format(str(time_period)))
         stoptimedict_rtedirpair = {}  # #{rtdir tuple:stoptimedict}}
+        stoptimedict_service_check_counter=0
         for rtedirpair in trip_route_dict:
             triplist = trip_route_dict[rtedirpair]
 
@@ -256,11 +257,14 @@ the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
                 stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_tom[stop]
             # PD here
             stoptimedict_rtedirpair[rtedirpair] = stoptimedict  # {rtdir tuple:{stoptimedict}}
-            # Add a warning if there is no service.
+            # Add a minor warning if there is no service for at least one route-direction combination.
             if not stoptimedict:
-                arcpy.AddWarning("There is no service for route %s in direction %s \
+                stoptimedict_service_check_counter+=1
+        if stoptimedict_service_check_counter>0:
+            arcpy.AddWarning("There is no service for %s route-direction pair(s) \
 on %s during the time window you selected. Output fields will be generated, but \
-the values will be 0 or <Null>." % (rtedirpair[0], str(rtedirpair[1]), str(day)))
+the values will be 0 or <Null>." % (str(stoptimedict_service_check_counter),str(day)))
+
 
     except:
         arcpy.AddError("Error counting arrivals or departures at stop during time window.")
@@ -270,9 +274,8 @@ the values will be 0 or <Null>." % (rtedirpair[0], str(rtedirpair[1]), str(day))
 
     try:
         arcpy.AddMessage("Calculating frequency statistics from route direction pairs...")
-
         frequency_record_table=[] #[(rtedirpair_id,route_id,direction_id,stop_id,NumTripsPerHr,MaxWaitTime,AvgHeadway)]
-        labels=["rtedirpair_id","rte_count","direction_id","stop_id","NumTrips","NumTripsPerHr","MaxWaitTime","AvgHeadway"]
+        labels=["rtedir_id","rte_count","stop_id","NumTrips","NumTripsPerHr","MaxWaitTime","AvgHeadway"]
         for rtedirpair in stoptimedict_rtedirpair:
             route_id=rtedirpair[0]
             stops = stoptimedict_rtedirpair[rtedirpair].keys()
@@ -280,7 +283,7 @@ the values will be 0 or <Null>." % (rtedirpair[0], str(rtedirpair[1]), str(day))
                 NumTrips,NumTripsPerHr,MaxWaitTime,AvgHeadway=RetrieveFrequencyStatsForStop(stop_id,rtedirpair,
                                                                    snap_to_nearest_5_minutes=SnapToNearest5MinuteBool)
                 AvgHeadway=post_process_headways(AvgHeadway,NumTripsPerHr)
-                frequency_record_table.append((rtedirpair,route_id,direction_id,stop_id,NumTrips,NumTripsPerHr,
+                frequency_record_table.append((rtedirpair,route_id,stop_id,NumTrips,NumTripsPerHr,
                                                MaxWaitTime,AvgHeadway))
         frequency_dataframe=pd.DataFrame.from_records(frequency_record_table,columns=labels)
         #Count the number of routes that meet threshold
@@ -289,11 +292,16 @@ the values will be 0 or <Null>." % (rtedirpair[0], str(rtedirpair[1]), str(day))
         #Add Fields for frequency aggregation
         frequency_dataframe["MinHeadway"]=frequency_dataframe["AvgHeadway"]
         frequency_dataframe["MaxHeadway"]=frequency_dataframe["AvgHeadway"]
-        output_stats=collections.OrderedDict([("NumTrips",("sum")),("NumTripsPerHr", ("sum")),("MaxWaitTime",("max")),
-                                 ("rte_count",("count")),("AvgHeadway", ("mean")),("MinHeadway",
-                                    ("min")),("MaxHeadway", ("max")), ("MetHdWyLim", ("sum"))])
+        output_stats=collections.OrderedDict([("NumTrips",("sum")),("NumTripsPerHr", ("sum")),
+                                ("MaxWaitTime",("max")),("rte_count",("count")),("AvgHeadway", ("mean")),
+                                 ("MinHeadway",("min")),("MaxHeadway", ("max")), ("MetHdWyLim", ("sum"))])
         stop_groups=frequency_dataframe.groupby("stop_id")
         stop_frequency_statistics=stop_groups.agg(output_stats)
+        if ".shp" in outStops:
+            # Set up shapefile acomodations for long fields (>10 chars) & null values
+            stop_frequency_statistics.rename(columns={"NumTripsPerHr":"TripsPerHr","MaxWaitTime":"MxWtTime"},inplace=True)
+            stop_frequency_statistics=stop_frequency_statistics.fillna(value=-1)
+
     except:
         arcpy.AddError("Error calculating frequency statistics...")
         raise
