@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 8 March 2016
+## Last updated: 12 April 2017
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Points
 
@@ -15,7 +15,7 @@ also calculates the number of trips per hour, the maximum time between
 subsequent trips, and the number of stops within range of the input point.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -55,7 +55,6 @@ You have ArcGIS Pro version %s." % ArcVersion)
     inPointsLayer = arcpy.GetParameterAsText(2)
     # Unique ID for input points
     inLocUniqueID = arcpy.GetParameterAsText(3)
-    inLocUniqueID_qualified = inLocUniqueID + "_Input"
 
     # Weekday or specific date to analyze.
     # Note: Datetime format check is in tool validation code
@@ -143,8 +142,24 @@ You have ArcGIS Pro version %s." % ArcVersion)
     OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
     arcpy.env.overwriteOutput = True
 
-    arcpy.AddMessage("Run set up successfully.")
+    # If ObjectID was selected as the unique ID, copy the values to a new field
+    # so they don't get messed up when copying the table.
+    pointsOID = arcpy.Describe(inPointsLayer).OIDFieldName
+    if inLocUniqueID == pointsOID:
+        try:
+            inLocUniqueID = "BBBUID"
+            arcpy.AddMessage("You have selected your input features' ObjectID field as the unique ID to use for this analysis. \
+In order to use this field, we have to transfer the ObjectID values to a new field in your input data called '%s' because ObjectID values \
+may change when the input data is copied to the output. Adding the '%s' field now, and calculating the values to be the same as the current \
+ObjectID values..." % (inLocUniqueID, inLocUniqueID))
+            arcpy.management.AddField(inPointsLayer, inLocUniqueID, "LONG")
+            arcpy.management.CalculateField(inPointsLayer, inLocUniqueID, "!" + pointsOID + "!", "PYTHON_9.3")
+        except:
+            arcpy.AddError("Unable to add or calculate new unique ID field. Please fix your data or choose a different unique ID field.")
+            raise
+    inLocUniqueID_qualified = inLocUniqueID + "_Input"
 
+    arcpy.AddMessage("Run set up successfully.")
 
     # ----- Create a feature class of stops ------
     try:
@@ -192,7 +207,7 @@ You have ArcGIS Pro version %s." % ArcVersion)
             fieldMappingStops["stop_id"].mappedFieldName = "stop_id"
         # Add the GTFS stops as locations for the analysis.
         arcpy.na.AddLocations(outNALayer_OD, stops, StopsLayer,
-                                fieldMappingStops, "50 meters", "", "", "", "", "", "",
+                                fieldMappingStops, "500 meters", "", "", "", "", "", "",
                                 ExcludeRestricted)
         # Clear out the memory because we don't need this anymore.
         arcpy.management.Delete(StopsLayer)
