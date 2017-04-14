@@ -47,6 +47,3 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 A copy of the license is available in the repository's [license.txt](../License.txt?raw=true) file.
-
-[](Esri Tags: ArcGIS GeoEvent Server TCP GTFS GTFS-rt realtime public transit transport transportation)
-[](Esri Language: Python)​
