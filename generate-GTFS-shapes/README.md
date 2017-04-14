@@ -47,6 +47,3 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 A copy of the license is available in the repository's [license.txt](../License.txt?raw=true) file.
-
-[](Esri Tags: ArcGIS GTFS public transit transport transportation routes shapes shapes.txt editing shape_id shape_dist_traveled toolbox geoprocessing)
-[](Esri Language: Python)​
