@@ -8,6 +8,14 @@ class CustomError(Exception):
 
 try:
 
+    #Check out the Network Analyst extension license
+    if arcpy.CheckExtension("Network") == "Available":
+        arcpy.CheckOutExtension("Network")
+    else:
+        arcpy.AddError("You must have a Network Analyst license to use this tool.")
+        raise CustomError
+
+
 #####################
     # Must already have a TimeOfDay DATE field added to polygons
 
@@ -44,53 +52,46 @@ try:
         start_day = days[start_day]
     else: #Specific date
         start_day = datetime.datetime.strptime(start_day, '%Y%m%d')
-    start_time = arcpy.GetParameterAsText(3)
-    # Default start time is midnight if they leave it blank.
-    start_time_dt = datetime.datetime.strptime(start_time, "%H:%M")
-    start_datetime = datetime.datetime(start_day.year, start_day.month, start_day.day, start_time_dt.hour, start_time_dt.minute)
+    start_time_input = arcpy.GetParameterAsText(3)
+    start_time_dt = datetime.datetime.strptime(start_time_input, "%H:%M")
+    start_time = datetime.datetime(start_day.year, start_day.month, start_day.day, start_time_dt.hour, start_time_dt.minute)
 
     # Upper end of time window (HH:MM in 24-hour time)
+    # End time is inclusive.  An analysis will be run using the end time.
     end_day = arcpy.GetParameterAsText(4)
     if end_day in days: #Generic weekday
         end_day = days[end_day]
     else: #Specific date
         end_day = datetime.datetime.strptime(end_day, '%Y%m%d')
-    end_time = arcpy.GetParameterAsText(5)
-    end_time_dt = datetime.datetime.strptime(start_time, "%H:%M")
+    end_time_input = arcpy.GetParameterAsText(5)
+    end_time_dt = datetime.datetime.strptime(end_time_input, "%H:%M")
     end_datetime = datetime.datetime(end_day.year, end_day.month, end_day.day, end_time_dt.hour, end_time_dt.minute)
 
-
-    
-
-    #Check out the Network Analyst extension license
-    if arcpy.CheckExtension("Network") == "Available":
-        arcpy.CheckOutExtension("Network")
-    else:
-        arcpy.AddError("You must have a Network Analyst license to use this tool.")
-        raise CustomError
-
-
-    # Time of day range
-    start_time = datetime.datetime(1900, 1, 1, 10, 0, 0)
-    end_time = datetime.datetime(1900, 1, 1, 10, 59, 0)
-    increment = datetime.timedelta(minutes=1)
-    timelist = []
+    # How much to increment the time in each solve, in minutes
+    increment_input = arcpy.GetParameter(6)
+    increment = datetime.timedelta(minutes=increment_input)
+    timelist = [] # Actual list of times to use for the analysis.
     t = start_time
     while t <= end_time:
         timelist.append(t)
         t += increment
 
-    # Get the layer ready for solving
-    layerobj = arcpy.mapping.Layer(input_network_analyst_layer)
-    solverProps = arcpy.na.GetSolverProperties(layerobj)
-    PolygonsSubLayer = arcpy.mapping.ListLayers(layerobj, "Polygons")[0]
+
+    # ----- Solve NA layer in a loop for each time of day -----
+
+    # Grab the solver properties object from the NA layer so we can set the time of day
+    solverProps = arcpy.na.GetSolverProperties(input_network_analyst_layer)
+
+    # Grab the polygons sublayer, which we will export after each solve.
+    sublayerNames = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
+    PolygonsSubLayer = arcpy.mapping.ListLayers(input_network_analyst_layer, sublayerNames["SAPolygons"])[0]
 
     for t in timelist:
-        print t
+        arcpy.AddMessage("Solving Service Area at time %s" % str(t))
         
         # Switch the time of day and solve the layer
         solverProps.timeOfDay = t
-        arcpy.na.Solve(layerobj)
+        arcpy.na.Solve(input_network_analyst_layer)
         
         # Calculate the TimeOfDay field
         expression = '"' + str(t) + '"'
