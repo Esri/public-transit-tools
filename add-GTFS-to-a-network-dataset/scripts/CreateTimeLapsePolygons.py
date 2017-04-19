@@ -76,34 +76,54 @@ try:
         timelist.append(t)
         t += increment
 
+    
+    # ----- Add a TimeOfDay field to SA Polygons -----
+
+    # Grab the polygons sublayer, which we will export after each solve.
+    sublayer_names = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
+    polygons_subLayer = arcpy.mapping.ListLayers(input_network_analyst_layer, sublayer_names["SAPolygons"])[0]
+
+    time_field = "TimeOfDay"
+
+    # Clean up any pre-existing fields with this name (unlikely case)
+    poly_fields = arcpy.ListFields(polygons_subLayer, time_field)
+    if poly_fields:
+        if field.name == time_field and field.type != "Date":
+            arcpy.AddWarning("Your Service Area layer's Polygons sublayer contained a field called TimeOfDay \
+of a type other than Date.  This field will be deleted and replaced with a field of type Date used for the output \
+of this tool.")
+            arcpy.management.DeleteField(polygons_subLayer, time_field)
+
+    # Add the TimeOfDay field to the Polygons sublayer.  If it already exists, this will do nothing.
+    arcpy.na.AddFieldToAnalysisLayer(input_network_analyst_layer, sublayer_names["SAPolygons"], time_field, "DATE")
+
 
     # ----- Solve NA layer in a loop for each time of day -----
 
     # Grab the solver properties object from the NA layer so we can set the time of day
     solverProps = arcpy.na.GetSolverProperties(input_network_analyst_layer)
 
-    # Grab the polygons sublayer, which we will export after each solve.
-    sublayerNames = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
-    PolygonsSubLayer = arcpy.mapping.ListLayers(input_network_analyst_layer, sublayerNames["SAPolygons"])[0]
-
+    # Solve for each time of day and save output
+    arcpy.AddMessage("Solving Service Area...")
     for t in timelist:
-        arcpy.AddMessage("Solving Service Area at time %s" % str(t))
+        arcpy.AddMessage("Time %s" % str(t))
         
-        # Switch the time of day and solve the layer
+        # Switch the time of day
         solverProps.timeOfDay = t
+        
+        # Solve the Service Area
         arcpy.na.Solve(input_network_analyst_layer)
         
         # Calculate the TimeOfDay field
-        expression = '"' + str(t) + '"'
-        arcpy.management.CalculateField(PolygonsSubLayer, "TimeOfDay", expression, "PYTHON")
-        # Replace a layer/table view name with a path to a dataset (which can be a layer file) or create the layer/table view within the script
+        #################expression = '"' + str(t) + '"'
+        arcpy.management.CalculateField(polygons_subLayer, time_field, t, "PYTHON")
         
         #Append the polygons to the output feature class. If this was the first
         #solve, create the feature class.
         if not arcpy.Exists(output_feature_class):
-            arcpy.management.CopyFeatures(PolygonsSubLayer, output_feature_class)
+            arcpy.management.CopyFeatures(polygons_subLayer, output_feature_class)
         else:
-            arcpy.management.Append(PolygonsSubLayer, output_feature_class)
+            arcpy.management.Append(polygons_subLayer, output_feature_class)
 
 except CustomError:
     pass
