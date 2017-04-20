@@ -82,7 +82,7 @@ Please use either a specific date or a generic weekday for both Start Date and E
             arcpy.AddError("Your Start Date is a generic weekday, but your End Date is a specific date. \
 Please use either a specific date or a generic weekday for both Start Date and End Date.")
             raise CustomError
-        end_day = datetime.datetime.strptime(end_day, '%Y%m%d')
+        end_day = datetime.datetime.strptime(end_day_input, '%Y%m%d')
     end_time_dt = datetime.datetime.strptime(end_time_input, "%H:%M")
     end_time = datetime.datetime(end_day.year, end_day.month, end_day.day, end_time_dt.hour, end_time_dt.minute)
 
@@ -131,9 +131,9 @@ of this tool.")
     solverProps = arcpy.na.GetSolverProperties(input_network_analyst_layer)
 
     # Solve for each time of day and save output
-    arcpy.AddMessage("Solving Service Area...")
+    arcpy.AddMessage("Solving Service Area at time...")
     for t in timelist:
-        arcpy.AddMessage("Time %s" % str(t))
+        arcpy.AddMessage(str(t))
         
         # Switch the time of day
         solverProps.timeOfDay = t
