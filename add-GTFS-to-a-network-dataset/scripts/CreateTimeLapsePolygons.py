@@ -39,7 +39,6 @@ try:
     # For an explanation of special ArcMap generic weekday dates, see the time_of_day parameter
     # description in the Make Service Area Layer tool documentation
     # http://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/make-service-area-layer.htm
-    days_ordered = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     days = {
         "Monday": datetime.datetime(1900, 1, 1),
         "Tuesday": datetime.datetime(1900, 1, 2),
@@ -64,7 +63,7 @@ try:
     if end_day_input in days: #Generic weekday
         if not generic_weekday:
             # The tool UI validation should prevent them from encountering this problem.
-            arcpy.AddError("Your Start Date is a specific date, but your End Date is a generic weekday. \
+            arcpy.AddError("Your Start Day is a specific date, but your End Day is a generic weekday. \
 Please use either a specific date or a generic weekday for both Start Date and End Date.")
             raise CustomError
         end_day = days[end_day_input]
@@ -79,7 +78,7 @@ Please use either a specific date or a generic weekday for both Start Date and E
 
     else: #Specific date
         if generic_weekday:
-            arcpy.AddError("Your Start Date is a generic weekday, but your End Date is a specific date. \
+            arcpy.AddError("Your Start Day is a generic weekday, but your End Day is a specific date. \
 Please use either a specific date or a generic weekday for both Start Date and End Date.")
             raise CustomError
         end_day = datetime.datetime.strptime(end_day_input, '%Y%m%d')
