@@ -38,9 +38,15 @@ In order to use GTFS routes, stops, and schedules in a network dataset, you must
 
 ## <a name="Step1"></a>1) Download and install the tools
 
-* Download *Add GTFS to a Network Dataset* and save it to a local drive on your computer.  Do not save the tool on a network drive because this will cause problems later.
+* Download *Add GTFS to a Network Dataset*.  It will be a zip file.
 
-* Unzip the file you downloaded.  The unzipped package contains a .tbx toolbox file, a folder of python scripts needed to run the toolbox, some .dll and .exe files needed for the tools to run, and some documentation, including this user's guide.
+* Unzip the file you downloaded.  Do not save the unzipped tool folder on a network drive, the Desktop, or any other special reserved Windows folders (like C:\Program Files) because this will cause problems later.
+
+    The unzipped package contains:
+ - *Evaluator Files* and *scripts* folders: Folders of .dll files, python scripts, and other files needed to run these tools
+ - *User's guides* and *images* folder: Instructions for running the tools and a folder of images used in the user's guides.
+ - *Add GTFS to a network dataset.tbx*: An ArcGIS toolbox with tools for setting up your GTFS-enabled network dataset.  This user's guide describes how to use these tools.
+ - *Transit Analysis Tools.tbx*: An ArcGIS toolbox containing supplemental tools you can use with the network dataset you created using *Add GTFS to a network dataset.tbx*.  These tools are designed to help you explore your data and understand the results of network analysis using transit.  A description of these tools and instructions for using them can be found in the [Transit Analysis Tools user's guide](./TransitAnalysisTools_UsersGuide.html).
 
 * Now you need to "register" (install) the special GTFS transit evaluator.  To do this, double-click Install.bat.  If the installation succeeds, you will get a pop-up saying so.
 

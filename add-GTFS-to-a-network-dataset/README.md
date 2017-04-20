@@ -24,7 +24,7 @@ To build the GetEIDs tool, you will need to do the same thing with the System.Da
 
 ## Requirements
 
-* ArcGIS 10.1 or higher with a Desktop Standard (ArcEditor) license. (You can still use it if you have a Desktop Basic license, but you will have to find an alternate method for one of the pre-processing tools.) This tool does not work in ArcGIS Pro yet.
+* ArcGIS 10.1 or higher with a Desktop Standard (ArcEditor) license. (You can still use it if you have a Desktop Basic license, but you will have to find an alternate method for one of the pre-processing tools.) This tool does not work in ArcGIS Pro.
 * Network Analyst extension.
 * Street data for the area covered by your transit system, preferably data including pedestrian attributes.
 * A valid GTFS dataset. If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.
