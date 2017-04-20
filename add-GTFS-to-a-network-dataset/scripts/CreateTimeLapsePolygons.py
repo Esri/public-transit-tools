@@ -31,11 +31,15 @@ try:
     output_feature_class = arcpy.GetParameterAsText(1)
 
     # Start and end day and time
-    # Note: Datetime format check is in tool validation code
+    start_day_input = arcpy.GetParameterAsText(2)
+    end_day_input = arcpy.GetParameterAsText(4)
+    start_time_input = arcpy.GetParameterAsText(3)
+    end_time_input = arcpy.GetParameterAsText(5)
     
     # For an explanation of special ArcMap generic weekday dates, see the time_of_day parameter
     # description in the Make Service Area Layer tool documentation
     # http://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/make-service-area-layer.htm
+    days_ordered = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     days = {
         "Monday": datetime.datetime(1900, 1, 1),
         "Tuesday": datetime.datetime(1900, 1, 2),
@@ -46,25 +50,48 @@ try:
         "Sunday": datetime.datetime(1899, 12, 31)}
     
     # Lower end of time window (HH:MM in 24-hour time)
-    start_day = arcpy.GetParameterAsText(2)
-    if start_day in days: #Generic weekday
-        start_day = days[start_day]
+    generic_weekday = False
+    if start_day_input in days: #Generic weekday
+        generic_weekday = True
+        start_day = days[start_day_input]
     else: #Specific date
-        start_day = datetime.datetime.strptime(start_day, '%Y%m%d')
-    start_time_input = arcpy.GetParameterAsText(3)
+        start_day = datetime.datetime.strptime(start_day_input, '%Y%m%d')
     start_time_dt = datetime.datetime.strptime(start_time_input, "%H:%M")
     start_time = datetime.datetime(start_day.year, start_day.month, start_day.day, start_time_dt.hour, start_time_dt.minute)
 
     # Upper end of time window (HH:MM in 24-hour time)
     # End time is inclusive.  An analysis will be run using the end time.
-    end_day = arcpy.GetParameterAsText(4)
-    if end_day in days: #Generic weekday
-        end_day = days[end_day]
+    if end_day_input in days: #Generic weekday
+        if not generic_weekday:
+            # The tool UI validation should prevent them from encountering this problem.
+            arcpy.AddError("Your Start Date is a specific date, but your End Date is a generic weekday. \
+Please use either a specific date or a generic weekday for both Start Date and End Date.")
+            raise CustomError
+        end_day = days[end_day_input]
+        if start_day != end_day:
+            # We can't interpret what the user intends if they choose two different generic weekdays,
+            # and the solver won't be happy if the start day is after the end day, even if we add a \
+            # week to the end day. So just don't support this case. If they want to solve across \
+            # multiple days, they should use specific dates.
+            # The tool UI validation should prevent them from encountering this problem.
+            arcpy.AddError("If using a generic weekday, the Start Day and End Day must be the same.")
+            raise CustomError
+
     else: #Specific date
+        if generic_weekday:
+            arcpy.AddError("Your Start Date is a generic weekday, but your End Date is a specific date. \
+Please use either a specific date or a generic weekday for both Start Date and End Date.")
+            raise CustomError
         end_day = datetime.datetime.strptime(end_day, '%Y%m%d')
-    end_time_input = arcpy.GetParameterAsText(5)
     end_time_dt = datetime.datetime.strptime(end_time_input, "%H:%M")
     end_time = datetime.datetime(end_day.year, end_day.month, end_day.day, end_time_dt.hour, end_time_dt.minute)
+
+    if start_time == end_time:
+        arcpy.AddError("Start and end date and time are the same.")
+        raise CustomError
+    elif end_time < start_time:
+        arcpy.AddError("End time is earlier than start time.")
+        raise CustomError
 
     # How much to increment the time in each solve, in minutes
     increment_input = arcpy.GetParameter(6)
