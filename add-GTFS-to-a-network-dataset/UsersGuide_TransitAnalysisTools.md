@@ -48,12 +48,21 @@ The results of analyses performed using your GTFS-enabled network dataset can va
 
 A demonstration of this time dependency can be seen in [this video](https://youtu.be/tTSd6qJlans).  This tool will help you to make a video like this of your own.
 
+This involves three steps
 
-Learn more about the original [Copy Traversed Source Features](http://desktop.arcgis.com/en/desktop/latest/tools/network-analyst-toolbox/copy-traversed-source-features.htm) tool and the [output](http://desktop.arcgis.com/en/desktop/latest/tools/network-analyst-toolbox/copy-traversed-source-features-output.htm) from that tool in the ArcGIS documentation.
+1. Prepare a Service Area layer in the map
+2. Run the *Prepare Time Lapse Polygons* tool
+3. Create your time lapse video from the resulting polygon feature class in ArcMap or ArcGIS Pro.
+
+###Prepare a Service Area layer in the map
+
+After creating your GTFS-enabled network dataset using the *Add GTFS to a Network Dataset* toolbox, [create a Service Area](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm) network analysis layer in the map for the facility or facilities you want to analyze, and configure the layer with the [correct analysis settings](./UsersGuide.html#Step7).  Solve it for a few different times of day to make sure it works and that you get the results you want.
+
+###Run the *Prepare Time Lapse Polygons* tool
 
 ![Screenshot of tool dialog](./images/Screenshot_CopyTraversedSourceFeaturesWithTransit_Dialog.png)
 
-###Inputs
+####Inputs
 * **Input Network Analysis Layer**: The network analysis layer created using your transit network dataset for which you want to produce the traversal result. At this time, only network analysis layers of type Route and Closest Facility are supported.
 * **Output Location**: A file geodatabase where the output feature classes will be written.
 * **Edge Feature Class Name**: The name for the output Edge feature class.  This feature class will show the network edges (streets, connector lines, transit lines, etc.) that were traversed and will include GTFS information for all transit lines.
@@ -61,12 +70,14 @@ Learn more about the original [Copy Traversed Source Features](http://desktop.ar
 * **Turn Table Name**: The name for the output Turns table. This table will show any network Turns that were traversed.
 * **Transit Edge Feature Class Name**: The name for the output Transit Edge feature class.  This feature class will show the transit edges that were traversed and will include GTFS information for all the transit lines.
 
-###Outputs
+####Outputs
 All output will be created in the file geodatabase you specified in the tool inputs.
 * **[Edge Feature Class Name]**: This feature class shows the network edges (streets, connector lines, transit lines, etc.) that were traversed in the Route.  GTFS information for all transit lines is included.  The edges are sorted in the order traversed.
 * **[Junction Feature Class Name]**: This feature class shows the network junctions (including GTFS stops) that were traversed.  GTFS stop information is included for all GTFS stops.
 * **[Turn Table Name]**: This table shows any network Turns that were traversed.  If your network did not use Turns, this table will be empty.
 * **[Transit Edge Feature Class Name]**: This feature class is a subset of the Edge feature class and contains only the transit edges lines that were traversed, including the GTFS information
+
+###Create your time lapse video
 
 
 ##<a name="TransitIdentify"></a>Transit Identify
