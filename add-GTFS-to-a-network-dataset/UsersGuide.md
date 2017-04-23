@@ -230,7 +230,7 @@ Note: Occasionally, *3) Get Network EIDs* will fail with a message saying "Error
 The input for this tool is just your network dataset.  There is no output.  It simply updates the SQL database associated with your network.
 
 
-## <a name="Step7"></a>7) Choose the correct analysis settings
+##<a name="Step7"></a>7) Choose the correct analysis settings
 
 Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS.  If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
 
@@ -257,9 +257,9 @@ Before running your analysis, make sure to tell it to run at a particular time o
 
 ![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_TimeOfDay.png)
 
-Note that the results of your analysis will be heavily dependent on the time of day. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.  A demonstration of this can be seen in [this video](https://youtu.be/tTSd6qJlans) (if you like this video, instructions to make one like it are in the [Transit Analysis Tools user's guide](./TransitAnalysisTools_UsersGuide.html)).
+Note that the results of your analysis will be heavily dependent on the time of day. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.  A demonstration of this can be seen in [this video](https://youtu.be/tTSd6qJlans) (if you like this video, instructions to make one like it are in the [Transit Analysis Tools user's guide](./TransitAnalysisTools_UsersGuide.html#TimeLapse)).
 
-###Specific vs. generic dates
+###<a name="Dates"></a>Specific vs. generic dates
 
 If you want to run your analysis for a generic day of the week, such as Tuesday, click the Day of Week radio button and choose the day from the drop-down list.  Additionally, if you have included a "Use Specific Dates" parameter, make sure it is set to False.  To do this, go to the Attribute Parameters tab in the Layer Properties and adjust the "Use Specific Dates" parameter as needed.  Note: If you select Day of Week but leave the "Use Specific Dates" parameter as True, the analysis will run for the next calendar date that day of week falls on.  If today is Monday, April 8, 2013, and I select Tuesday and leave "Use Specific Dates" as True, my analysis will be specifically for Tuesday, April 9, 2013.  This might cause you problems if Tuesday, April 9, 2013 is outside the date range of your GTFS dataset or if there are holiday or other schedule changes for that day.
 
