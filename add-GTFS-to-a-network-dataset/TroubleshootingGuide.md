@@ -30,14 +30,14 @@ This document describes some common problems encountered by users of *Add GTFS t
 ##<a name="Registration"></a>I can't register/install the transit evaluator
 There are several reasons why registering the transit evaluator might fail.  These reasons are usually specific to your computer and have to do with installation paths or security settings.  You might need to talk to your system administrator for help if none of the suggestions below solve your problem.
 
-**Don't try to register the transit evaluator on a network drive**
-Make sure the Add GTFS to a Network Dataset files and folders are all on a local drive on your machine.
+**Don't try to register the transit evaluator on a network drive or on the Desktop**
+Make sure the Add GTFS to a Network Dataset files and folders are all on a local drive on your machine, and also don't put it on the Desktop.
 
 **Check your ArcGIS install path**
 Open the Install.bat file (right-click it and click Edit).  Make sure the path on your computer to the file called ESRIRegAsm.exe matches what's written in the file.  If it doesn't, modify the file, try running Install.bat again, and see if that makes it work.
 
 **If you get the error message "Registration failed. Could not load file or assembly…Operation is not supported."**
-Your computer might have blocked the TransitEvaluator.dll file as a security risk because it came from another computer.  In the EvaluatorFiles folder, right click TransitEvaluator.dll and click Properties.  If there is an Unblock button at the bottom click it, and then try running Install.bat again.
+Your computer might have blocked the TransitEvaluator.dll file as a security risk because it came from another computer.  In the EvaluatorFiles folder, right click TransitEvaluator.dll and click Properties.  If there is an Unblock button at the bottom click it, and then try running Install.bat again.  You might also need to unblock all the other .dll files in this folder and its subfolders.
 
 **If you get an error saying "Registration failed. Could not write to disk"**
 You probably need to run the .bat file as an administrator.  Right click on Install.bat and choose "Run as Administrator".  If it fails again and says it can't find the specified path to the .dll file, open the .bat file for editing and change the "%CD%" in the .dll path to the correct path on your machine.

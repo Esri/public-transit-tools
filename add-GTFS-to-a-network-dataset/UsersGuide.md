@@ -38,9 +38,15 @@ In order to use GTFS routes, stops, and schedules in a network dataset, you must
 
 ## <a name="Step1"></a>1) Download and install the tools
 
-* Download *Add GTFS to a Network Dataset* and save it to a local drive on your computer.  Do not save the tool on a network drive because this will cause problems later.
+* Download *Add GTFS to a Network Dataset*.  It will be a zip file.
 
-* Unzip the file you downloaded.  The unzipped package contains a .tbx toolbox file, a folder of python scripts needed to run the toolbox, some .dll and .exe files needed for the tools to run, and some documentation, including this user's guide.
+* Unzip the file you downloaded.  Do not save the unzipped tool folder on a network drive, the Desktop, or any other special reserved Windows folders (like C:\Program Files) because this will cause problems later.
+
+    The unzipped package contains:
+ - *Evaluator Files* and *scripts* folders: Folders of .dll files, python scripts, and other files needed to run these tools
+ - *User's guides* and *images* folder: Instructions for running the tools and a folder of images used in the user's guides.
+ - *Add GTFS to a network dataset.tbx*: An ArcGIS toolbox with tools for setting up your GTFS-enabled network dataset.  This user's guide describes how to use these tools.
+ - *Transit Analysis Tools.tbx*: An ArcGIS toolbox containing supplemental tools you can use with the network dataset you created using *Add GTFS to a network dataset.tbx*.  These tools are designed to help you explore your data and understand the results of network analysis using transit.  A description of these tools and instructions for using them can be found in the [Transit Analysis Tools user's guide](./TransitAnalysisTools_UsersGuide.html).
 
 * Now you need to "register" (install) the special GTFS transit evaluator.  To do this, double-click Install.bat.  If the installation succeeds, you will get a pop-up saying so.
 
@@ -224,7 +230,7 @@ Note: Occasionally, *3) Get Network EIDs* will fail with a message saying "Error
 The input for this tool is just your network dataset.  There is no output.  It simply updates the SQL database associated with your network.
 
 
-## <a name="Step7"></a>7) Choose the correct analysis settings
+##<a name="Step7"></a>7) Choose the correct analysis settings
 
 Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS.  If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials] (http://desktop.arcgis.com/en/desktop/latest/guide-books/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
 
@@ -251,7 +257,9 @@ Before running your analysis, make sure to tell it to run at a particular time o
 
 ![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_TimeOfDay.png)
 
-###Specific vs. generic dates
+Note that the results of your analysis will be heavily dependent on the time of day. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.  A demonstration of this can be seen in [this video](https://youtu.be/tTSd6qJlans) (if you like this video, instructions to make one like it are in the [Transit Analysis Tools user's guide](./TransitAnalysisTools_UsersGuide.html#TimeLapse)).
+
+###<a name="Dates"></a>Specific vs. generic dates
 
 If you want to run your analysis for a generic day of the week, such as Tuesday, click the Day of Week radio button and choose the day from the drop-down list.  Additionally, if you have included a "Use Specific Dates" parameter, make sure it is set to False.  To do this, go to the Attribute Parameters tab in the Layer Properties and adjust the "Use Specific Dates" parameter as needed.  Note: If you select Day of Week but leave the "Use Specific Dates" parameter as True, the analysis will run for the next calendar date that day of week falls on.  If today is Monday, April 8, 2013, and I select Tuesday and leave "Use Specific Dates" as True, my analysis will be specifically for Tuesday, April 9, 2013.  This might cause you problems if Tuesday, April 9, 2013 is outside the date range of your GTFS dataset or if there are holiday or other schedule changes for that day.
 
