@@ -2,7 +2,7 @@
 ## Toolbox: Display GTFS in ArcGIS
 ## Tool name: Display GTFS Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 24 February 2017
+## Last updated: 28 April 2017
 ################################################################################
 ''' This tool generates feature classes of transit stops from the GTFS stop.txt
 file for display and analysis in ArcGIS for Desktop.'''
@@ -101,7 +101,6 @@ try:
         stop_lat_idx = columns.index("stop_lat")
         stop_lon_idx = columns.index("stop_lon")
         stop_id_idx = columns.index("stop_id")
-        stop_desc_idx = columns.index("stop_desc")
 
         # Shapefiles can only handle field names up to 10 characters, so truncate the long ones.
         if ".shp" in outfilename:
@@ -165,9 +164,11 @@ coordinates.  Please double-check all lat/lon values in your stops.txt file.\
     ' % (stop_id, str(stop_lon))
                     arcpy.AddError(msg)
                     raise CustomError
-                if row[stop_desc_idx]:
-                    # Some agencies are wordy. Truncate stop_desc so it fits in the field length.
-                    row[stop_desc_idx] = row[stop_desc_idx][:max_stop_desc_length] 
+                if "stop_desc" in columns:
+                    stop_desc_idx = columns.index("stop_desc")
+                    if row[stop_desc_idx]:
+                        # Some agencies are wordy. Truncate stop_desc so it fits in the field length.
+                        row[stop_desc_idx] = row[stop_desc_idx][:max_stop_desc_length] 
                 shape = ((stop_lon, stop_lat,),)
                 toInsert = shape + tuple(row)
                 cur.insertRow(toInsert)
