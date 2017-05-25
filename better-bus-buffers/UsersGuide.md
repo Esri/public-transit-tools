@@ -22,7 +22,7 @@ The *[Count Trips at Points Online](#CountTripsAtPointsOnline)* does the same th
 
 The *[Count Trips at Stops](#CountTripsAtStops)* tool counts the number of transit trips that visit the stops in your transit system during a time window.  The output is a feature class of your GTFS stops with fields indicating the number of transit trips that visit those stops.
 
-The *[Count High Frequency Routes at Stops](#CountHighFrequencyRoutesAtStops)* tool counts the number of routes at each stop that meet a desired headway threshold. The output is a feature class of your GTFS stops with field indicating trip and headway statistics along with a count of the number of routes at the stop that has headways of a desired threshold or shorter.
+The *[Count High Frequency Routes at Stops](#CountHighFrequencyRoutesAtStops)* tool counts the number of routes at each stop that meet a desired headway threshold. The output is a feature class of your GTFS stops with fields indicating trip and headway statistics along with a count of the number of routes at the stop that has headways of a desired threshold or shorter.
 
 Detailed instructions for each of these tools is given later in this document.
 
