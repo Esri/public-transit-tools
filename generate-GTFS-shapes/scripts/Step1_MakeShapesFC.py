@@ -2,7 +2,7 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 1: Generate Shapes on Map
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 19 January 2017
+## Last updated: 17 July 2017
 ###############################################################################
 ''' This tool generates a feature class of route shapes for GTFS data.
 The route shapes show the geographic paths taken by the transit vehicles along
@@ -1122,10 +1122,11 @@ def check_Arc_version(useAGOL=False, useNA=False):
             arcpy.AddError("You must have ArcGIS Pro 1.2 or higher to run this \
 tool. You have ArcGIS Pro version %s." % ArcVersion)
             raise CustomError
-        if useNA:
-            arcpy.AddWarning("Warning!  Because certain functionality has not yet \
-been implemented in ArcGIS Pro, this version of Step 1 will produce significantly \
-better output using ArcMap version 10.3 or higher.")
+        if useNA and ArcVersion in ["1.0", "1.0.1", "1.0.2", "1.1", "1.1.1", "1.2", "1.3", "1.3.1", "1.4", "1.4.1"]:
+            # Bearing and BearingTol fields did not work until Pro 2.0.
+            arcpy.AddWarning("Warning!  Certain functionality was implemented in ArcGIS Pro 2.0 that \
+significantly improves the output of this tool. For better results, upgrade to the latest version of ArcGIS Pro or run \
+this tool with ArcMap version 10.3 or higher.")
             useBearing = False
     
     else:
@@ -1145,7 +1146,7 @@ version of this tool. You have ArcGIS version %s." % ArcVersion)
             raise CustomError
         if useNA and ArcVersion in ["10.2.1", "10.2.2"]:
             arcpy.AddWarning("Warning!  This version of Step 1 will produce significantly \
-better output using ArcGIS version 10.3 or higher. You have ArcGIS version %s." % ArcVersion)
+better output using ArcGIS version 10.3 or higher or ArcGIS Pro 2.0 or higher. You have ArcGIS version %s." % ArcVersion)
             useBearing = False
 
 

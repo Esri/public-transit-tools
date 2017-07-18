@@ -20,7 +20,7 @@ The tools will not overwrite any existing GTFS files.  You can choose the output
 
 
 ##Software requirements
-* ArcGIS 10.2.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher. (To run the ArcGIS Online version of Step 1, you will need ArcGIS 10.3 or higher or ArcGIS Pro.  Results with the Network Analyst version of Step 1 will be best with ArcMap 10.3 or higher.)
+* ArcGIS 10.2.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher. (To run the ArcGIS Online version of Step 1, you will need ArcGIS 10.3 or higher or ArcGIS Pro.  Results with the Network Analyst version of Step 1 will be best with ArcMap 10.3 or higher or ArcGIS Pro 2.0 or higher.)
 * If you want to generate on-street route shapes (as opposed to straight lines connecting stops), you will need either a Network Analyst extension and a network dataset or an ArcGIS Online account with routing privileges and sufficient credits for your analysis.
 
 
@@ -55,11 +55,11 @@ This tool has many options, and the behavior differs slightly depending on the v
 
 1. Use the [ArcGIS Online version of Step 1](#GenerateShapesAGOL) either in ArcMap 10.3 or higher or ArcGIS Pro.  The ArcGIS Online routing service uses high-quality network data, and the tool configures the analysis settings optimally for this application.
 
-2. If you don't have access to the ArcGIS Online routing services, but you have ArcMap 10.3 or higher, use ArcMap (not ArcGIS Pro) to run the [Network Analyst version of Step 1](#GenerateShapesNA).  Make sure to use a high quality network dataset, such as [Streetmap Premium](http://www.esri.com/data/streetmap), and choose good network restrictions and other settings.
+2. If you don't have access to the ArcGIS Online routing services, use ArcMap 10.3 or higher or ArcGIS Pro 2.0 or higher to run the [Network Analyst version of Step 1](#GenerateShapesNA).  Make sure to use a high quality network dataset, such as [Streetmap Premium](http://www.esri.com/data/streetmap), and choose good network restrictions and other settings.
 
-3. If you can't do either of the above, or you don't have a high quality network dataset, you might be better off using the [Straight Line version of Step 1](#GenerateShapesStraight) and manually editing all the shapes to match the streets.  The Network Analyst version will not work well if you have poor-quality network data, and the results will be significantly worse if you're using an ArcMap version prior to 10.3 because new functionality that became available in 10.3 is used to improve the estimated results.
+3. If you can't do either of the above, or you don't have a high quality network dataset, you might be better off using the [Straight Line version of Step 1](#GenerateShapesStraight) and manually editing all the shapes to match the streets.  The Network Analyst version will not work well if you have poor-quality network data, and the results will be significantly worse if you're using an ArcMap version prior to 10.3 or ArcGIS Pro 2.0 or higher because new functionality that became available in those versions is used to improve the estimated results.
 
-Having good quality GTFS data is also important in obtaining good results.  You should make sure your GTFS stops are in the correct locations.  If you have used the above guidelines and still continue to have widesread problems, you should consider editing your GTFS stop locations to place them closer to the correct positions on the streets. The [Edit GTFS Stop Locations](http://www.arcgis.com/home/item.html?id=1f4cb2aac0e7499db98f46cd83beb2bd) tool can help you generate a corrected GTFS stops.txt file for your dataset.
+Having good quality GTFS data is also important in obtaining good results.  You should make sure your GTFS stops are in the correct locations.  If you have used the above guidelines and still continue to have widespread problems, you should consider editing your GTFS stop locations to place them closer to the correct positions on the streets. The [Edit GTFS Stop Locations](http://www.arcgis.com/home/item.html?id=1f4cb2aac0e7499db98f46cd83beb2bd) tool can help you generate a corrected GTFS stops.txt file for your dataset.
 
 Note: the above recommendations apply primarily if you are trying to generate shapes for bus routes.  The [Straight Line version of Step 1](#GenerateShapesStraight) will be most valuable for estimating shapes for transit modes that do not use the streets, such as subways.
 
@@ -71,7 +71,7 @@ This step will take some time to run for large transit systems.  Smaller transit
 
 To run this tool, you must have a good network dataset of streets that covers the area served by your transit agency.  If you do not have the Network Analyst extension and an adequate network dataset, you can generate shapes that follow the streets by using the [*Step 1: Generate Shapes with ArcGIS Online*](#GenerateShapesAGOL) tool, or you can generate simple straight-line estimates for your route shapes with the [*Step 1: Generate Shapes with Straight Lines*](#GenerateShapesStraight) version of this tool.
 
-This tool will produce significantly better results in ArcMap version 10.3 or higher.
+This tool will produce significantly better results in ArcMap version 10.3 or higher or ArcGIS Pro 2.0 or higher.
 
 ![Screenshot of tool dialog](./images/Screenshot_GenerateShapesNA_Dialog.png)
 
@@ -86,8 +86,8 @@ This tool will produce significantly better results in ArcMap version 10.3 or hi
 * **Which side of the road do your transit vehicles drive on?**: This determines which side of the vehicle stops should fall on.
 * **Where are U-turns at junctions allowed?**: Choose U-turn settings that make sense for your transit system.
 * **Network restrictions (optional)**: Choose any restrictions from your network dataset that make sense for your transit vehicles.
-* **Bearing tolerance (degrees)**: Use this parameter to fine-tune the tool output.  See the [Fine-tuning results with the Bearing parameters](#Bearing) section for more information.  This option is currently unavailable in ArcGIS Pro and in versions of ArcMap prior to 10.3.
-* **Maximum angle difference for bearing calculation (degrees)**: Use this parameter to fine-tune the tool output.  See the [Fine-tuning results with the Bearing parameters](#Bearing) section for more information.  This option is currently unavailable in ArcGIS Pro and in versions of ArcMap prior to 10.3.
+* **Bearing tolerance (degrees)**: Use this parameter to fine-tune the tool output.  See the [Fine-tuning results with the Bearing parameters](#Bearing) section for more information.  This option is currently unavailable in versions of ArcMap prior to 10.3 and version of ArcGIS Pro prior to 2.0.
+* **Maximum angle difference for bearing calculation (degrees)**: Use this parameter to fine-tune the tool output.  See the [Fine-tuning results with the Bearing parameters](#Bearing) section for more information.  This option is currently unavailable in versions of ArcMap prior to 10.3 and version of ArcGIS Pro prior to 2.0.
 
 
 ###Outputs
