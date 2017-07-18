@@ -20,7 +20,6 @@ Edit the hostname and port in the script to match your environment, i.e. the hos
 
 ## Resources
 
-* [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/display-gtfs-route-shapes/UsersGuide.md)
 * [GTFS specification](https://developers.google.com/transit/gtfs/reference)
 
 ## Issues
