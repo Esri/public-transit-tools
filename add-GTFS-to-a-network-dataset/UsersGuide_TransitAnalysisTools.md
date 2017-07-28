@@ -8,9 +8,92 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 
 ##What are the Transit Analysis Tools?
 These instructions explain how to use the supplemental Transit Analysis Tools with the transit network dataset you created using Add GTFS to a Network Dataset.  These tools are designed to help you explore your data and understand the results of network analysis using transit.
+- [Calculate Accessibility Matrix](#AccessibilityMatrix)
 - [Copy Traversed Source Features (with Transit)](#CopyTraversed)
 - [Prepare Time Lapse Polygons](#TimeLapse)
 - [Transit Identify](#TransitIdentify)
+
+
+
+##<a name="AccessibilityMatrix"></a>Calculate Accessibility Matrix
+We often want to analyze "accessibility" in a city, how much access people or places have to certain types of facilities or opportunities.  For example, we might want to know how many jobs people in different neighborhoods of a city have access to within a reasonable commute time.  The *Calculate Accessibility Matrix* tool can help you calculate some measures of accessibility.  Given a set of origins and destinations, this tool counts the number and percentage of destinations reachable from each origin by transit and walking within a travel time limit.  The number of reachable destinations can be weighted based on a field, such as the number of jobs available at each destination. 
+
+The results of analyses performed using your GTFS-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis.  An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM.  A given origin might have access to a given destination at 8:00 AM but not at 8:01 AM if, by starting at 8:01 AM, the traveler has just missed the bus.
+
+The *Calculate Accessibility Matrix* tool attempts to account for the dynamic nature of transit schedules by solving an Origin-Destination Cost Matrix analysis for multiple times of day and summarizing the results.  The user specifies a time window, and the tool will run the analysis for each minute within the time window.  In addition to counting the total number of destinations reachable at least once during the time window, the tool output also shows the number of destinations reachable at least 10%, 20%, ...90% of start times during the time window.  More detail on the tool output is available below.
+
+Running this tool involves three steps:
+
+1. Prepare your Origin and Destination data
+2. Prepare an Origin-Destination Cost Matrix layer to use as input to the tool
+3. Run the *Calculate Accessibility Matrix* tool
+
+###1. Prepare your Origin and Destination data
+
+Your origins and destinations must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the [Feature to Point](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/feature-to-point.htm) tool to do this.
+
+###2. Prepare an Origin-Destination Cost Matrix layer to use as input to the tool
+
+After creating your GTFS-enabled network dataset using the *Add GTFS to a Network Dataset* toolbox, [create an Origin-Destination (OD) Cost Matrix](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm) network analysis layer in the map, and configure the layer with the [correct analysis settings](./AddGTFStoND_UsersGuide.html#Step7).  You do not need to set a time of day for your analysis because you will choose the time window when you run the *Calculate Accessibility Matrix* tool.
+
+In addition to the settings above, you should **set a travel time limit**.  The tool will count the number of destinations reachable within this travel time limit, like 30 minutes or 60 minutes.  To do this, in the OD Cost Matrix layer properties, on the Analysis Settings tab, enter the travel time limit in minutes in the "Default Cutoff Value" box.
+
+You do not need to add any Origins or Destinations to your OD Cost Matrix layer at this point.  The *Calculate Accessibility Matrix* tool will add them for you.  However, if you want to add them just for testing purposes, you can do that.  They will be overwritten when you run the tool.
+
+You can also [save your OD Cost Matrix layer as a .lyr file](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm) to use as input for the tool.  This will be particularly useful is you want to run this tool in a python script outside of ArcMap.
+
+###3. Run the *Calculate Accessibility Matrix* tool
+Once your origin and destination feature classes and your OD Cost Matrix layer are prepared, run the *Calculate Accessibility Matrix* tool to calculate measures of accessibility.  Fields with these accessibility measures will be added to your input origins table.
+
+![Screenshot of tool dialog](./images/Screenshot_CalculateAccessibilityMatrix_Dialog.png)
+
+####Inputs
+* **OD Cost Matrix Layer**: An OD Cost Matrix layer in your map or saved as a .lyr file (see previous section on how to set this up).
+* **Origins**: A point feature class representing the locations you want to calculate accessibility measures for.  For example, your origins might be census block centroids or the centroids of individual parcels.
+* **Destinations**: A point feature class representing the destinations your origins will travel to.  For example, if you want to measure your origins' level of accessibility to jobs, your Destinations could be the locations of employment centers.
+* **Destinations Weight Field**:  Optionally, choose a field from your Destinations table that will be used as a weight.  For example, if your destinations represent employment centers, the weight field could be the number of jobs available at each point. Only integer and double fields can be used for the weight field.  If you do not choose a weight field, each destination will be counted as 1.
+* **Start Day (Weekday or YYYYMMDD date)**: Day of the week or YYYYMMDD date for the first start time of your analysis.  Whether you use a generic weekday or a specific date should depend on the format of your GTFS data.  Please review the [Specific vs. generic dates section](./AddGTFStoND_UsersGuide.html#Dates) in the User's Guide.
+* **Start Time (HH:MM) (24 hour time)**: The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2 AM is 02:00, and 2 PM is 14:00.
+* **End Day (Weekday or YYYYMMDD date)**: If you're using a generic weekday for Start Day, you must use the same day for End Day.  If you want to run an analysis spanning multiple days, choose specific YYYYMMDD dates for both Start Day and End Day.
+* **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that a analysis will be performed for the time of day you enter here.
+* **Time Increment (minutes)**: Increment the OD Cost Matrix's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the OD Cost Matrix will be solved for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would calculate the OD Cost Matrix for 10:00, 10:02, 10:04, etc.
+
+####Outputs
+This tool does not produce a new output.  Instead, it adds the following fields to your input Origins table:
+- *TotalDests*:
+- *PercDests*
+- *DsAL10Perc*, *DsAL20Perc*, ..., *DsAL90Perc*
+- *PsAL10Perc*, *PsAL20Perc*, ..., *PsAL90Perc*
+
+These fields are explained fully below.
+
+**TotalDests**: The total number of destinations reachable by this origin within the time limit at least once during the time window.
+
+For example, if Origin 1 can reach Destination A within 30 minutes at any time of day but can only reach Destination B within 30 minutes if the travel starts at exactly 10:03 AM, Destination A and Destination B still each contribute equally to TotalDests.  Both are considered "reachable" even though one is arguably more easily reached than the other.
+
+If you did not use a weight field, each reachable destination adds 1 to TotalDests, so Destination A and Destination B would sum to contribute 2.  Or, if you *did* use a weight field, each reachable destination will contribute the numerical value in the weight field.  If Destination A has 200 jobs and Destination B has 300 jobs, they would sum together to contribute 500 to TotalDests.
+
+**PercDests**: The percentage of all destinations reachable by this origin within the time limit.  This is TotalDests divided by the total weighted number of destinations that were included in the analysis.
+
+**DsAL10Perc**, **DsAL20Perc**, ..., **DsAL90Perc**: These fields represent the total number of destinations reachable by this origin within the time limit at least x% of start times within the time window, where 'x' is the number in the field name (10, 20, ..., 90).  Together, these fields allow you to understand the *frequency* of access the origins have to destinations.
+
+For example, suppose you ran your analysis with a time window of 8:00 to 8:59 with 1-minute increments, so the OD Cost Matrix was calculated for 60 different start times.  Suppose Destination A is right next to Origin 1 and is consequently easily reachable in a short amount of time.  It doesn't matter what time you start traveling from Origin 1; you can always get to Destination A.  Origin 1 can reach Destination A within the time limit for all 60 start times analyzed, or 100% of start times.  Consequently, Destination A's weight contributes to the totals reported in *DsAL10Perc*, *DsAL20Perc*, all the way up to *DsAL90Perc* because 100% is greater than 10%, 20%, ..., 90%.
+
+Suppose that Destination B is farther away and can only be reached from Origin 1 by taking a bus that doesn't run very often.  A traveler starting at Origin 1 only has a few opportunities to reach Destination B within the travel time limit.  Let's say that Destination B was only reached within the time limit for 9 of the 60 start times, or 15% of start times.  Destination B's weight will only contribute to the total in *DsAL10Perc* because 15% is greater than 10%, but it is not greater than 20% (or 30%, 40%, ..., 90%).
+
+So, for our weighted example above, for Origin 1, the *DsAL10Perc* field will have a value of 500 because it includes the 200 jobs from Destination A and the 300 jobs from Destination B.  However, the *DsAL20Perc*, *DsAL30Perc*, etc. fields will all have a value of 200 (from Destination A) because Destination B is not reachable often enough to contribute its jobs to these higher percentage fields.
+
+If you care about a bare minimum of access, use the *TotalDests* field.  If you care about quality of access, compare the value of *TotalDests* with, say, *DsAL90Perc*, and note that the total number of destinations reachable more than 90% of the time is much lower.
+
+**PsAL10Perc**, **PsAL20Perc**, ..., **PsAL90Perc**:  These are companion fields to *DsAL10Perc*, *DsAL20Perc*, etc. and have the same relationship that *PercDests* does to *TotalDests*.  For example, *PsAL10Perc* is *DsAL10Perc* divided by the total weighted number of destinations that were included in the analysis.
+
+####Tool performance
+OD Cost Matrices with many origins and destinations may take a long time to solve, and since this tool solves the analysis once per start time within the time limit, this tool could take a very long time to complete.  If you want to solve a really massive problem, this tool might not be the most efficient way to do it.  Please contact me, and I can share some code samples for using multiprocessing to solve these analyses in parallel.
+
+Note that when this tool runs, if the input OD Cost Matrix layer and the network it references are in the map, these layers might re-draw over and over again, which impacts tool performance.  Before running the tool, turn off the layers in the map to prevent the re-draw behavior.
+
+
+
 
 ##<a name="CopyTraversed"></a>Copy Traversed Source Features (with Transit)
 The ArcGIS Network Analyst tool *Copy Traversed Source Features* produces feature classes showing the network edges, junctions, and turns that were traversed when solving a network analysis layer.  It shows the actual network features that were used.  The *Copy Traversed Source Features (with Transit)* tool is an extension of the ArcGIS tool designed for use with transit network datasets.  It adds GTFS transit information to the traversal result produced by the ArcGIS *Copy Traversed Source Features* tool.  GTFS stop information is added to the output Junctions. GTFS route information, trip_id, arrive and depart time and stop names, and the transit time and wait time are added to the output Edges for each transit leg.  An additional feature class is produced containing only the transit edges.
@@ -43,6 +126,9 @@ All output will be created in the file geodatabase you specified in the tool inp
 * If your Network Analysis layer was solved using "Today" as the Day of Week instead of a specific weekday, you might not get correct transit information if you run this tool on a different day of the week from the day of week when your layer was solved.  The tool will output a warning.
 
 
+
+
+
 ##<a name="TimeLapse"></a>Prepare Time Lapse Polygons
 The results of analyses performed using your GTFS-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis.  An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.
 
@@ -58,13 +144,15 @@ The *Prepare Time Lapse Polygons* tool will help you to make a video like this o
 
 After creating your GTFS-enabled network dataset using the *Add GTFS to a Network Dataset* toolbox, [create a Service Area](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm) network analysis layer in the map for the facility or facilities you want to analyze, and configure the layer with the [correct analysis settings](./AddGTFStoND_UsersGuide.html#Step7).  Solve it for a few different times of day to make sure it works and that you get the results you want.
 
+You can also [save your Service Area layer as a .lyr file](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm) to use as input for the tool.  This will be particularly useful is you want to run this tool in a python script outside of ArcMap.
+
 ###2. Run the *Prepare Time Lapse Polygons* tool
 Once your Service Area layer is prepared, run the *Prepare Time Lapse Polygons* tool to solve the service area for a range of start times and save the output polygons to a feature class.  You can use this feature class to make a time lapse video.
 
 ![Screenshot of tool dialog](./images/Screenshot_PrepareTimeLapsePolygons_Dialog.png)
 
 ####Inputs
-* **Service Area Layer**: A ready-to-solve Service Area layer in your map (see previous section on how to set this up).
+* **Service Area Layer**: A ready-to-solve Service Area layer in your map or saved as a .lyr file (see previous section on how to set this up).
 * **Output Polygons Feature Class**: A feature class that will be the output of this tool, which you will use to create your time lapse video.
 * **Start Day (Weekday or YYYYMMDD date)**: Day of the week or YYYYMMDD date for the first start time of your analysis.  Whether you use a generic weekday or a specific date should depend on the format of your GTFS data.  Please review the [Specific vs. generic dates section](./AddGTFStoND_UsersGuide.html#Dates) in the User's Guide.
 * **Start Time (HH:MM) (24 hour time)**: The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2 AM is 02:00, and 2 PM is 14:00.
@@ -89,6 +177,9 @@ After you have done this, you can follow the steps in the ArcMap documentation f
 
 ####ArcGIS Pro
 Although you cannot use ArcGIS Pro to create your GTFS-enabled network dataset or run analyses with it, you can use the feature class created with the *Prepare Time Lapse Polygons* tool make your time lapse video in ArcGIS Pro.  Please check out the [ArcGIS Pro documentation](https://pro.arcgis.com/en/pro-app/help/mapping/animation/animate-through-time.htm) for how to do this.
+
+
+
 
 
 ##<a name="TransitIdentify"></a>Transit Identify
