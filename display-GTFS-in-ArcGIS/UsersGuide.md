@@ -30,7 +30,7 @@ The [Display GTFS Route Shapes](#Shapes) tool converts the information from the 
 ![Screenshot of Display GTFS Stops dialog](./images/Screenshot_DisplayGTFSStops_Dialog.png)
 
 ###Inputs
-- **GTFS stops.txt file to edit**:  The stops.txt file you wish to edit
+- **GTFS stops.txt file**:  The stops.txt file you wish to display in the map
 - **Output GTFS stops feature class**:  The feature class version of your GTFS stops that will be created. *Note: a file geodatabase feature class is recommended over a shapefile because shapefiles will truncate the longer field names to 10 characters.*
 
 ###Outputs
@@ -55,7 +55,7 @@ If your GTFS dataset contains route_color information and you want to view these
 
 ####In ArcMap
 1. In the symbology tab of the layer properties, select Categories->Unique Values.
-2. Choose route_color_RGB as the Value Field.  Click Add All Values.
+2. Choose route_color_formatted as the Value Field.  Click Add All Values.
 3. For each route color that appears, double click the line symbol next to it.
 4. When the Symbol Selector appears, choose More Colors from the Color drop-down.
 5. Flip the drop-down to RGB.  Enter the RGB values from the route_color_RGB field into the R, G, and B boxes.  For example, if the RGB color triplet was (198, 12, 48), modify the color selector to look like the picture here:
