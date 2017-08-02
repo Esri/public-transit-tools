@@ -298,7 +298,7 @@ the values will be 0 or <Null>." % (str(stoptimedict_service_check_counter),str(
         stop_groups=frequency_dataframe.groupby("stop_id")
         stop_frequency_statistics=stop_groups.agg(output_stats)
         if ".shp" in outStops:
-            # Set up shapefile acomodations for long fields (>10 chars) & null values
+            # Set up shapefile accommodations for long fields (>10 chars) & null values
             stop_frequency_statistics.rename(columns={"NumTripsPerHr":"TripsPerHr","MaxWaitTime":"MxWtTime"},inplace=True)
             stop_frequency_statistics=stop_frequency_statistics.fillna(value=-1)
 
