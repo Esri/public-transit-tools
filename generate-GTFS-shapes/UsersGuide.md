@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 
 
 ##What this tool does
-The optional GTFS shapes.txt file contains the actual on-street paths taken by transit vehicles in your system.  A good shapes.txt file is important in order for GTFS-based routing apps to display transit routes correctly on the map.  Read more about the shapes.txt file in the [GTFS reference doc](https://developers.google.com/transit/gtfs/reference).
+The optional GTFS shapes.txt file contains the actual on-street paths taken by transit vehicles in your system.  A good shapes.txt file is important in order for GTFS-based routing apps to display transit routes correctly on the map.  Read more about the shapes.txt file in the [GTFS reference doc](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md).
 
 The Generate GTFS Shapes toolbox produces a new shapes.txt file for your GTFS dataset or allows you to edit an existing one.  The toolbox is targeted primarily toward transit agencies seeking to improve their GTFS datasets.
 

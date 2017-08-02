@@ -21,7 +21,7 @@ The Generate GTFS Shapes toolbox produces a shapes.txt file for your GTFS datase
 ## Resources
 
 * [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/UsersGuide.md)
-* [GTFS specification](https://developers.google.com/transit/gtfs/reference)
+* [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues
 

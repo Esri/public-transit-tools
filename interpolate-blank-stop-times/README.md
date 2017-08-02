@@ -19,7 +19,7 @@ The Interpolate Blank Stop Times toolset is a utility for estimating arrival_tim
 ## Resources
 
 * [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/interpolate-blank-stop-times/UsersGuide.md)
-* [GTFS specification](https://developers.google.com/transit/gtfs/reference)
+* [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues
 

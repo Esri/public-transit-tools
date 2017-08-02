@@ -45,7 +45,7 @@ The [Display GTFS Route Shapes](#Shapes) tool converts the information from the 
 - **Output feature class**:  The output feature class that will contain the GTFS route shapes.
 
 ###Outputs
-- **[Your designated output feature class]**: The output feature class contains all the information from the GTFS routes.txt file as well as the shape_id. Please review the [GTFS Reference](https://developers.google.com/transit/gtfs/reference) if you need help understanding these fields.  If your GTFS dataset contains route_color information, route colors are given in the original hexadecimal format as well as an RGB triplet that can more easily be used as reference when choosing symbology in ArcGIS (see below).
+- **[Your designated output feature class]**: The output feature class contains all the information from the GTFS routes.txt file as well as the shape_id. Please review the [GTFS Reference](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md) if you need help understanding these fields.  If your GTFS dataset contains route_color information, route colors are given in the original hexadecimal format as well as an RGB triplet that can more easily be used as reference when choosing symbology in ArcGIS (see below).
 
 ##Tips for viewing output in the map
 

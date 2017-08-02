@@ -23,7 +23,7 @@ The Display GTFS Stops tool makes a feature class of stops using information fro
 ## Resources
 
 * [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/display-GTFS-in-ArcGIS/UsersGuide.md)
-* [GTFS specification](https://developers.google.com/transit/gtfs/reference)
+* [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues
 

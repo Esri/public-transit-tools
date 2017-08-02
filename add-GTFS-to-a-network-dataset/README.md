@@ -34,7 +34,7 @@ To build the GetEIDs tool, you will need to do the same thing with the System.Da
 
 * [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md)
 * [Troubleshooting Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md)
-* [GTFS specification](https://developers.google.com/transit/gtfs/reference)
+* [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues
 

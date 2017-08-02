@@ -27,7 +27,7 @@ BetterBusBuffers is a toolset to help you quantitatively measure access to publi
 ## Resources
 
 * [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/better-bus-buffers/UsersGuide.md)
-* [GTFS specification](https://developers.google.com/transit/gtfs/reference)
+* [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues
 
