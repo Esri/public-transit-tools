@@ -60,7 +60,7 @@ Once your origin and destination feature classes and your OD Cost Matrix layer a
 
 ####Outputs
 This tool does not produce a new output.  Instead, it adds the following fields to your input Origins table:
-- *TotalDests*:
+- *TotalDests*
 - *PercDests*
 - *DsAL10Perc*, *DsAL20Perc*, ..., *DsAL90Perc*
 - *PsAL10Perc*, *PsAL20Perc*, ..., *PsAL90Perc*
