@@ -260,7 +260,9 @@ ArcGIS Online's origin-destination cost matrix service is available for most par
 
 To use this tool, you must be [signed in to an ArcGIS Online account] (http://desktop.arcgis.com/en/arcmap/latest/map/web-maps-and-services/signing-into-arcgis-online-in-arcgis-for-desktop.htm), or you must enter your ArcGIS Online username and password into the tool dialog.  Your ArcGIS Online account must have network service privileges and sufficient credits.  Talk to your organization's ArcGIS Online administrator if you need help checking or setting up your account.
 
-The [origin-destination cost matrix service is currently in beta](https://www.arcgis.com/home/item.html?id=097e4845a63f4bfe89445cb58ed99a17).  Please contact me if you have questions or comments that are not answered on this website.
+This tool will calculate at maximum one route per origin-destination pair.  So, if you have 100 points of interest and 100 transit stops, the travel time or distance will be calculated between, at maximum, 100\*100=10000 origin-destination pairs.  However, the *Count Trips at Points Online* tool attempts to minimize the number of origin-destination calculations made by spatially chunking the problem, so the actual number of origin-destination pairs will probably be far less.
+
+As of this writing, the "Origin Destination Cost Matrix" service costs 0.0005 credits per origin-destination pair.  If all 10000 origin-destination pairs from the example above were passed to the service, it would cost a total of 5 credits. Please refer to the [ArcGIS Online Service Credits Overview page](http://www.esri.com/software/arcgis/arcgisonline/credits) for more detailed and up-to-date information.
 
 If you don't want to or can't use ArcGIS Online, use the *[Count Trips at Points](#CountTripsAtPoints)* tool instead.
 
