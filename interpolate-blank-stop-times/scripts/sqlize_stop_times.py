@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Preproces stop_times
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 11 March 2016
+## Last updated: 9 August 2017
 ############################################################################
 '''
 This tool creates a SQL table from a GTFS stop_times.txt file and analyzes
@@ -10,7 +10,7 @@ table can be used as input to other tools to replace the blank values with
 interpolated estimates.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -64,11 +64,13 @@ try:
             if not col in columns:
                 arcpy.AddError("Your GTFS dataset's stop_times.txt file is missing a required column: %s" % col)
                 raise CustomError
-        
+
         # Create the SQL database and table with the appropriate schema
         for col in columns:
             if col in relevant_cols:
                 table_schema += relevant_cols[col]
+            elif col == "timepoint":
+                table_schema += col + " INT,\n"
             else:
                 table_schema += col + " CHAR,\n"
         table_schema = table_schema.strip(",\n")
@@ -87,6 +89,10 @@ try:
                             , reader)
         conn.commit()
         
+        # Add the optional timepoint column if it isn't already there
+        if not "timepoint" in columns:
+            c.execute("ALTER TABLE stop_times ADD timepoint INT;")
+
         # Create indices to speed up searching later
         c.execute("CREATE INDEX idx_arrivaltime ON stop_times (arrival_time);")
         c.execute("CREATE INDEX idx_departuretime ON stop_times (departure_time);")

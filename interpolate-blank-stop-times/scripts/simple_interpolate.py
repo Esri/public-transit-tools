@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Simple interpolation
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 11 March 2016
+## Last updated: 9 August 2017
 ############################################################################
 '''
 This tool assigns values to blank arrival_time and departure_time values in the
@@ -11,7 +11,7 @@ time values.  This simple method does not consider the distance or drive time
 between stops.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -164,7 +164,7 @@ start with!")
                 current_blank_times.append(stop_formatted)
             
         # Update SQL table with the interpolated values
-        UpdateStmt = "UPDATE stop_times SET arrival_time=?,departure_time=? WHERE sqliteprimarykeyid=?"
+        UpdateStmt = "UPDATE stop_times SET arrival_time=?,departure_time=?,timepoint=0 WHERE sqliteprimarykeyid=?"
         c.executemany(UpdateStmt, updated_tripinfo)
         conn.commit()
     

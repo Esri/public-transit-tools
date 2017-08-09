@@ -70,7 +70,7 @@ This method is fairly simplistic, but it should provide a reasonable estimate fo
 - **Output stop_times.txt file**: Your new stop_times.txt file with estimated values for arrival_time and departure_time filled in.  It is recommended to not overwrite your original stop_times.txt file. Save the output with a new file name so you can double check the results before replacing your original file.
 
 ###Outputs
-- **[Your designated output stop_times.txt file]**: The output stop_times.txt file is identical to your original stop_times.txt file except that all blank arrival_time and departure_time values have been filled in.
+- **[Your designated output stop_times.txt file]**: The output stop_times.txt file is identical to your original stop_times.txt file except that all blank arrival_time and departure_time values have been filled in.  A timepoint field will be added if none was previously present, and it will be filled in with values of 0 (meaning that times are considered approximate) for the interpolated times.
 
 ###Troubleshooting & potential pitfalls
 * The tool takes forever to run: For small stop_times.txt files and for files with only a small number of blank stop times, this tool will run fairly quickly.  However, this tool will take a considerable time to run for very large datasets with a large number of blank times.  It may take many hours to complete.  Progress is reported in  increments of 10%.
