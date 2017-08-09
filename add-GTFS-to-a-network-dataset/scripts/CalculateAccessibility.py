@@ -118,10 +118,6 @@ try:
 
     # Initialize a dictionary for counting the number of times each destination is reached by each origin
     OD_count_dict = {} # {Origin OID: {Destination OID: Number of times reached}}
-    for oid in origin_ids:
-        OD_count_dict[oid] = {}
-        for did in destinations_oid_dict:
-            OD_count_dict[oid][did] = 0
 
     # Grab the solver properties object from the NA layer so we can set the time of day
     solverProps = arcpy.na.GetSolverProperties(input_network_analyst_layer)
@@ -135,13 +131,27 @@ try:
         solverProps.timeOfDay = t
         
         # Solve the OD Cost Matrix
-        arcpy.na.Solve(input_network_analyst_layer)
+        try:
+            arcpy.na.Solve(input_network_analyst_layer)
+        except:
+            # Solve failed.  It could be that no destinations were reachable within the time limit,
+            # or it could be another error.  Running out of memory is a distinct possibility.
+            errs = arcpy.GetMessages(2)
+            if "No solution found" not in errs:
+                # Only alert them if it's some weird error.
+                arcpy.AddMessage("Solve failed.  Errors: %s. Continuing to next time of day." % errs)
+            continue
 
         # Read the OD matrix output and increment the dictionary
         # There is one entry in Lines for each OD pair that was reached within the cutoff time
         with arcpy.da.SearchCursor(lines_subLayer, ["OriginID", "DestinationID"]) as cur:
             for line in cur:
-                OD_count_dict[line[0]][line[1]] += 1
+                if line[0] not in OD_count_dict:
+                    OD_count_dict[line[0]] = {}
+                if line[1] not in OD_count_dict[line[0]]:
+                    OD_count_dict[line[0]][line[1]] = 1
+                else:
+                    OD_count_dict[line[0]][line[1]] += 1
 
 
     # ----- Calculate statistics and generate output -----
