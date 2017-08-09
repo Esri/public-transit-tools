@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Preproces stop_times
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 11 March 2016
+## Last updated: 9 August 2017
 ############################################################################
 '''
 This tool creates a SQL table from a GTFS stop_times.txt file and analyzes
@@ -10,7 +10,7 @@ table can be used as input to other tools to replace the blank values with
 interpolated estimates.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
