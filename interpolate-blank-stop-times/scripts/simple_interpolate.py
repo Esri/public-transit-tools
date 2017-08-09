@@ -164,7 +164,7 @@ start with!")
                 current_blank_times.append(stop_formatted)
             
         # Update SQL table with the interpolated values
-        UpdateStmt = "UPDATE stop_times SET arrival_time=?,departure_time=? WHERE sqliteprimarykeyid=?"
+        UpdateStmt = "UPDATE stop_times SET arrival_time=?,departure_time=?,timepoint=0 WHERE sqliteprimarykeyid=?"
         c.executemany(UpdateStmt, updated_tripinfo)
         conn.commit()
     

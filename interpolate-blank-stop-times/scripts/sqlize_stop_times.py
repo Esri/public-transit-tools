@@ -64,11 +64,13 @@ try:
             if not col in columns:
                 arcpy.AddError("Your GTFS dataset's stop_times.txt file is missing a required column: %s" % col)
                 raise CustomError
-        
+
         # Create the SQL database and table with the appropriate schema
         for col in columns:
             if col in relevant_cols:
                 table_schema += relevant_cols[col]
+            elif col == "timepoint":
+                table_schema += col + " INT,\n"
             else:
                 table_schema += col + " CHAR,\n"
         table_schema = table_schema.strip(",\n")
@@ -87,6 +89,10 @@ try:
                             , reader)
         conn.commit()
         
+        # Add the optional timepoint column if it isn't already there
+        if not "timepoint" in columns:
+            c.execute("ALTER TABLE stop_times ADD timepoint INT;")
+
         # Create indices to speed up searching later
         c.execute("CREATE INDEX idx_arrivaltime ON stop_times (arrival_time);")
         c.execute("CREATE INDEX idx_departuretime ON stop_times (departure_time);")
