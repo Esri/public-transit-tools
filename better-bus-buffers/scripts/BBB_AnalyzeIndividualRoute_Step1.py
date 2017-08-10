@@ -331,4 +331,3 @@ except:
 finally:
     if OverwriteOutput:
         arcpy.env.overwriteOutput = OverwriteOutput
-    arcpy.CheckInExtension("network")

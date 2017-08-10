@@ -309,6 +309,3 @@ except CustomError:
 except:
     arcpy.AddError("Failed to create BetterBusBuffers polygons.")
     raise
-
-finally:
-    arcpy.CheckInExtension("Network")

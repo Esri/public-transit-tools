@@ -276,10 +276,6 @@ ObjectID values..." % (inLocUniqueID, inLocUniqueID))
         arcpy.AddError("Error creating OD matrix between stops and input points.")
         raise
 
-    finally:
-        # Check the Network Analyst Extension back in.
-        arcpy.CheckInExtension("Network")
-
 
     #----- Query the GTFS data to count the trips at each stop -----
     try:
