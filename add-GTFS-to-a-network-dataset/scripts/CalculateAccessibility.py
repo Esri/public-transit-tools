@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset / Transit Analysis Tools
 ## Tool name: Calculate Accessibility Matrix
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 28 July 2017
+## Last updated: 10 August 2017
 ################################################################################
 '''Count the number of destinations reachable from each origin by transit and 
 walking. The tool calculates an Origin-Destination Cost Matrix for each start 
