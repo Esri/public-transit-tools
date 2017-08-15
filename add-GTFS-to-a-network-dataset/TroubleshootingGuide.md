@@ -14,6 +14,7 @@ This document describes some common problems encountered by users of *Add GTFS t
   - [I can't register/install the transit evaluator](#Registration)
 + Creating the network
   - [I tried to run one of the tools in the Add GTFS to a Network Dataset toolbox, but it said it was missing a script reference.](#MissingScript)
+  - [I tried to run one of the tools in the Add GTFS to a Network Dataset toolbox, but it failed with a bunch of error messages like "ImportError".](#MessedUpArcpy)
   - [A tool failed with "ExecuteError: ERROR 999999: Error executing function. Failed to execute (CreateFeatureclass)."](#CorruptGDB)
   - [When I'm setting up the evaluators for my transit travel time cost attribute, "TransitEvaluator" doesn't appear in the drop-down list of evaluator types](#DropDown)
   - [When I built my network, I got build errors.](#BuildErrors)
@@ -47,6 +48,19 @@ If none of these solve the problem, talk to your system administrator.  You're a
 
 ##<a name="MissingScript"></a>I tried to run one of the tools in the Add GTFS to a Network Dataset toolbox, but it said it was missing a script reference.
 The *Add GTFS to a Network Dataset* toolbox files (with the .tbx extensions and the red toolbox icon) have associated python script files (with the .py extensions in the scripts folder).  If you move the toolbox files without moving the associated scripts folder with them, then they will no longer be able to find the scripts, and the tools won't work.  Make sure if you want to move the Add GTFS to a Network Dataset files to a new location that you move the entire folder together and don't separate the files.  Additionally, make sure to uninstall the transit evaluator before you move it, and reinstall it in its new location.
+
+
+##<a name="MessedUpArcpy"></a>I tried to run one of the tools in the Add GTFS to a Network Dataset toolbox, but it failed with a bunch of error messages like "ImportError".
+If the tool failed with an ImportError that says something like "Failed to import sqlite3", ArcMap's python installation might be messed up.  This frequently happens when people have installed Anaconda after installing ArcMap.
+
+Please test your python installation using the following steps:
+
+1. Open ArcMap.
+2. Open the [python window](http://desktop.arcgis.com/en/arcmap/latest/analyze/executing-tools/what-is-the-python-window-.htm#ESRI_SECTION1_276E292B80D2439DB179ED9B3B6B63E7).
+3. In the python window, type "arcpy.GetInstallInfo()" (without the quotation marks), and click Enter.  This should return some information about your ArcMap installation.  If it returns an error, then something is probably wrong with your ArcMap installation and its reference to python.
+4)	If the above works, try typing "import sqlite3" (without the quotation marks).  This should succeed and do nothing.
+
+If one of the steps above fails, it's likely that ArcMap's reference to python is messed up.  You can try reinstalling ArcMap, talking to your systems administrator, or calling [Esri Tech Support](http://support.esri.com/).
 
 
 ##<a name="CorruptGDB"></a>A tool failed with "ExecuteError: ERROR 999999: Error executing function. Failed to execute (CreateFeatureclass)."
