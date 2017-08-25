@@ -180,7 +180,7 @@ Before using Step 2 to generate your shapes.txt file, you should examine your sh
 * Save your edits
 * Stop the editing session
 
-For detailed information on editing in ArcGIS, read about editing in the [ArcMap Help](http://desktop.arcgis.com/en/desktop/latest/manage-data/editing/what-is-editing-.htm) or the [ArcGIS Pro Help](http://pro.arcgis.com/en/pro-app/help/editing/overview-of-desktop-editing.htm).
+For detailed information on editing in ArcGIS, read about editing in the [ArcMap Help](http://desktop.arcgis.com/en/arcmap/latest/manage-data/editing/what-is-editing-.htm) or the [ArcGIS Pro Help](http://pro.arcgis.com/en/pro-app/help/editing/overview-of-desktop-editing.htm).
 
 ###Tips for editing
 

@@ -51,7 +51,7 @@ You can use the ArcMap or ArcGIS Pro editing tools to edit your stop locations a
 5. Save your edits
 6. Stop the editing session
 
-For detailed information on editing in ArcMap, read about editing in the [ArcMap Help](http://desktop.arcgis.com/en/desktop/latest/manage-data/editing/what-is-editing-.htm).
+For detailed information on editing in ArcMap, read about editing in the [ArcMap Help](http://desktop.arcgis.com/en/arcmap/latest/manage-data/editing/what-is-editing-.htm).
 
 ###ArcGIS Pro
 
