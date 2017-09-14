@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 3) Get Network EIDs
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 18 December 2014
+## Last updated: 14 September 2017
 ################################################################################
 ''' This tool retrieves the network dataset's EIDs for the transit lines
 features and adds the EIDs to the transit schedule table used in the GTFS
@@ -10,7 +10,7 @@ evaluator.  The network dataset must be built prior to running this tool, and
 the tool must be re-run every time the network dataset is rebuilt in order to
 update the EID values.'''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -27,7 +27,11 @@ import arcpy
 
 # ----- Collect user inputs -----
 # Network dataset they've created containing their TransitLines
-inNetworkDataset = arcpy.GetParameterAsText(0)
+inNetworkDataset = arcpy.GetParameter(0)
+if isinstance(inNetworkDataset, arcpy._mapping.Layer):
+    inNetworkDataset = inNetworkDataset.dataSource
+else:
+    inNetworkDataset = arcpy.GetParameterAsText(0)
 SQLDbase = os.path.join(os.path.dirname(os.path.dirname(inNetworkDataset)), "GTFS.sql")
 TransitFCName = "TransitLines"
 
