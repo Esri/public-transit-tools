@@ -10,7 +10,7 @@ This project contains tools for working with public transit data in ArcGIS.  Eac
 
 ## Resources
 
-* [GTFS specification](https://developers.google.com/transit/gtfs/reference)
+* [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues
 
