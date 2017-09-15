@@ -11,9 +11,11 @@
 
 ## Instructions
 
-To simply use the tool, download the latest release and follow the included User's Guide.
+If you just want to run this tool in a ready-to-use format, don't use this GitHub version.  Instead, [download it from ArcGIS Online](http://www.arcgis.com/home/item.html?id=0fa52a75d9ba4abcad6b88bb6285fae1) and follow the instructions in the [User's Guide](http://transit.melindamorang.com/UsersGuides/AddGTFStoaNetworkDataset/AddGTFStoND_UsersGuide.html).
 
-If you want to play with the code, fork it and have fun.  In addition to grabbing everything from GitHub, you also need to download and set up the correct version of [System.Data.SQLite] (https://system.data.sqlite.org/index.html/doc/trunk/www/downloads.wiki).
+This GitHub repo is meant primiarily for my own development and for those rare brave souls who actually want to look at the transit evaluator's ArcObjects code.
+
+If you want to play with the code, fork it and have fun.  In addition to grabbing everything from GitHub, you also need to download and set up the correct version of [System.Data.SQLite](https://system.data.sqlite.org/index.html/doc/trunk/www/downloads.wiki).
   - The one you want is sqlite-netFx20-binary-Win32-2005-1.0.98.0.zip.  Download this.
   - Unzip it to a folder called SQLite in the same directory as the TransitEvaluator and GetEIDs folders.
   - In the Debug folder where TransitEvaluator.sln is going to build, create a folder called x86.
@@ -32,8 +34,9 @@ To build the GetEIDs tool, you will need to do the same thing with the System.Da
 
 ## Resources
 
-* [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md)
-* [Troubleshooting Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md)
+* [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md)
+* [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md)
+* [Supplemental tools user's guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md)
 * [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues
