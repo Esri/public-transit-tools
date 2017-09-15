@@ -18,7 +18,7 @@ After using these tools to set up your network dataset, you can use Network Anal
 
 ##Data requirements
 * Street data for the area covered by your transit system, preferably data including pedestrian attributes.  If you need help preparing high-quality street data for your network, please review [this tutorial](http://support.esri.com/en/technical-article/000012743).
-* A valid GTFS dataset. If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool. You can download and use the [Interpolate Blank Stop Times] (http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate blank arrival_time and departure_time values for your dataset if you still want to use it.
+* A valid GTFS dataset. If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool. You can download and use the [Interpolate Blank Stop Times](http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate blank arrival_time and departure_time values for your dataset if you still want to use it.
 
 ## If you have never used Network Analyst before
 Network Analyst is a powerful and complex ArcGIS extension.  The procedure described in this document and the analyses you will likely want to run when you have completed it involve advanced Network Analyst functionality.  If you have never used Network Analyst before or need a refresher, please work through the [Network Analyst online tutorials](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before attempting to use *Add GTFS to a Network Dataset*.
@@ -38,27 +38,19 @@ In order to use GTFS routes, stops, and schedules in a network dataset, you must
 
 ## <a name="Step1"></a>1) Download and install the tools
 
-* Download *Add GTFS to a Network Dataset*.  It will be a zip file.
+Download *Add GTFS to a Network Dataset*.  It will be a zip file.  Unzip the file and put it in a permanent location on your machine where you won't lose it.  Do not save the unzipped tool folder on a network drive, the Desktop, or any other special reserved Windows folders (like C:\Program Files) because this could cause problems later.
 
-* Unzip the file you downloaded.  Do not save the unzipped tool folder on a network drive, the Desktop, or any other special reserved Windows folders (like C:\Program Files) because this will cause problems later.
+The unzipped file contains an installer, AddGTFStoaNetworkDataset_Installer.exe.  Double-click this to run it.  The installation should proceed quickly, and it should say "Completed" when finished.  If you encounter any problems, click the "Show Details" button to view messages.  If some messages are cut off, you can right-click in the message window and choose "Copy Details To Clipboard" and paste the full message list into a text editor.
 
-    The unzipped package contains:
- - *Evaluator Files* and *scripts* folders: Folders of .dll files, python scripts, and other files needed to run these tools
- - *User's guides* and *images* folder: Instructions for running the tools and a folder of images used in the user's guides.
- - *Add GTFS to a network dataset.tbx*: An ArcGIS toolbox with tools for setting up your GTFS-enabled network dataset.  This user's guide describes how to use these tools.
- - *Transit Analysis Tools.tbx*: An ArcGIS toolbox containing supplemental tools you can use with the network dataset you created using *Add GTFS to a network dataset.tbx*.  These tools are designed to help you explore your data and understand the results of network analysis using transit.  A description of these tools and instructions for using them can be found in the [Transit Analysis Tools user's guide](./TransitAnalysisTools_UsersGuide.html).
+The installation process does the following:
+- "Registers" a special transit evaluator with ArcGIS.  This will allow your network dataset to query the GTFS schedules when determining travel time through the network.
+- Adds "Add GTFS to a network dataset.tbx" and "Transit Analysis Tools.tbx" to ArcToolbox.
+- Copies relevant files to the folder where ArcGIS is installed on your machine.
+- Places the tool documentation and an uninstaller into a folder in the same location as the installer.  Do not delete the uninstaller or you won't be able to uninstall the tools.
 
-* Now you need to "register" (install) the special GTFS transit evaluator.  To do this, double-click Install.bat.  If the installation succeeds, you will get a pop-up saying so.
-
-![Screenshot of successful registration pop-up](./images/Screenshot_Registration_Popup.png)
-
-* If registration fails, please see the [Troubleshooting Guide] (http://transit.melindamorang.com/UsersGuides/AddGTFStoaNetworkDataset/TroubleshootingGuide.html).
-
-If, at any point in the future, you wish to uninstall the special GTFS transit evaluator, you can use the Uninstall.bat file to clear it from your computer's registry.
+If you wish to uninstall the tools (for example, if you're upgrading to a newer version of the tools or upgrading ArcMap), use AddGTFStoaNetworkDataset_Uninstall.exe in the AddGTFStoaNetworkDataset folder in the location where your original installer was located, or find the "Add GTFS to a Network Dataset" entry in the Windows Programs and Features dialog.
 
 *Note: If you create a network dataset that uses the GTFS transit evaluator and then uninstall the GTFS transit evaluator, you will not be able to use or delete the network dataset from your machine unless you reinstall the GTFS transit evaluator.  Similarly, a network dataset created on a machine with the GTFS transit evaluator installed will not work on a different machine that does not have the GTFS transit evaluator installed.  If you try to open or delete one of these network datasets on a machine without the GTFS transit evaluator, you will get an error message saying "Failed to edit the selected object(s). The item does not have a definition. FDO error -2147212634".*
-
-*Warning: If you wish to move the toolbox to a different location on your computer, make sure you move the entire package (the .tbx file, the scripts folder, etc.) together so that the toolbox does not become disconnected from the scripts.  It would be best to uninstall the evaluator, move the entire folder, and then reinstall the evaluator in its new location.*
 
 
 ## <a name="Step2"></a>2) Acquire your data and prepare your feature dataset
@@ -232,7 +224,7 @@ The input for this tool is just your network dataset.  There is no output.  It s
 
 ##<a name="Step7"></a>7) Choose the correct analysis settings
 
-Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS.  If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials] (http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
+Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS and the supplemental tools in [Transit Analysis Tools.tbx](./TransitAnalysisTools_UsersGuide.html).  If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
 
 Recall that the basic workflow for running network analyses is as follows:
 
@@ -320,7 +312,7 @@ If you are performing a complex analysis in which you want to modify your transi
 Note: If you forgot to run to tool *3) Get Network EIDs*, you will receive an error message when the evaluator caches saying "FAILURE: All EIDs were null in the transit schedule table.  Please run the tool to generate EIDs".  Just go back and run *3) Get Network EIDs*.
 
 
-##Using your network dataset with ArcGIS Server
+##<a name="Server"></a>Using your network dataset with ArcGIS Server
 
 If you want to use your network dataset and the custom GTFS transit evaluator with ArcGIS Server, you must install TransitEvaluator.dll on the machine hosting the service.  Furthermore, you must register the dll using the 64-bit Server registration utility.  The registration you did when you ran the Install.bat file is not sufficient.
 
@@ -332,7 +324,7 @@ Note: The transit evaluator will *not* work with ArcGIS Server on Linux.  It onl
 If you are hosting a service using your transit-enabled network dataset, and you copy the service's data to the server, you must additionally copy the GTFS.sql file located in the geodatabase where your network dataset is stored.  Without this SQL database, the transit evaluator will not run, and ArcGIS does not automatically copy it along with the geodatabase (it leaves it behind).
 
 
-##Using your network dataset with 64-bit Background Geoprocessing
+##<a name="BackgroundGP"></a>Using your network dataset with 64-bit Background Geoprocessing
 
 If you have ArcGIS Desktop and the 64-bit background geoprocessing extension, you must go through a special registration procedure to make TransitEvaluator.dll work with the 64-bit background geoprocessing.  Follow the procedure [outlined in this article](http://support.esri.com/en/knowledgebase/techarticles/detail/40735).
 

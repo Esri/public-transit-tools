@@ -25,25 +25,19 @@ This document describes some common problems encountered by users of *Add GTFS t
   - [My analysis never uses the transit lines. It only uses the streets.](#NoTransitLines)
   - [My Service Areas have ugly spikes around the transit lines](#Exclude)
 + Other
+  - [I upgraded ArcMap to a new version, and now Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx are no longer in ArcToolbox](#ArcMapUpgrade)
   - [The Network Identify tool always shows a cost of -1 for TransitLines edges in my network](#NetworkIdentify)
 
 
 ##<a name="Registration"></a>I can't register/install the transit evaluator
-There are several reasons why registering the transit evaluator might fail.  These reasons are usually specific to your computer and have to do with installation paths or security settings.  You might need to talk to your system administrator for help if none of the suggestions below solve your problem.
 
-**Don't try to register the transit evaluator on a network drive or on the Desktop**
-Make sure the Add GTFS to a Network Dataset files and folders are all on a local drive on your machine, and also don't put it on the Desktop.
+If you encounter any problems running AddGTFStoaNetworkDataset_Installer.exe, click the "Show Details" button to view messages.  If some messages are cut off, you can right-click in the message window and choose "Copy Details To Clipboard" and paste the full message list into a text editor.  If the messages do not give you sufficient information to resolve the issue, please contact me and send me the full message window text.
 
-**Check your ArcGIS install path**
-Open the Install.bat file (right-click it and click Edit).  Make sure the path on your computer to the file called ESRIRegAsm.exe matches what's written in the file.  If it doesn't, modify the file, try running Install.bat again, and see if that makes it work.
-
-**If you get the error message "Registration failed. Could not load file or assembly…Operation is not supported."**
-Your computer might have blocked the TransitEvaluator.dll file as a security risk because it came from another computer.  In the EvaluatorFiles folder, right click TransitEvaluator.dll and click Properties.  If there is an Unblock button at the bottom click it, and then try running Install.bat again.  You might also need to unblock all the other .dll files in this folder and its subfolders.
-
-**If you get an error saying "Registration failed. Could not write to disk"**
-You probably need to run the .bat file as an administrator.  Right click on Install.bat and choose "Run as Administrator".  If it fails again and says it can't find the specified path to the .dll file, open the .bat file for editing and change the "%CD%" in the .dll path to the correct path on your machine.
-
-If none of these solve the problem, talk to your system administrator.  You're always welcome to contact me with questions about the *Add GTFS to a Network Dataset* toolbox, but there's very little I can do to help you with registration problems because they are almost always very specific to your machine's configuration.
+AddGTFStoaNetworkDataset_Installer.exe was newly added to Add GTFS to a Network Dataset in version 0.6.  Previous versions used the Install.bat file, and the procedure frequently let to problems that were usually specific to the installer's computer and security settings.  I'm leaving the following tips here from the old Install.bat method in case they are still relevant in some cases, but AddGTFStoaNetworkDataset_Installer.exe should for the most part have eliminated them.
+- Don't try to register the transit evaluator on a network drive or on the Desktop.  Make sure the Add GTFS to a Network Dataset files and folders are all on a local drive on your machine, and also don't put it on the Desktop.
+- Check your ArcGIS install path.  Open the Install.bat file (right-click it and click Edit).  Make sure the path on your computer to the file called ESRIRegAsm.exe matches what's written in the file.  If it doesn't, modify the file, try running Install.bat again, and see if that makes it work.
+- If you get the error message "Registration failed. Could not load file or assembly...Operation is not supported," your computer might have blocked the TransitEvaluator.dll file as a security risk because it came from another computer.  In the EvaluatorFiles folder, right click TransitEvaluator.dll and click Properties.  If there is an Unblock button at the bottom click it, and then try running Install.bat again.  You might also need to unblock all the other .dll files in this folder and its subfolders.
+- If you get an error saying "Registration failed. Could not write to disk", you probably need to run the .bat file as an administrator.  Right click on Install.bat and choose "Run as Administrator".  If it fails again and says it can't find the specified path to the .dll file, open the .bat file for editing and change the "%CD%" in the .dll path to the correct path on your machine.
 
 
 ##<a name="MissingScript"></a>I tried to run one of the tools in the Add GTFS to a Network Dataset toolbox, but it said it was missing a script reference.
@@ -153,6 +147,14 @@ If you are solving a Service Area analysis, you need to prevent service areas fr
 
 ![Screenshot of tool dialog](./images/Screenshot_AnalysisSettings_ExcludedSources.png)
 
+
+##<a name="ArcMapUpgrade"></a>I upgraded ArcMap to a new version, and now Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx are no longer in ArcToolbox
+
+Ideally, before uninstalling ArcMap, you should uninstall Add GTFS to a Network Dataset using AddGTFStoaNetworkDataset_Uninstall.exe in the AddGTFStoaNetworkDataset folder in the location where your original installer was located, or find the "Add GTFS to a Network Dataset" entry in the Windows Programs and Features dialog.
+
+If you forgot to do that, and installed a new version of ArcMap, then Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx will be missing from ArcToolbox, although your network datasets will probably still work.
+
+This problem is easy to solve.  Just uninstall Add GTFS to a Network Dataset and reinstall it.  If you can't find the original installer on your machine, you can [download the latest version](http://www.arcgis.com/home/item.html?id=0fa52a75d9ba4abcad6b88bb6285fae1) from ArcGIS Online.
 
 ##<a name="NetworkIdentify"></a>The Network Identify tool always shows a cost of -1 for TransitLines edges in my network
 This is the correct behavior.  Because TransitEvaluator is a custom evaluator, the Network Identify tool does not know how to use it to determine the impedance of your TransitLines edges.  Furthermore, the impedance of those edges is not static; the time it takes to traverse them depends on the time of day and the transit schedules.  The Network Identify tool is not time-aware.  Because of these limitations, the Network Identify tool always lists -1 as the impedance for the TransitLines edges in your network.  It does not mean that your network is broken.

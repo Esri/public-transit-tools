@@ -7,7 +7,7 @@ Copyright 2017 Esri
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ##What are the Transit Analysis Tools?
-These instructions explain how to use the supplemental Transit Analysis Tools with the transit network dataset you created using Add GTFS to a Network Dataset.  These tools are designed to help you explore your data and understand the results of network analysis using transit.
+These instructions explain how to use the supplemental Transit Analysis Tools with the transit network dataset you created using Add GTFS to a Network Dataset.  These tools, located in the Transit Analysis Tools.tbx toolbox, are designed to help you explore your data and understand the results of network analysis using transit.
 - [Calculate Accessibility Matrix](#AccessibilityMatrix)
 - [Copy Traversed Source Features (with Transit)](#CopyTraversed)
 - [Prepare Time Lapse Polygons](#TimeLapse)
