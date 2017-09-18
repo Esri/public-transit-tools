@@ -52,7 +52,7 @@ Please test your python installation using the following steps:
 1. Open ArcMap.
 2. Open the [python window](http://desktop.arcgis.com/en/arcmap/latest/analyze/executing-tools/what-is-the-python-window-.htm#ESRI_SECTION1_276E292B80D2439DB179ED9B3B6B63E7).
 3. In the python window, type "arcpy.GetInstallInfo()" (without the quotation marks), and click Enter.  This should return some information about your ArcMap installation.  If it returns an error, then something is probably wrong with your ArcMap installation and its reference to python.
-4)	If the above works, try typing "import sqlite3" (without the quotation marks).  This should succeed and do nothing.
+4.  If the above works, try typing "import sqlite3" (without the quotation marks).  This should succeed and do nothing.
 
 If one of the steps above fails, it's likely that ArcMap's reference to python is messed up.  You can try reinstalling ArcMap, talking to your systems administrator, or calling [Esri Tech Support](http://support.esri.com/).
 
