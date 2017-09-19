@@ -208,7 +208,7 @@ This is invalid, so trips with this id will not be included in your network." % 
 
     # Create a line-based schedule table 
     c.execute("DROP TABLE IF EXISTS schedules;")
-    c.execute("CREATE TABLE schedules (key TEXT, arrival_time REAL, departure_time REAL, trip_id TEXT);")
+    c.execute("CREATE TABLE schedules (key TEXT, start_time REAL, end_time REAL, trip_id TEXT);")
 
     # Find pairs of directly-connected stops
     linefeature_dict = {}
@@ -221,25 +221,35 @@ This is invalid, so trips with this id will not be included in your network." % 
     stoptimes = c.fetchall()
     current_trip = None
     previous_stop = None
+    start_time = None
+    end_time = None
     for st in stoptimes:
         trip_id = st[0]
         stop_id = st[1]
+        arrival_time = st[2]
+        departure_time = st[3]
         if trip_id != current_trip:
             current_trip = trip_id
             previous_stop = stop_id
+            start_time = departure_time # Start time of segment is the departure time from the stop
             continue
         start_stop = previous_stop
         end_stop = stop_id
+        end_time = arrival_time
         ###########
         #arcpy.AddMessage(trip_id)
         SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, trip_routeid_dict[trip_id])
         # This stop pair needs a line feature
         linefeature_dict[SourceOIDkey] = True
         ##############
-        stmt = """INSERT INTO schedules (key, arrival_time, departure_time, trip_id) VALUES ('%s', %s, %s, '%s');""" % (SourceOIDkey, st[2], st[3], trip_id)
+        stmt = """INSERT INTO schedules (key, start_time, end_time, trip_id) VALUES ('%s', %s, %s, '%s');""" % (SourceOIDkey, start_time, end_time, trip_id)
         #arcpy.AddMessage(stmt)
         c.execute(stmt)
         previous_stop = stop_id
+        start_time = departure_time
+    conn.commit()
+    c.execute("CREATE INDEX schedules_index_tripsst ON schedules (trip_id, start_time);")
+    c.execute("CREATE INDEX schedules_index_tripsend ON schedules (trip_id, end_time);")
     conn.commit()
 
     ######################
