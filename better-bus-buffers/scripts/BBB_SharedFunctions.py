@@ -519,8 +519,7 @@ def CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific=False):
 
 
 def CountTripsOnLines(day, start_sec, end_sec, DepOrArr, Specific=False):
-    '''Given a time window, return a dictionary of
-    {line_key: [[trip_id, start_time, end_time]]}'''
+    '''Given a time window, return a dictionary of {line_key: [[trip_id, start_time, end_time]]}'''
 
     triplist, triplist_yest, triplist_tom = GetTripLists(day, start_sec, end_sec, DepOrArr, Specific)
 
@@ -572,6 +571,34 @@ def RetrieveStatsForSetOfStops(stoplist, stoptimedict, CalcWaitTime, start_sec, 
         MaxWaitTime = CalculateMaxWaitTime(StopTimesAtThisPoint, start_sec, end_sec)
 
     return NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime
+
+
+def RetrieveStatsForLines(linelist, linetimedict, CalcWaitTime, start_sec, end_sec):
+    '''For a set of lines, query the linetimedict {line_key: [[trip_id, start_time, end_time]]}
+    and return the NumTrips, NumTripsPerHr, and MaxWaitTime for
+    that set of lines.'''
+
+    # Find the list of unique trips
+    triplist = []
+    StartTimesOnThisLine = []
+    for line in linelist:
+        try:
+            linetimelist = linetimedict[line]
+            for linetime in linetimelist:
+                trip = linetime[0]
+                triplist.append(trip)
+                StartTimesOnThisLine.append(linetime[1])
+        except KeyError:
+            pass
+    triplist = list(set(triplist))
+    NumTrips = len(triplist)
+    NumTripsPerHr = round(float(NumTrips) / ((end_sec - start_sec) / 3600), 2)
+
+    MaxWaitTime = None
+    if CalcWaitTime == "true":
+        MaxWaitTime = CalculateMaxWaitTime(StartTimesOnThisLine, start_sec, end_sec)
+
+    return NumTrips, NumTripsPerHr, MaxWaitTime
 
 
 def CalculateMaxWaitTime(stoptimelist, start_sec, end_sec):
