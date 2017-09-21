@@ -359,71 +359,74 @@ def GetLineTimesInTimeWindow(start, end, DepOrArr, triplist, day):
     linetimedict = {} # {line_key: [[trip_id, start_time, end_time]]}
     for trip in triplist:
 
-        # # If the trip uses the frequencies.txt file, extrapolate the stop_times
-        # # throughout the day using the relative time between the stops given in
-        # # stop_times and the headways listed in frequencies.
-        # if trip in frequencies_dict:
+        # If the trip uses the frequencies.txt file, extrapolate the stop_times
+        # throughout the day using the relative time between the stops given in
+        # stop_times and the headways listed in frequencies.
+        if trip in frequencies_dict:
 
-        #     # Grab the stops stop_times for this trip
-        #     stopsfetch = '''
-        #         SELECT stop_id, %s FROM stop_times
-        #         WHERE trip_id == ?
-        #         ;''' % DepOrArr
-        #     c.execute(stopsfetch, (trip,))
-        #     StopTimes = c.fetchall()
-        #     # Sort by time
-        #     StopTimes.sort(key=operator.itemgetter(1))
-        #     # time 0 for this trip
-        #     initial_stop_time = int(StopTimes[0][1])
+            # Grab the stops stop_times for this trip
+            linesfetch = '''
+                SELECT key, start_time, end_time FROM schedules
+                WHERE trip_id == ?
+            c.execute(linesfetch, (trip,))
+            LineTimes = c.fetchall()
+            # Sort by time
+            LineTimes.sort(key=operator.itemgetter(1))
+            # time 0 for this trip
+            initial_stop_time1 = int(LineTimes[0][1]) # Beginning stop of segment
+            initial_stop_time2 = int(LineTimes[0][2]) # Ending stop of segment
 
-        #     # Extrapolate using the headway and time windows from frequencies to
-        #     # find the stop visits. Add them to the dictionary if they fall within
-        #     # our analysis time window.
-        #     for window in frequencies_dict[trip]:
-        #         start_timeofday = window[0]
-        #         end_timeofday = window[1]
-        #         headway = window[2]
-        #         # Increment by by headway to create new stop visits
-        #         for i in range(int(round(start_timeofday, 0)), int(round(end_timeofday, 0)), headway):
-        #             for stop in StopTimes:
-        #                 time_along_trip = int(stop[1]) - initial_stop_time
-        #                 stop_time = i + time_along_trip
-        #                 if start < stop_time < end:
-        #                     if day == "yesterday":
-        #                         stop_time = stop_time - SecsInDay
-        #                     elif day == "tomorrow":
-        #                         stop_time += SecsInDay
-        #                     # To distinguish between stop visits, since all frequency-based
-        #                     # trips have the same id, create a special id based on the day
-        #                     # and time of day: trip_id_DayStartTime. This ensures that the
-        #                     # number of trips will be counted correctly later and not eliminated
-        #                     # as being the same trip
-        #                     special_trip_name = trip + "_%s%s" % (day, str(i))
-        #                     stoptimedict.setdefault(stop[0], []).append([special_trip_name, stop_time])
+            # Extrapolate using the headway and time windows from frequencies to
+            # find the times lines are traveled on. Add them to the dictionary if they fall within
+            # our analysis time window.
+            for window in frequencies_dict[trip]:
+                start_timeofday = window[0]
+                end_timeofday = window[1]
+                headway = window[2]
+                # Increment by by headway to create new stop visits
+                for i in range(int(round(start_timeofday, 0)), int(round(end_timeofday, 0)), headway):
+                    for line in LineTimes:
+                        time_along_trip1 = int(line[1]) - initial_stop_time1 # Time into trip when it reaches first stop of line segment
+                        time_along_trip2 = int(line[2]) - initial_stop_time2 # Time into trip when it reaches second stop of line segment
+                        stop_time1 = i + time_along_trip1
+                        stop_time2 = i + time_along_trip2
+                            if day == "yesterday":
+                                stop_time1 = stop_time1 - SecsInDay
+                                stop_time2 = stop_time2 - SecsInDay
+                            elif day == "tomorrow":
+                                stop_time1 += SecsInDay
+                                stop_time2 += SecsInDay
+                            # To distinguish between stop visits, since all frequency-based
+                            # trips have the same id, create a special id based on the day
+                            # and time of day: trip_id_DayStartTime. This ensures that the
+                            # number of trips will be counted correctly later and not eliminated
+                            # as being the same trip
+                            special_trip_name = trip + "_%s%s" % (day, str(i))
+                            linetimedict.setdefault(line[0], []).append([special_trip_name, stop_time1, stop_time2])
 
-        # # If the trip doesn't use frequencies, get the stop times directly
-        # else:
-        # Grab the line schedules fully within the time window
-        linesfetch = '''
-            SELECT key, start_time, end_time FROM schedules
-            WHERE trip_id == ?
-            AND start_time BETWEEN ? AND ?
-            AND end_time BETWEEN ? AND ?
-            ;'''
-        c.execute(linesfetch, (trip, start, end, start, end,))
-        LineTimes = c.fetchall()
+        # If the trip doesn't use frequencies, get the stop times directly
+        else:
+            # Grab the line schedules fully within the time window
+            linesfetch = '''
+                SELECT key, start_time, end_time FROM schedules
+                WHERE trip_id == ?
+                AND start_time BETWEEN ? AND ?
+                AND end_time BETWEEN ? AND ?
+                ;'''
+            c.execute(linesfetch, (trip, start, end, start, end,))
+            LineTimes = c.fetchall()
 
-        for linetime in LineTimes:
-            line_id = linetime[0]
-            start_time = int(linetime[1])
-            end_time = int(linetime[2])
-            if day == "yesterday":
-                start_time = start_time - SecsInDay
-                end_time = end_time - SecsInDay
-            elif day == "tomorrow":
-                start_time += SecsInDay
-                end_time += SecsInDay
-            linetimedict.setdefault(line_id, []).append([trip, start_time, end_time])
+            for linetime in LineTimes:
+                line_id = linetime[0]
+                start_time = int(linetime[1])
+                end_time = int(linetime[2])
+                if day == "yesterday":
+                    start_time = start_time - SecsInDay
+                    end_time = end_time - SecsInDay
+                elif day == "tomorrow":
+                    start_time += SecsInDay
+                    end_time += SecsInDay
+                linetimedict.setdefault(line_id, []).append([trip, start_time, end_time])
 
     return linetimedict
 

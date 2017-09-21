@@ -40,6 +40,7 @@ class CustomError(Exception):
 SQLDbase = r'E:\TransitToolTests\LineFrequency\Montreal.sql'
 outGDB = r'E:\TransitToolTests\LineFrequency\LineFrequency2.gdb'
 
+
 # Derived inputs
 outStopPairsFCName = "StopPairs"
 outStopPairsFC = os.path.join(outGDB, outStopPairsFCName)
@@ -157,7 +158,7 @@ This trip can still be used for analysis, but it might be an indication of a pro
     # Get the stops table (exclude parent stations and station entrances)
     selectstoptablestmt = "SELECT stop_id, stop_lat, stop_lon, stop_code, \
                         stop_name, stop_desc, zone_id, stop_url, location_type, \
-                        parent_station FROM stops WHERE location_type='0'"
+                        parent_station FROM stops"
     c.execute(selectstoptablestmt)
     StopTable = c.fetchall()
 
@@ -192,6 +193,9 @@ This trip can still be used for analysis, but it might be an indication of a pro
             stop_url = stop[7]
             location_type = stop[8]
             parent_station = stop[9]
+            if location_type not in ['0', None]:
+                # Skip parent stations and station entrances
+                continue
             pt = arcpy.Point()
             pt.X = float(stop_lon)
             pt.Y = float(stop_lat)
