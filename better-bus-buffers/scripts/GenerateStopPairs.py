@@ -248,8 +248,7 @@ This is invalid, so trips with this id will not be included in your network." % 
         previous_stop = stop_id
         start_time = departure_time
     conn.commit()
-    c.execute("CREATE INDEX schedules_index_tripsst ON schedules (trip_id, start_time);")
-    c.execute("CREATE INDEX schedules_index_tripsend ON schedules (trip_id, end_time);")
+    c.execute("CREATE INDEX schedules_index_tripsstend ON schedules (trip_id, start_time, end_time);")
     conn.commit()
 
     ######################
