@@ -516,27 +516,27 @@ def CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific=False):
 
 def CountTripsOnLines(day, start_sec, end_sec, DepOrArr, Specific=False):
     '''Given a time window, return a dictionary of
-    {line_key: [[trip_id, stop_time]]}'''
+    {line_key: [[trip_id, start_time, end_time]]}'''
 
     triplist, triplist_yest, triplist_tom = GetTripLists(day, start_sec, end_sec, DepOrArr, Specific)
 
     try:
         # Get the stop_times that occur during this time window
-        stoptimedict = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today")
-        stoptimedict_yest = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "yesterday")
-        stoptimedict_tom = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "tomorrow")
+        linetimedict = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today")
+        linetimedict_yest = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday")
+        linetimedict_tom = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow")
 
         # Combine the three dictionaries into one master
-        for stop in stoptimedict_yest:
-            stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_yest[stop]
-        for stop in stoptimedict_tom:
-            stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_tom[stop]
+        for line in linetimedict_yest:
+            linetimedict[line] = linetimedict.setdefault(line, []) + linetimedict_yest[line]
+        for line in linetimedict_tom:
+            linetimedict[line] = linetimedict.setdefault(line, []) + linetimedict_tom[line]
 
     except:
-        arcpy.AddError("Error creating dictionary of stops and trips in time window.")
+        arcpy.AddError("Error creating dictionary of lines and trips in time window.")
         raise
 
-    return stoptimedict
+    return linetimedict
 
 
 def RetrieveStatsForSetOfStops(stoplist, stoptimedict, CalcWaitTime, start_sec, end_sec):
