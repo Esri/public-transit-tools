@@ -113,7 +113,7 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
                                              "NumTripsPerHr",
                                              "MaxWaitTime"]) as ucursor:
             for row in ucursor:
-                NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
+                NumTrips, NumTripsPerHr, MaxWaitTime = \
                             BBB_SharedFunctions.RetrieveStatsForLines(
                                 [str(row[0])], linetimedict, CalcWaitTime,
                                 start_sec, end_sec)
