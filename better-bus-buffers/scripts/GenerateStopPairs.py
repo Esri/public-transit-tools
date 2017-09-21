@@ -35,8 +35,10 @@ class CustomError(Exception):
 
 # ----- Collect user inputs -----
 
-SQLDbase = r'E:\TransitToolTests\LineFrequency\TANK.sql'
-outGDB = r'E:\TransitToolTests\LineFrequency\LineFrequency.gdb'
+# SQLDbase = r'E:\TransitToolTests\LineFrequency\TANK.sql'
+# outGDB = r'E:\TransitToolTests\LineFrequency\LineFrequency.gdb'
+SQLDbase = r'E:\TransitToolTests\LineFrequency\Montreal.sql'
+outGDB = r'E:\TransitToolTests\LineFrequency\LineFrequency2.gdb'
 
 # Derived inputs
 outStopPairsFCName = "StopPairs"
@@ -130,22 +132,22 @@ This trip can still be used for analysis, but it might be an indication of a pro
 
 # ----- Make dictionary of frequency information (if there is any) -----
 
-    frequencies_dict = {}
-    freqfetch = '''
-        SELECT trip_id, start_time, end_time, headway_secs
-        FROM frequencies
-        ;'''
-    c.execute(freqfetch)
-    freqlist = c.fetchall()
-    for freq in freqlist:
-        trip_id = freq[0]
-        if freq[3] == 0:
-            arcpy.AddWarning("Trip_id %s in your frequencies.txt file has a headway of 0 seconds. \
-This is invalid, so trips with this id will not be included in your network." % trip_id)
-            continue
-        trip_data = [freq[1], freq[2], freq[3]]
-        # {trip_id: [start_time, end_time, headway_secs]}
-        frequencies_dict.setdefault(trip_id, []).append(trip_data)
+#     frequencies_dict = {}
+#     freqfetch = '''
+#         SELECT trip_id, start_time, end_time, headway_secs
+#         FROM frequencies
+#         ;'''
+#     c.execute(freqfetch)
+#     freqlist = c.fetchall()
+#     for freq in freqlist:
+#         trip_id = freq[0]
+#         if freq[3] == 0:
+#             arcpy.AddWarning("Trip_id %s in your frequencies.txt file has a headway of 0 seconds. \
+# This is invalid, so trips with this id will not be included in your network." % trip_id)
+#             continue
+#         trip_data = [freq[1], freq[2], freq[3]]
+#         # {trip_id: [start_time, end_time, headway_secs]}
+#         frequencies_dict.setdefault(trip_id, []).append(trip_data)
 
 
 # ----- Generate transit stops feature class (for the final ND) -----
@@ -206,9 +208,10 @@ This is invalid, so trips with this id will not be included in your network." % 
     arcpy.AddMessage("Obtaining and processing transit schedule and line information...")
     arcpy.AddMessage("(This will take a few minutes for large datasets.)")
 
-    # Create a line-based schedule table 
-    c.execute("DROP TABLE IF EXISTS schedules;")
-    c.execute("CREATE TABLE schedules (key TEXT, start_time REAL, end_time REAL, trip_id TEXT);")
+    # Create a line-based schedule table
+    c2 = conn.cursor()
+    c2.execute("DROP TABLE IF EXISTS schedules;")
+    c2.execute("CREATE TABLE schedules (key TEXT, start_time REAL, end_time REAL, trip_id TEXT);")
 
     # Find pairs of directly-connected stops
     linefeature_dict = {}
@@ -218,12 +221,11 @@ This is invalid, so trips with this id will not be included in your network." % 
     ORDER BY trip_id, stop_sequence
     ;'''
     c.execute(stoptimefetch)
-    stoptimes = c.fetchall()
     current_trip = None
     previous_stop = None
     start_time = None
     end_time = None
-    for st in stoptimes:
+    for st in c:
         trip_id = st[0]
         stop_id = st[1]
         arrival_time = st[2]
@@ -236,19 +238,15 @@ This is invalid, so trips with this id will not be included in your network." % 
         start_stop = previous_stop
         end_stop = stop_id
         end_time = arrival_time
-        ###########
-        #arcpy.AddMessage(trip_id)
         SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, trip_routeid_dict[trip_id])
         # This stop pair needs a line feature
         linefeature_dict[SourceOIDkey] = True
-        ##############
         stmt = """INSERT INTO schedules (key, start_time, end_time, trip_id) VALUES ('%s', %s, %s, '%s');""" % (SourceOIDkey, start_time, end_time, trip_id)
-        #arcpy.AddMessage(stmt)
-        c.execute(stmt)
+        c2.execute(stmt)
         previous_stop = stop_id
         start_time = departure_time
     conn.commit()
-    c.execute("CREATE INDEX schedules_index_tripsstend ON schedules (trip_id, start_time, end_time);")
+    c2.execute("CREATE INDEX schedules_index_tripsstend ON schedules (trip_id, start_time, end_time);")
     conn.commit()
 
     ######################
