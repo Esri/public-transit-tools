@@ -44,15 +44,15 @@ try:
 You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
             raise CustomError
 
-        linesFC = r'E:\TransitToolTests\LineFrequency\LineFrequency.gdb\TransitLines'
+        linesFC = r'E:\TransitToolTests\LineFrequency\LineFrequency2.gdb\TransitLines'
 
         # GTFS SQL dbase - must be created ahead of time.
-        SQLDbase = r'E:\TransitToolTests\LineFrequency\TANK.sql'
+        SQLDbase = r'E:\TransitToolTests\LineFrequency\Montreal.sql'
         BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
 
         # Weekday or specific date to analyze.
         # Note: Datetime format check is in tool validation code
-        day = "Wednesday"
+        day = "20160812"
         if day in BBB_SharedFunctions.days: #Generic weekday
             Specific = False
         else: #Specific date
