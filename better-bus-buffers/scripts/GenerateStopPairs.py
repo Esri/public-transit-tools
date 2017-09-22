@@ -253,9 +253,6 @@ This trip can still be used for analysis, but it might be an indication of a pro
     c2.execute("CREATE INDEX schedules_index_tripsstend ON schedules (trip_id, start_time, end_time);")
     conn.commit()
 
-    ######################
-    ## Need to insert frequency-based schedules into schedules table here
-
 
     # ----- Write pairs to a points feature class (this is intermediate and will NOT go into the final ND) -----
 
