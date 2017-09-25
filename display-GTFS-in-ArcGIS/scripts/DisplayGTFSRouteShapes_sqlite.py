@@ -373,8 +373,6 @@ the output feature class's attribute table with route information.")
                     SELECT DISTINCT route_id FROM trips WHERE shape_id='%s'
                     ;''' % shape[0]
                 c2.execute(shapesroutesfetch)
-                ###########
-                #shapesroutes = c.fetchall()
                 weresome = False
                 for route in c2:
                     weresome = True
