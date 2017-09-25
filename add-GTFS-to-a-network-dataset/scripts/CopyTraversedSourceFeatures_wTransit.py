@@ -1,7 +1,7 @@
 ####################################################
 ## Tool name: Copy Traversed Source Features (with Transit)
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 6 February 2015
+## Last updated: 25 September 2017
 ####################################################
 ''' Copy Traversed Source Features (with Transit)
 
@@ -20,7 +20,7 @@ added to the output Edges for each transit leg.  An additional feature class is
 produced containing only the transit edges.
 '''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -60,12 +60,12 @@ def MakeServiceIDList(date):
 def EditServiceIDList_CalendarDates(date, SIDList):
     '''Modify the service_id list using info from the calendar_dates.txt file.'''
     datestring = date.strftime("%Y%m%d")
+    cs = conn.cursor()
     GetServiceIDstmt = '''
         SELECT service_id, exception_type FROM calendar_dates
         WHERE date == "%s";''' % datestring
-    c.execute(GetServiceIDstmt)
-    SIDs = c.fetchall()
-    for SID in SIDs:
+    cs.execute(GetServiceIDstmt)
+    for SID in cs:
         if SID[1] == 2:
             SIDList = [p for p in SIDList if p != SID[0]]
         elif SID[1] == 1:
@@ -84,17 +84,16 @@ def GetTransitTrips(row, end_time_sec_clean_1, end_time_sec_clean_2, SIDList):
         time_to_use = "end_time"
 
     # Pull out the trip info from the TransitScheduleTable
+    cs = conn.cursor()
     scheduleFetch = "SELECT trip_id, start_time, end_time FROM schedules WHERE SOURCEOID=%s AND %s=%s" % (row[0], time_to_use, end_time_sec_clean_1)
-    c.execute(scheduleFetch)
-    scheds = c.fetchall()
-    EvalTableList = [stuff for stuff in scheds]
+    cs.execute(scheduleFetch)
+    EvalTableList = [sched for sched in cs]
 
     if not EvalTableList:
         # Try to find trips after rounding in the other direction
         scheduleFetch = "SELECT trip_id, start_time, end_time FROM schedules WHERE SOURCEOID=%s AND %s=%s" % (row[0], time_to_use, end_time_sec_clean_2)
-        c.execute(scheduleFetch)
-        scheds = c.fetchall()
-        EvalTableList = [stuff for stuff in scheds]
+        cs.execute(scheduleFetch)
+        EvalTableList = [sched for sched in cs]
 
     if not EvalTableList:
         return rows_to_insert
@@ -337,12 +336,12 @@ repair your transit network or choose a different layer." % naGDB)
 
         # Determine if we have the correct tables
         RequiredTables = ["stop_times", "trips", "routes"]
+        ct = conn.cursor()
         GetTblNamesStmt = "SELECT name FROM sqlite_master WHERE type='table';"
-        c.execute(GetTblNamesStmt)
-        tblnames = c.fetchall()
+        ct.execute(GetTblNamesStmt)
         tblnamelist = []
         containsCalendar = False
-        for name in tblnames:
+        for name in ct:
             tblnamelist.append(name[0])
             if name[0] == "calendar" or name == "calendar_dates":
                 containsCalendar = True
@@ -365,8 +364,7 @@ Transit Network Dataset tool, or re-create your network dataset from scratch."
             hasIndex = False
             idxName = "calendardates_index_date"
             c.execute("PRAGMA index_list(calendar_dates)")
-            indices = c.fetchall()
-            for index in indices:
+            for index in c:
                 if index[1] == idxName:
                     hasIndex = True
             if not hasIndex:
@@ -380,8 +378,7 @@ for fast schedule lookups.  This will only be done once for this dataset.")
             hasIndex = False
             idxName = "schedules_index_SourceOID_endtime"
             c.execute("PRAGMA index_list(schedules)")
-            indices = c.fetchall()
-            for index in indices:
+            for index in c:
                 if index[1] == idxName:
                     hasIndex = True
             if not hasIndex:
@@ -396,8 +393,7 @@ but the table need only be indexed once, and future runs of this tool will be fa
             hasIndex = False
             idxName = "schedules_index_SourceOID_starttime"
             c.execute("PRAGMA index_list(schedules)")
-            indices = c.fetchall()
-            for index in indices:
+            for index in c:
                 if index[1] == idxName:
                     hasIndex = True
             if not hasIndex:
@@ -437,9 +433,8 @@ but the table need only be indexed once, and future runs of this tool will be fa
         Calendar_Columns = ["service_id", "start_date", "end_date"] + weekdays
         GetServiceIDstmt = "SELECT %s FROM calendar;" % ", ".join(Calendar_Columns)
         c.execute(GetServiceIDstmt)
-        SIDs = c.fetchall()
         CalendarList = []
-        for SID in SIDs:
+        for SID in c:
             CalendarList.append(SID) # [service_id, start_date, end_date, monday, ..., sunday]
 
         # If we have calendar, get the service_ids for today, yesterday, and tomorrow
@@ -481,8 +476,7 @@ but the table need only be indexed once, and future runs of this tool will be fa
             FROM trips
             ;'''
         c.execute(tripsfetch)
-        triplist = c.fetchall()
-        for trip in triplist:
+        for trip in c:
             trip_info_dict[trip[0]] = [trip[1], trip[2]]
 
 
