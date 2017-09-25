@@ -200,7 +200,7 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
             direction_id = rtpair[1]
             # Get list of trips
             # Ignore direction if this route doesn't have a direction
-            if not direction_id is None:  # GTFS can have direction IDs of zero
+            if direction_id not in [None, ""]:  # GTFS can have direction IDs of zero
                 triproutefetch = '''
                         SELECT trip_id, service_id FROM trips
                         WHERE route_id='%s'
