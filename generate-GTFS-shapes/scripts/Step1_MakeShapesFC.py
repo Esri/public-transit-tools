@@ -142,15 +142,16 @@ so the user can edit existing shapes.'''
                     SELECT DISTINCT route_id FROM trips WHERE shape_id='%s'
                     ;''' % shape
                 c.execute(shapesroutesfetch)
-                shapesroutes = c.fetchall()
-                if len(shapesroutes) == 0:
+                weresome = False
+                for route in c:
+                    weresome = True
+                    append_existing_shape_to_fc(shape, cur, route[0])
+                if not weresome:
                     # No trips actually use this shape, so skip adding route info
                     arcpy.AddWarning("shape_id %s is not used by any \
 trips in your trips.txt file.  You can still update this shape, but this might be an indication of problems in your GTFS dataset." % shape)
                     append_existing_shape_to_fc(shape, cur)
-                else:
-                    for route in shapesroutes:
-                        append_existing_shape_to_fc(shape, cur, route[0])
+
             
     # ----- Find the sequences of stops associated with these shapes -----
         
@@ -367,18 +368,10 @@ Talk to your organization's ArcGIS Online administrator for assistance.")
 
         get_trip_route_info()
 
-        # Find all trip_ids.
-        triplist = []
-        tripsfetch = '''
-            SELECT DISTINCT trip_id FROM stop_times
-            ;'''
-        c.execute(tripsfetch)
-        alltrips = c.fetchall()
-
 
     # ----- Create ordered stop sequences -----
 
-        get_unique_stop_sequences(alltrips)
+        get_unique_stop_sequences()
 
 
     # ----- Figure out which routes go with which shapes and update trips table -----
@@ -682,7 +675,7 @@ field will remain blank for all other shapes.")
     c.execute("CREATE INDEX trips_index_tripIDs ON trips (trip_id);")
     if "shapes" in files_to_sqlize:
         c.execute("CREATE INDEX trips_index_shapeIDs ON trips (shape_id);")
-        c.execute("CREATE INDEX shapes_index_shapeIDs ON shapes (shape_id);")
+        c.execute("CREATE INDEX shapes_index_shapeIDs ON shapes (shape_id, shape_pt_sequence);")
 
 
 def check_latlon_fields(rows, col_names, lat_col_name, lon_col_name, id_col_name, fname):
@@ -1158,12 +1151,12 @@ def get_stop_lat_lon():
         # Find all stops with lat/lon
         global stoplatlon_dict
         stoplatlon_dict = {}
+        cs = conn.cursor()
         stoplatlonfetch = '''
             SELECT stop_id, stop_lat, stop_lon FROM stops
             ;'''
-        c.execute(stoplatlonfetch)
-        stoplatlons = c.fetchall()
-        for stop in stoplatlons:
+        cs.execute(stoplatlonfetch)
+        for stop in cs:
             # Add stop lat/lon to dictionary
             stoplatlon_dict[stop[0]] = [stop[1], stop[2]]
 
@@ -1297,14 +1290,14 @@ def get_route_info():
     # Find all routes and associated info.
     global RouteDict
     RouteDict = {}
+    cr = conn.cursor()
     routesfetch = '''
         SELECT route_id, agency_id, route_short_name, route_long_name,
         route_desc, route_type, route_url, route_color, route_text_color
         FROM routes
         ;'''
-    c.execute(routesfetch)
-    routelist = c.fetchall()
-    for route in routelist:
+    cr.execute(routesfetch)
+    for route in cr:
         # {route_id: [all route.txt fields + route_type_text]}
         try:
             route_type = route[5]
@@ -1321,12 +1314,12 @@ def get_trip_route_info():
     '''Create a dictionary of {trip_id: route_id}'''
     global trip_route_dict
     trip_route_dict = {}
+    ctr = conn.cursor()
     triproutefetch = '''
         SELECT trip_id, route_id FROM trips
         ;'''
-    c.execute(triproutefetch)
-    triproutelist = c.fetchall()
-    for triproute in triproutelist:
+    ctr.execute(triproutefetch)
+    for triproute in ctr:
         # {trip_id: route_id}
         trip_route_dict[triproute[0]] = triproute[1]
 
@@ -1352,16 +1345,22 @@ def get_trip_stop_sequence(trip_id):
     return stop_sequence
 
 
-def get_unique_stop_sequences(triplist):
+def get_unique_stop_sequences():
     '''Find the unique sequences of stops from stop_times.txt. Each unique sequence is a new shape.'''
     
     arcpy.AddMessage("Calculating unique sequences of stops...")
+    # Find all trip_ids.
+    ct = conn.cursor()
+    tripsfetch = '''
+        SELECT DISTINCT trip_id FROM stop_times
+        ;'''
+    ct.execute(tripsfetch)
     # Select stops in that trip
     global sequence_shape_dict, shape_trip_dict
     sequence_shape_dict = {}
     shape_trip_dict = {}
     shape_id = 1
-    for trip in triplist:
+    for trip in ct:
         stop_sequence = get_trip_stop_sequence(trip[0])
         route_id = trip_route_dict[trip[0]]
         sequence_shape_dict_key = (route_id, stop_sequence)
@@ -1399,19 +1398,17 @@ def append_existing_shape_to_fc(shape, StopsCursor, route=None):
         route_type_text = ""
 
     # Fetch the shape info to create the polyline feature.
+    cp = conn.cursor()
     pointsinshapefetch = '''
-        SELECT shape_pt_lat, shape_pt_lon, shape_pt_sequence,
-        shape_dist_traveled FROM shapes WHERE shape_id='%s'
-        ;''' % shape
-    c.execute(pointsinshapefetch)
-    points = c.fetchall()
-    # Sort by sequence
-    points.sort(key=operator.itemgetter(2))
-
+        SELECT shape_pt_lat, shape_pt_lon FROM shapes
+        WHERE shape_id='%s'
+        ORDER BY shape_pt_sequence;''' % shape
+    cp.execute(pointsinshapefetch)
+    
     # Create the polyline feature from the sequence of points
     array = arcpy.Array()
     pt = arcpy.Point()
-    for point in points:
+    for point in cp:
         pt.X = float(point[1])
         pt.Y = float(point[0])
         array.add(pt)
