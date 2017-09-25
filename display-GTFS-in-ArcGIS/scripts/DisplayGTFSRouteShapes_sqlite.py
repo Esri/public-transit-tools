@@ -30,7 +30,7 @@ import sqlize_csv
 ArcVersion = None
 ProductName = None
 
-c = None
+conn = None
 StopsCursor = None
 
 # Read in as GCS_WGS_1984 because that's what the GTFS spec uses
@@ -123,9 +123,6 @@ def make_GTFS_lines_from_Shapes(shape, route=None):
         shape_dist_traveled FROM shapes WHERE shape_id='%s'
         ORDER BY shape_pt_sequence;''' % shape
     c3.execute(pointsinshapefetch)
-    ##points = c.fetchall()
-    # Sort by sequence
-    ##points.sort(key=operator.itemgetter(2))
 
     # Create the polyline feature from the sequence of points
     array = arcpy.Array()
@@ -247,9 +244,8 @@ def main(inGTFSdir, OutShapesFC):
         sqlize_csv.db.close()
         
         # Connect to the SQL database
-        global c, conn
+        global conn
         conn = sqlite3.connect(SQLDbase)
-        c = conn.cursor()
 
 
     # ----- Make dictionary of route info -----
@@ -266,14 +262,13 @@ the output feature class's attribute table with route information.")
             arcpy.AddMessage("Collecting Route info...")
         
             # Find all routes and associated info.
+            c = conn.cursor()
             routesfetch = '''
                 SELECT route_id, agency_id, route_short_name, route_long_name,
                 route_desc, route_type, route_url, route_color, route_text_color
                 FROM routes
                 ;'''
             c.execute(routesfetch)
-            ###############
-            #routelist = c.fetchall()
             for routeitem in c:
                 # Convert from a tuple to a list so the .shp logic below doesn't mess up
                 route = list(routeitem)
@@ -358,18 +353,15 @@ the output feature class's attribute table with route information.")
         arcpy.AddMessage("Adding route shapes to output feature class...")
 
         # Get list of shape_ids
+        c = conn.cursor()
         shapesfetch = '''
             SELECT DISTINCT shape_id FROM shapes
             ;'''
         c.execute(shapesfetch)
-        #################
-        #shapeslist = c.fetchall()
-        
-        
-        c2 = conn.cursor()
 
         # Actually add the shapes to the feature class
         unused_shapes = False
+        c2 = conn.cursor()
         for shape in c:
             if not sqlize_csv.populate_route_info:
                 # Don't worry about populating route info
