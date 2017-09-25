@@ -310,7 +310,7 @@ specification." % label)
 def create_indices():
     cur = db.cursor()
     cur.execute("CREATE INDEX trips_index_shapes ON trips (shape_id);")
-    cur.execute("CREATE INDEX shapes_index_shapes ON shapes (shape_id);")
+    cur.execute("CREATE INDEX shapes_index_shapes ON shapes (shape_id, shape_pt_sequence);")
     db.commit()
     cur.close()
 
