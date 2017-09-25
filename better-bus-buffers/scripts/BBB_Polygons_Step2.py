@@ -59,7 +59,7 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
         FlatPolys = os.path.join(inStep1GDB, "Step1_FlatPolys")
         SQLDbase = os.path.join(inStep1GDB, "Step1_GTFS.sql")
         # Connect to the SQL database
-        conn = sqlite3.connect(SQLDbase)
+        conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
         c = BBB_SharedFunctions.c = conn.cursor()
 
         # Output file designated by user
