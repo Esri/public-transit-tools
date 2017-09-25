@@ -117,19 +117,20 @@ def make_GTFS_lines_from_Shapes(shape, route=None):
         route_text_color_formatted = ""
 
     # Fetch the shape info to create the polyline feature.
+    c3 = conn.cursor()
     pointsinshapefetch = '''
         SELECT shape_pt_lat, shape_pt_lon, shape_pt_sequence,
         shape_dist_traveled FROM shapes WHERE shape_id='%s'
-        ;''' % shape
-    c.execute(pointsinshapefetch)
-    points = c.fetchall()
+        ORDER BY shape_pt_sequence;''' % shape
+    c3.execute(pointsinshapefetch)
+    ##points = c.fetchall()
     # Sort by sequence
-    points.sort(key=operator.itemgetter(2))
+    ##points.sort(key=operator.itemgetter(2))
 
     # Create the polyline feature from the sequence of points
     array = arcpy.Array()
     pt = arcpy.Point()
-    for point in points:
+    for point in c3:
         pt.X = float(point[1])
         pt.Y = float(point[0])
         array.add(pt)
@@ -246,7 +247,7 @@ def main(inGTFSdir, OutShapesFC):
         sqlize_csv.db.close()
         
         # Connect to the SQL database
-        global c
+        global c, conn
         conn = sqlite3.connect(SQLDbase)
         c = conn.cursor()
 
@@ -271,8 +272,9 @@ the output feature class's attribute table with route information.")
                 FROM routes
                 ;'''
             c.execute(routesfetch)
-            routelist = c.fetchall()
-            for routeitem in routelist:
+            ###############
+            #routelist = c.fetchall()
+            for routeitem in c:
                 # Convert from a tuple to a list so the .shp logic below doesn't mess up
                 route = list(routeitem)
                 # {route_id: [all route.txt fields + route_type_text]}
@@ -360,11 +362,15 @@ the output feature class's attribute table with route information.")
             SELECT DISTINCT shape_id FROM shapes
             ;'''
         c.execute(shapesfetch)
-        shapeslist = c.fetchall()
+        #################
+        #shapeslist = c.fetchall()
+        
+        
+        c2 = conn.cursor()
 
         # Actually add the shapes to the feature class
         unused_shapes = False
-        for shape in shapeslist:
+        for shape in c:
             if not sqlize_csv.populate_route_info:
                 # Don't worry about populating route info
                 make_GTFS_lines_from_Shapes(shape[0])
@@ -374,15 +380,17 @@ the output feature class's attribute table with route information.")
                 shapesroutesfetch = '''
                     SELECT DISTINCT route_id FROM trips WHERE shape_id='%s'
                     ;''' % shape[0]
-                c.execute(shapesroutesfetch)
-                shapesroutes = c.fetchall()
-                if len(shapesroutes) == 0:
+                c2.execute(shapesroutesfetch)
+                ###########
+                #shapesroutes = c.fetchall()
+                weresome = False
+                for route in c2:
+                    weresome = True
+                    make_GTFS_lines_from_Shapes(shape[0], route[0])
+                if not weresome:
                     # No trips actually use this shape, so skip adding route info
                     make_GTFS_lines_from_Shapes(shape[0])
                     unused_shapes = True
-                else:
-                    for route in shapesroutes:
-                        make_GTFS_lines_from_Shapes(shape[0], route[0])
 
         if unused_shapes:
             arcpy.AddWarning("One or more of the shapes in your GTFS shapes.txt file are not used by any \
