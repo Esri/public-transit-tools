@@ -2,13 +2,13 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 2: Generate new GTFS text files
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 December 2016
+## Last updated: 25 September 2017
 ###############################################################################
 '''Using the GDB created in Step 1, this tool adds shape information to the
 user's GTFS dataset.  A shapes.txt file is created, and the trips.txt and
 stop_times.txt files are updated.'''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
