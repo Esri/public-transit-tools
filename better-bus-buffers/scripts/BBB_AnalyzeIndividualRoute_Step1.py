@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips for Individual Route
 ## Step 1 - Preprocess Route Buffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 18 August 2016
+## Last updated: 25 September 2017
 ############################################################################
 ''' BetterBusBuffers - Count Trips for Individual Route: Step 1 - Preprocess Route Buffers
 
@@ -19,7 +19,7 @@ Step 1 - Preprocess Route Buffers creates the service areas around the stops.
 The trip count information is filled in Step 2.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -131,13 +131,12 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
         # Get list of routes in the GTFS data
         routefetch = "SELECT route_short_name, route_long_name, route_id FROM routes;"
         c.execute(routefetch)
-        routestuff = c.fetchall()
         # Extract the route_id based on what the user picked from the GUI list
         # It's better to do it by searching the database instead of trying to extract
         # the route_id from the text they chose because we don't know what kind of
         # characters will be in the route names and id, so parsing could be unreliable
         route_id = ""
-        for route in routestuff:
+        for route in c:
             routecheck = route[0] + ": " + route[1] + " [" + route[2] + "]"
             if routecheck == RouteText:
                 route_id = route[2]
@@ -171,18 +170,16 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
             WHERE route_id='%s'
             ;''' % route_id
         c.execute(triproutefetch)
-        triproutelist = c.fetchall()
 
-        if not triproutelist:
+        # Fill some dictionaries for use later.
+        trip_dir_dict = {} # {Direction: [trip_id, trip_id, ...]}
+        for triproute in c:
+            trip_dir_dict.setdefault(triproute[1], []).append(triproute[0])
+        if not trip_dir_dict:
             arcpy.AddError("There are no trips in the GTFS data for the route \
 you have selected (%s).  Please select a different route or fix your GTFS \
 dataset." % RouteText)
             raise CustomError
-
-        # Fill some dictionaries for use later.
-        trip_dir_dict = {} # {Direction: [trip_id, trip_id, ...]}
-        for triproute in triproutelist:
-            trip_dir_dict.setdefault(triproute[1], []).append(triproute[0])
 
     except:
         arcpy.AddError("Error getting trips associated with route.")
@@ -201,8 +198,7 @@ dataset." % RouteText)
                 stopsfetch = '''SELECT stop_id FROM stop_times
                             WHERE trip_id == ?'''
                 c.execute(stopsfetch, (trip,))
-                selectedstops = c.fetchall()
-                for stop in selectedstops:
+                for stop in c:
                     stops.append(stop[0])
             stoplist[direction] = list(set(stops))
 
