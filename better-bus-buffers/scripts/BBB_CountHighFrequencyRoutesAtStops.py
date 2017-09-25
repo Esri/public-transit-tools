@@ -178,23 +178,26 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
     # ----- Query the GTFS data to count the trips at each stop -----
     try:
         arcpy.AddMessage("Calculating the determining trips for route-direction pairs...")
-        # Assemble Route and Direction IDS
-        triproutefetch = '''SELECT DISTINCT route_id,direction_id FROM trips;'''
-        c.execute(triproutefetch)
-        route_dir_list = c.fetchall()
+        
         # Get the service_ids serving the correct days
         serviceidlist, serviceidlist_yest, serviceidlist_tom = \
             BBB_SharedFunctions.GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific)
+
+        # Assemble Route and Direction IDS
+        triproutefetch = '''SELECT DISTINCT route_id,direction_id FROM trips;'''
+        c.execute(triproutefetch)
+        #route_dir_list = c.fetchall()
+        
         # Some GTFS datasets use the same route_id to identify trips traveling in
         # either direction along a route. Others identify it as a different route.
         # We will consider each direction separately if there is more than one.
-
         trip_route_warning_counter = 0
         trip_route_dict = {}  # {(route_id, direction_id): [trip_id, trip_id,..]}
         trip_route_dict_yest = {}
         trip_route_dict_tom = {}
         triproutelist = []
-        for rtpair in route_dir_list:
+        c2 = conn.cursor()
+        for rtpair in c:
             key = tuple(rtpair)
             route_id = rtpair[0]
             direction_id = rtpair[1]
@@ -211,8 +214,8 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
                         SELECT trip_id, service_id FROM trips
                         WHERE route_id='%s'
                         ;''' % route_id
-            c.execute(triproutefetch)
-            triproutelist = c.fetchall()
+            c2.execute(triproutefetch)
+            triproutelist = c2.fetchall()
             if not triproutelist:
                 arcpy.AddWarning("Your GTFS dataset does not contain any trips \
 corresponding to Route %s and Direction %s. Please ensure that \
