@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count High Frequency Routes At Stops
 ## Created by: David Wasserman, david.wasserman.plan@gmail.com
 ## Based on work by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 2 April 2017
+## Last updated: 25 September 2017
 ############################################################################
 ''' BetterBusBuffers - Count High Frequency Routes At Stops
 
@@ -191,6 +191,8 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
 
         trip_route_warning_counter = 0
         trip_route_dict = {}  # {(route_id, direction_id): [trip_id, trip_id,..]}
+        trip_route_dict_yest = {}
+        trip_route_dict_tom = {}
         triproutelist = []
         for rtpair in route_dir_list:
             key = tuple(rtpair)
@@ -220,35 +222,49 @@ the values will be 0 or <Null>." % (route_id, str(direction_id)))
 
             for triproute in triproutelist:
                 # Only keep trips running on the correct day
+                if triproute[1] in serviceidlist:
+                    trip_route_dict.setdefault(key, []).append(triproute[0])
+                if triproute[1] in serviceidlist_tom:
+                    trip_route_dict_tom.setdefault(key, []).append(triproute[0])
+                if triproute[1] in serviceidlist_yest:
+                    trip_route_dict_yest.setdefault(key, []).append(triproute[0])
 
-                if triproute[1] in serviceidlist or triproute[1] in serviceidlist_tom or triproute[
-                    1] in serviceidlist_yest:
-                    trip_route_dict.setdefault(key, []).append(triproute[0])  # {(rtdirpair): [trip_id, trip_id,..]}
-
-            if not trip_route_dict:
+            if not trip_route_dict and not trip_route_dict_tom and not trip_route_dict_yest:
                 arcpy.AddWarning("There is no service for route %s in direction %s \
 on %s during the time window you selected. Output fields will be generated, but \
 the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
 
-
     except:
         arcpy.AddError("Error getting trips associated with route.")
         raise
+
+
     # ----- Query the GTFS data to count the trips at each stop for this time period -----
     try:
         arcpy.AddMessage("Calculating the number of transit trips available during the time window of time period ID {0}...".format(str(time_period)))
         stoptimedict_rtedirpair = {}  # #{rtdir tuple:stoptimedict}}
         stoptimedict_service_check_counter=0
-        for rtedirpair in trip_route_dict:
-            triplist = trip_route_dict[rtedirpair]
-
+        for rtdirpair in list(set([rt for rt in trip_route_dict.keys() + trip_route_dict_yest.keys() + trip_route_dict_tom.keys()])):
+            
             # Get the stop_times that occur during this time window
-            stoptimedict = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr,
-                                                                                triplist, "today")
-            stoptimedict_yest = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr,
-                                                                                     triplist, "yesterday")
-            stoptimedict_tom = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr,
-                                                                                    triplist, "tomorrow")
+            stoptimedict = {}
+            stoptimedict_yest = {}
+            stoptimedict_tom = {}
+            try:
+                triplist = trip_route_dict[rtdirpair]
+                stoptimedict = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today")
+            except KeyError: # No trips
+                pass
+            try:
+                triplist_yest = trip_route_dict_yest[rtdirpair]
+                stoptimedict_yest = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday")
+            except KeyError: # No trips
+                pass
+            try:
+                triplist_tom = trip_route_dict_tom[rtdirpair]
+                stoptimedict_tom = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow")
+            except KeyError: # No trips
+                pass
 
             # Combine the three dictionaries into one master
             for stop in stoptimedict_yest:  # Update Dictionaries based on setdefault returns values.
@@ -256,7 +272,7 @@ the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
             for stop in stoptimedict_tom:
                 stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_tom[stop]
             # PD here
-            stoptimedict_rtedirpair[rtedirpair] = stoptimedict  # {rtdir tuple:{stoptimedict}}
+            stoptimedict_rtedirpair[rtdirpair] = stoptimedict  # {rtdir tuple:{stoptimedict}}
             # Add a minor warning if there is no service for at least one route-direction combination.
             if not stoptimedict:
                 stoptimedict_service_check_counter+=1
