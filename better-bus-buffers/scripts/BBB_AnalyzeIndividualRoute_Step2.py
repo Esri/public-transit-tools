@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips for Individual Route
 ## Step 2: Count Trips for Route
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 8 March 2016
+## Last updated: 25 September 2017
 ############################################################################
 '''BetterBusBuffers - Count Trips for Individual Route - Step 2: Count Trips for Route
 
@@ -19,7 +19,7 @@ Step 2: Count Trips for Route uses the template feature class created in Step
 1 and counts the trips in a specific time window.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
