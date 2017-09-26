@@ -35,11 +35,13 @@ class CustomError(Exception):
 
 # ----- Collect user inputs -----
 
-# SQLDbase = r'E:\TransitToolTests\LineFrequency\TANK.sql'
-# outGDB = r'E:\TransitToolTests\LineFrequency\LineFrequency.gdb'
-SQLDbase = r'E:\TransitToolTests\LineFrequency\Montreal.sql'
-outGDB = r'E:\TransitToolTests\LineFrequency\LineFrequency2.gdb'
-
+SQLDbase = r'E:\TransitToolTests\LineFrequency\TANK.sql'
+outGDB = r'E:\TransitToolTests\LineFrequency\LineFrequency.gdb'
+# SQLDbase = r'E:\TransitToolTests\LineFrequency\Montreal.sql'
+# outGDB = r'E:\TransitToolTests\LineFrequency\LineFrequency2.gdb'
+SQLDbase = r'E:\TransitToolTests\LineFrequency\TANK.sql'
+outGDB = r'E:\TransitToolTests\LineFrequency\LineFrequencyCorridors.gdb'
+combine_corridors = True
 
 # Derived inputs
 outStopPairsFCName = "StopPairs"
@@ -69,14 +71,14 @@ PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]]; \
 #5 - Cable car. Used for street-level cable cars where the cable runs beneath the car.
 #6 - Gondola, Suspended cable car. Typically used for aerial cable cars where the car is suspended from the cable.
 #7 - Funicular. Any rail system designed for steep inclines.
-route_type_dict = {0: "Tram, Streetcar, Light rail",
-                    1: "Subway, Metro",
-                    2: "Rail",
-                    3: "Bus",
-                    4: "Ferry",
-                    5: "Cable car",
-                    6: "Gondola, Suspended cable car",
-                    7: "Funicular"}
+# route_type_dict = {0: "Tram, Streetcar, Light rail",
+#                     1: "Subway, Metro",
+#                     2: "Rail",
+#                     3: "Bus",
+#                     4: "Ferry",
+#                     5: "Cable car",
+#                     6: "Gondola, Suspended cable car",
+#                     7: "Funicular"}
 
 try:
 
@@ -89,15 +91,15 @@ try:
 
 # ----- Make dictionary of route types -----
 
-    # Find all routes and associated info.
-    RouteDict = {}
-    routesfetch = '''
-        SELECT route_id, route_type
-        FROM routes
-        ;'''
-    c.execute(routesfetch)
-    for route in c:
-        RouteDict[route[0]] = route[1]
+    # # Find all routes and associated info.
+    # RouteDict = {}
+    # routesfetch = '''
+    #     SELECT route_id, route_type
+    #     FROM routes
+    #     ;'''
+    # c.execute(routesfetch)
+    # for route in c:
+    #     RouteDict[route[0]] = route[1]
 
 
 # ----- Make dictionary of {trip_id: route_id} -----
@@ -115,18 +117,20 @@ try:
 
     # Now make the dictionary
     trip_routeid_dict = {}
-    tripsfetch = '''
-        SELECT trip_id, route_id
-        FROM trips
-        ;'''
-    c.execute(tripsfetch)
-    for trip in c:
-        try:
+    if not combine_corridors:
+        tripsfetch = '''
+            SELECT trip_id, route_id
+            FROM trips
+            ;'''
+        c.execute(tripsfetch)
+        for trip in c:
             trip_routeid_dict[trip[0]] = trip[1]
-        except KeyError:
-            arcpy.AddWarning("Trip_id %s in trips.txt has a route_id value, %s, which does not appear in your routes.txt file.  \
-This trip can still be used for analysis, but it might be an indication of a problem with your GTFS dataset." % (trip[0], trip[1]))
-            trip_routeid_dict[trip[0]] = "Null"
+#         try:
+#             trip_routeid_dict[trip[0]] = trip[1]
+#         except KeyError:
+#             arcpy.AddWarning("Trip_id %s in trips.txt has a route_id value, %s, which does not appear in your routes.txt file.  \
+# This trip can still be used for analysis, but it might be an indication of a problem with your GTFS dataset." % (trip[0], trip[1]))
+#             trip_routeid_dict[trip[0]] = "Null"
 
 
 # ----- Make dictionary of frequency information (if there is any) -----
@@ -156,7 +160,7 @@ This trip can still be used for analysis, but it might be an indication of a pro
     # Get the stops table (exclude parent stations and station entrances)
     selectstoptablestmt = "SELECT stop_id, stop_lat, stop_lon, stop_code, \
                         stop_name, stop_desc, zone_id, stop_url, location_type, \
-                        parent_station FROM stops"
+                        parent_station FROM stops;"
     c.execute(selectstoptablestmt)
 
     # Initialize a dictionary of stop lat/lon (filled below)
@@ -190,8 +194,10 @@ This trip can still be used for analysis, but it might be an indication of a pro
             stop_url = stop[7]
             location_type = stop[8]
             parent_station = stop[9]
-            if location_type not in ['0', None]:
+            if location_type not in [0, '0', None, ""]:
                 # Skip parent stations and station entrances
+                #########
+                print("Ah, skipped!")
                 continue
             pt = arcpy.Point()
             pt.X = float(stop_lon)
@@ -239,7 +245,12 @@ This trip can still be used for analysis, but it might be an indication of a pro
         start_stop = previous_stop
         end_stop = stop_id
         end_time = arrival_time
-        SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, trip_routeid_dict[trip_id])
+        if combine_corridors:
+            # All trips between each pair of stops will be combined, regardless of route_id
+            SourceOIDkey = "%s , %s" % (start_stop, end_stop)
+        else:
+            # Include the route_id as a part of the key so a separate line will be created for each separate route between the same two stops
+            SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, trip_routeid_dict[trip_id])
         # This stop pair needs a line feature
         linefeature_dict[SourceOIDkey] = True
         stmt = """INSERT INTO schedules (key, start_time, end_time, trip_id) VALUES ('%s', %s, %s, '%s');""" % (SourceOIDkey, start_time, end_time, trip_id)
@@ -299,10 +310,11 @@ these stops will be ignored. " + unicode(badStops))
 # ----- Generate lines between all stops (for the final output) -----
 
     arcpy.management.PointsToLine(outStopPairsFC, outLinesFC, "pair_id", "sequence")
-    arcpy.management.AddField(outLinesFC, "route_id", "TEXT")
+    if not combine_corridors:
+        arcpy.management.AddField(outLinesFC, "route_id", "TEXT")
 
     # We don't need the points for anything anymore, so delete them.
-    arcpy.Delete_management(outStopPairsFC)
+    ##arcpy.Delete_management(outStopPairsFC)
 
     # Clean up lines with 0 length.  They will just produce build errors and
     # are not valuable for the network dataset in any other way.
@@ -312,10 +324,11 @@ these stops will be ignored. " + unicode(badStops))
             del linefeature_dict[row[0]]
             cur2.deleteRow()
 
-    with arcpy.da.UpdateCursor(outLinesFC, ["pair_id", "route_id"]) as cur4:
-        for row in cur4:
-            row[1] = row[0].split(" , ")[2]
-            cur4.updateRow(row)
+    if not combine_corridors:
+        with arcpy.da.UpdateCursor(outLinesFC, ["pair_id", "route_id"]) as cur4:
+            for row in cur4:
+                row[1] = row[0].split(" , ")[2]
+                cur4.updateRow(row)
 
 
     # ----- Add schedule information to the SQL database -----
