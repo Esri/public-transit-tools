@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 1) Generate Transit Lines and Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 September 2017
+## Last updated: 26 September 2017
 ################################################################################
 ''' This tool generates feature classes of transit stops and lines from the
 information in the GTFS dataset.  The stop locations are taken directly from the
@@ -196,12 +196,12 @@ This is invalid, so trips with this id will not be included in your network." % 
     # Find parent stations that are actually used
     selectparentstationsstmt = "SELECT parent_station FROM stops WHERE location_type='0' AND parent_station <> ''"
     c.execute(selectparentstationsstmt)
-    used_parent_stations = list(set([station[0] for station in c])
+    used_parent_stations = list(set([station[0] for station in c]))
 
     # Get the combined stops table.
     selectstoptablestmt = "SELECT stop_id, stop_lat, stop_lon, stop_code, \
                         stop_name, stop_desc, zone_id, stop_url, location_type, \
-                        parent_station, wheelchair_boarding FROM stops"
+                        parent_station, wheelchair_boarding FROM stops;"
     c.execute(selectstoptablestmt)
 
     # Initialize a dictionary of stop lat/lon (filled below)
