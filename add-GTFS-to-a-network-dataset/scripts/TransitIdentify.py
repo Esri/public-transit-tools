@@ -52,8 +52,7 @@ user's guide.")
     hasIndex = False
     idxName = "schedules_index_SourceOID_endtime"
     c.execute("PRAGMA index_list(schedules)")
-    indices = c.fetchall()
-    for index in indices:
+    for index in c:
         if index[1] == idxName:
             hasIndex = True
 
@@ -76,8 +75,7 @@ but the table need only be indexed once, and future runs of this tool will be fa
         FROM trips
         ;'''
     c.execute(tripsfetch)
-    triplist = c.fetchall()
-    for trip in triplist:
+    for trip in c:
         trip_info_dict[trip[0]] = [trip[1], trip[2]]
 
     cal_info_dict = {}
@@ -86,8 +84,7 @@ but the table need only be indexed once, and future runs of this tool will be fa
         FROM calendar
         ;'''
     c.execute(calfetch)
-    callist = c.fetchall()
-    for cal in callist:
+    for cal in c:
         weekdaystring = ""
         if bool(cal[1]): weekdaystring += "M"
         else: weekdaystring += "-"
@@ -121,9 +118,8 @@ but the table need only be indexed once, and future runs of this tool will be fa
 
             scheduleFetch = "SELECT trip_id, start_time, end_time from schedules WHERE SourceOID=%s" % SourceOID
             c.execute(scheduleFetch)
-            schedules = c.fetchall()
             alltrips = [] # {route_id: {service_id: [trip, trip, trip]}}
-            for sched in schedules:
+            for sched in c:
                 trip_id = sched[0]
                 start_time = hms.sec2str(float(sched[1]))
                 end_time = hms.sec2str(float(sched[2]))

@@ -1,8 +1,8 @@
 ################################################################################
 # sqlize_csv.py, originally written by Luitien Pan
-# Last updated 6 October 2016 by Melinda Morang, Esri
+# Last updated 25 September 2017 by Melinda Morang, Esri
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -310,7 +310,7 @@ specification." % label)
 def create_indices():
     cur = db.cursor()
     cur.execute("CREATE INDEX trips_index_shapes ON trips (shape_id);")
-    cur.execute("CREATE INDEX shapes_index_shapes ON shapes (shape_id);")
+    cur.execute("CREATE INDEX shapes_index_shapes ON shapes (shape_id, shape_pt_sequence);")
     db.commit()
     cur.close()
 

@@ -24,6 +24,7 @@ import arcpy
 # sqlite cursor - must be set from the script calling the functions explicitly
 # or using the ConnectToSQLDatabase() function
 c = None
+conn = None
 
 # Version of ArcGIS they are running
 ArcVersion = None
@@ -86,14 +87,14 @@ def MakeServiceIDList(day, Specific=False):
     tables = GetGTFSTableNames()
     
     # Find added and subtracted service_ids from calendar_dates.
+    cs = conn.cursor()
     if Specific == True and "calendar_dates" in tables:
         serviceidfetch = '''
             SELECT service_id, exception_type FROM calendar_dates
             WHERE date == "%s"
             ;''' % datetime.datetime.strftime(day, '%Y%m%d')
-        c.execute(serviceidfetch)
-        ids = c.fetchall()
-        for id in ids:
+        cs.execute(serviceidfetch)
+        for id in cs:
             # If service is added that day, add it to the list of valid service_ids
             if id[1] == 1:
                 serviceidlist.append(id[0])
@@ -107,9 +108,8 @@ def MakeServiceIDList(day, Specific=False):
             SELECT service_id, start_date, end_date FROM calendar
             WHERE %s == "1"
             ;''' % dayString.lower()
-        c.execute(serviceidfetch)
-        ids = c.fetchall()
-        for id in ids:
+        cs.execute(serviceidfetch)
+        for id in cs:
             if Specific == False:
                 startdatedict[id[0]] = id[1]
                 enddatedict[id[0]] = id[2]
@@ -208,14 +208,14 @@ def MakeTripList(serviceidlist):
     '''Select the trips with the service_ids of interest'''
 
     triplist = []
+    ct = conn.cursor()
     for service_id in serviceidlist:
         tripsfetch = '''
             SELECT DISTINCT trip_id FROM trips
             WHERE service_id == ?
             ;'''
-        c.execute(tripsfetch, (service_id,))
-        selectedtrips = c.fetchall()
-        for tr in selectedtrips:
+        ct.execute(tripsfetch, (service_id,))
+        for tr in ct:
             triplist.append(tr[0])
     # There shouldn't be any duplicates, but check anyway.
     triplist = list(set(triplist))
@@ -235,13 +235,13 @@ def MakeFrequenciesDict():
 
     # Fill the dictionary
     frequencies_dict = {}
+    cf = conn.cursor()
     freqfetch = '''
         SELECT trip_id, start_time, end_time, headway_secs
         FROM frequencies
         ;'''
-    c.execute(freqfetch)
-    freqlist = c.fetchall()
-    for freq in freqlist:
+    cf.execute(freqfetch)
+    for freq in cf:
         trip_id = freq[0]
         trip_data = [freq[1], freq[2], freq[3]]
         # {trip_id: [start_time, end_time, headway_secs]}
@@ -270,6 +270,7 @@ def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
         MakeFrequenciesDict()
 
     stoptimedict = {} # {stop_id: [[trip_id, stop_time]]}
+    cst = conn.cursor()
     for trip in triplist:
 
         # If the trip uses the frequencies.txt file, extrapolate the stop_times
@@ -282,8 +283,8 @@ def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
                 SELECT stop_id, %s FROM stop_times
                 WHERE trip_id == ?
                 ;''' % DepOrArr
-            c.execute(stopsfetch, (trip,))
-            StopTimes = c.fetchall()
+            cst.execute(stopsfetch, (trip,))
+            StopTimes = cst.fetchall()
             # Sort by time
             StopTimes.sort(key=operator.itemgetter(1))
             # time 0 for this trip
@@ -322,10 +323,8 @@ def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
                 WHERE trip_id == ?
                 AND %s BETWEEN ? AND ?
                 ;''' % (DepOrArr, DepOrArr)
-            c.execute(stopsfetch, (trip, start, end,))
-            StopTimes = c.fetchall()
-
-            for stoptime in StopTimes:
+            cst.execute(stopsfetch, (trip, start, end,))
+            for stoptime in cst:
                 stop_id = stoptime[0]
                 stop_time = int(stoptime[1])
                 if day == "yesterday":
@@ -882,19 +881,17 @@ def import_AGOLservice(service_name, username="", password="", ags_connection_fi
 
 def ConnectToSQLDatabase(SQLDbase):
     '''Connect to a SQL database'''
+    global c, conn
     conn = sqlite3.connect(SQLDbase)
-    global c
     c = conn.cursor()
 
 
 def GetGTFSTableNames():
     '''Return a list of SQL database table names'''
+    ctn = conn.cursor()
     GetTblNamesStmt = "SELECT name FROM sqlite_master WHERE type='table';"
-    c.execute(GetTblNamesStmt)
-    tblnames = c.fetchall()
-    tblnamelist = []
-    for name in tblnames:
-        tblnamelist.append(name[0])
+    ctn.execute(GetTblNamesStmt)
+    tblnamelist = [name[0] for name in ctn]
     return tblnamelist
 
 

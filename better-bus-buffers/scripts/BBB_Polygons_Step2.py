@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips in Polygon Buffers Around Stops
 ## Step 2: Count Trips in Buffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 4 February 2016
+## Last updated: 25 September 2017
 ####################################################
 '''BetterBusBuffers - Count Trips in Polygon Buffers Around Stops - Step 2: Count Trips in Buffers
 
@@ -19,7 +19,7 @@ Step 2: Count Trips in Buffers uses the template feature class created in Step
 1 and counts the trips in a specific time window.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -59,7 +59,7 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
         FlatPolys = os.path.join(inStep1GDB, "Step1_FlatPolys")
         SQLDbase = os.path.join(inStep1GDB, "Step1_GTFS.sql")
         # Connect to the SQL database
-        conn = sqlite3.connect(SQLDbase)
+        conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
         c = BBB_SharedFunctions.c = conn.cursor()
 
         # Output file designated by user
@@ -132,8 +132,7 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
         stackedpointdict = {}
         GetStackedPtsStmt = "SELECT * FROM StackedPoints"
         c.execute(GetStackedPtsStmt)
-        StackedPts = c.fetchall()
-        for PolyFID in StackedPts:
+        for PolyFID in c:
             stackedpointdict.setdefault(PolyFID[0], []).append(str(PolyFID[1]))
     except:
         arcpy.AddError("Error retrieving list of stops associated with each polygon.")

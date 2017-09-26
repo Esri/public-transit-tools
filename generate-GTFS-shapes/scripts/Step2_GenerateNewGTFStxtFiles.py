@@ -2,13 +2,13 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 2: Generate new GTFS text files
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 December 2016
+## Last updated: 25 September 2017
 ###############################################################################
 '''Using the GDB created in Step 1, this tool adds shape information to the
 user's GTFS dataset.  A shapes.txt file is created, and the trips.txt and
 stop_times.txt files are updated.'''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -51,12 +51,12 @@ def write_SQL_table_to_text_file(tablename, csvfile, columns):
         wr.writerow(columns)
 
         # Grab all the rows in the SQL Table
+        ct = conn.cursor()
         selectrowsstmt = "SELECT * FROM %s;" % tablename
-        c.execute(selectrowsstmt)
-        allrows = c.fetchall()
+        ct.execute(selectrowsstmt)
         
         # Write each row to the csv file
-        for row in allrows:
+        for row in ct:
             # Encode row in utf-8.
             if ProductName == "ArcGISPro":
                 rowToWrite = tuple([t for t in row])
@@ -218,10 +218,10 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
                 for trip in get_trips_with_shape_id(line[1]):
                     trip_shape_dict[trip] = line[1]
         else:
+            cts = conn.cursor()
             tripsfetch = '''SELECT trip_id, shape_id FROM trips;'''
-            c.execute(tripsfetch)
-            trips = c.fetchall()
-            for trip in trips:
+            cts.execute(tripsfetch)
+            for trip in cts:
                 trip_shape_dict[trip[0]] = trip[1]
             
     except:
@@ -492,10 +492,10 @@ str(shapes_with_warnings))
 
             # Read in the rows from the stop_times SQL table, look up the \
             # shape_dist_traveled, and write to CSV
+            cst = conn.cursor()
             selectstoptimesstmt = "SELECT * FROM stop_times;"
-            c.execute(selectstoptimesstmt)
-            allstoptimes = c.fetchall()
-            for stoptime in allstoptimes:
+            cst.execute(selectstoptimesstmt)
+            for stoptime in cst:
                 # Encode in utf-8.
                 if ProductName == "ArcGISPro":
                     stoptimelist = [t for t in stoptime]
