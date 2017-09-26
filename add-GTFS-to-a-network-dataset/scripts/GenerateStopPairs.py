@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 1) Generate Transit Lines and Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 October 2016
+## Last updated: 25 September 2017
 ################################################################################
 ''' This tool generates feature classes of transit stops and lines from the
 information in the GTFS dataset.  The stop locations are taken directly from the
@@ -14,7 +14,7 @@ line is generated unless the routes have different mode types.  This tool also
 generates a SQL database version of the GTFS data which is used by the network
 dataset for schedule lookups.'''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
