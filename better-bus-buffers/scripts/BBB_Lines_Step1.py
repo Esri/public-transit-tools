@@ -20,8 +20,9 @@ the lines can be calculated.'''
    limitations under the License.'''
 ################################################################################
 
-import sqlite3, os, operator, itertools, csv, re
+import sqlite3, os
 import arcpy
+import BBB_SharedFunctions
 
 class CustomError(Exception):
     pass
@@ -129,7 +130,7 @@ try:
             pt.X = float(stop_lon)
             pt.Y = float(stop_lat)
             # GTFS stop lat/lon is written in WGS1984
-            ptGeometry = arcpy.PointGeometry(pt, WGSCoords)
+            ptGeometry = arcpy.PointGeometry(pt, BBB_SharedFunctions.WGSCoords)
             stoplatlon_dict[stop_id] = ptGeometry
             cur3.insertRow((ptGeometry, stop_id, stop_code, stop_name,
                             stop_desc, zone_id, stop_url, location_type,
@@ -191,7 +192,7 @@ try:
     # ----- Write pairs to a points feature class (this is intermediate and will NOT go into the final ND) -----
 
     # Create a points feature class for the point pairs.
-    arcpy.management.CreateFeatureclass(outGDB, outStopPairsFCName, "POINT", "", "", "", WGSCoords)
+    arcpy.management.CreateFeatureclass(outGDB, outStopPairsFCName, "POINT", "", "", "", BBB_SharedFunctions.WGSCoords)
     arcpy.management.AddField(outStopPairsFC, "stop_id", "TEXT")
     arcpy.management.AddField(outStopPairsFC, "pair_id", "TEXT")
     arcpy.management.AddField(outStopPairsFC, "sequence", "SHORT")
@@ -265,6 +266,7 @@ these stops will be ignored. " + unicode(badStops))
     arcpy.AddMessage("Finished!")
     arcpy.AddMessage("Your transit lines feature class is:")
     arcpy.AddMessage("- " + outLinesFC)
+    arcpy.SetParameterAsText(3, outLinesFC)
 
 except CustomError:
     arcpy.AddError("Failed to generate transit lines and stops.")
