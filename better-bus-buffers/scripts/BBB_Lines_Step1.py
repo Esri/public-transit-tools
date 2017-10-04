@@ -4,9 +4,18 @@
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
 ## Last updated: 4 October 2017
 ############################################################################
-''' This tool generates a feature class of transit lines and updates a SQL
-database of transit schedules so that the frequency of transit service along
-the lines can be calculated.'''
+''' BetterBusBuffers - Count Trips on Lines
+
+BetterBusBuffers provides a quantitative measure of access to public transit
+in your city by counting the transit trip frequency at various locations.
+
+The Count Trips on Lines tool counts the number of transit trips that travel 
+along corridors between stops during a time window. This pre-processing step
+generates a feature class of transit lines and updates a SQL database of 
+transit schedules so that the frequency of transit service along the lines 
+can be calculated. The counts are done in Step 2 for specific time windows.
+Step 1 need only be run once for a given transit system.
+'''
 ################################################################################
 '''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +56,14 @@ arcpy.env.overwriteOutput = True
 
 
 try:
+
+    # Figure out what version of ArcGIS they're running
+    BBB_SharedFunctions.DetermineArcVersion()
+    if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
+        arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
+        raise CustomError
+
 
 # ----- Connect to SQL locally for further queries and entries -----
 
