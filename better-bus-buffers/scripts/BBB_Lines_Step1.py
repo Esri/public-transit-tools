@@ -36,7 +36,7 @@ combine_corridors = arcpy.GetParameter(2)
 # Derived inputs
 outStopPairsFCName = "StopPairs"
 outStopPairsFC = os.path.join(outGDB, outStopPairsFCName)
-outLinesFC = os.path.join(outGDB, "TransitLines")
+outLinesFC = os.path.join(outGDB, "TransitLineTemplate")
 outStopsFCName = "Stops"
 outStopsFC = os.path.join(outGDB, outStopsFCName)
 
@@ -123,8 +123,6 @@ try:
             parent_station = stop[9]
             if location_type not in [0, '0', None, ""]:
                 # Skip parent stations and station entrances
-                #########
-                print("Ah, skipped!")
                 continue
             pt = arcpy.Point()
             pt.X = float(stop_lon)
@@ -189,7 +187,7 @@ try:
     conn.commit()
 
 
-    # ----- Write pairs to a points feature class (this is intermediate and will NOT go into the final ND) -----
+    # ----- Write pairs to a points feature class (this is intermediate and will NOT go into the final output) -----
 
     # Create a points feature class for the point pairs.
     arcpy.management.CreateFeatureclass(outGDB, outStopPairsFCName, "POINT", "", "", "", BBB_SharedFunctions.WGSCoords)
@@ -264,16 +262,16 @@ these stops will be ignored. " + unicode(badStops))
     conn.close()
 
     arcpy.AddMessage("Finished!")
-    arcpy.AddMessage("Your transit lines feature class is:")
+    arcpy.AddMessage("Your transit lines template feature class is:")
     arcpy.AddMessage("- " + outLinesFC)
     arcpy.SetParameterAsText(3, outLinesFC)
 
 except CustomError:
-    arcpy.AddError("Failed to generate transit lines and stops.")
+    arcpy.AddError("Failed to generate transit lines.")
     pass
 
 except:
-    arcpy.AddError("Failed to generate transit lines and stops.")
+    arcpy.AddError("Failed to generate transit lines.")
     raise
 
 finally:
