@@ -63,6 +63,10 @@ try:
         arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
 You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
         raise CustomError
+    if BBB_SharedFunctions.ArcVersion == "10.0":
+        arcpy.AddError("You must have ArcGIS 10.1 or higher (or ArcGIS Pro) to run this \
+tool. You have ArcGIS version %s." % BBB_SharedFunctions.ArcVersion)
+        raise CustomError
 
 
 # ----- Connect to SQL locally for further queries and entries -----
