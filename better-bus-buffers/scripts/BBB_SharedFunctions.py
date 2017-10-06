@@ -601,8 +601,9 @@ def RetrieveStatsForLines(linelist, linetimedict, CalcWaitTime, start_sec, end_s
     MaxWaitTime = None
     if CalcWaitTime == "true":
         MaxWaitTime = CalculateMaxWaitTime(StartTimesOnThisLine, start_sec, end_sec)
+    AvgHeadway = CalculateAvgHeadway(StartTimesOnThisLine)
 
-    return NumTrips, NumTripsPerHr, MaxWaitTime
+    return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
 
 
 def CalculateMaxWaitTime(stoptimelist, start_sec, end_sec):
@@ -630,6 +631,13 @@ def CalculateMaxWaitTime(stoptimelist, start_sec, end_sec):
            maxWaitTime_toReturn = int(round(float(MaxWaitTime) / 60, 0)) # In minutes
 
     return maxWaitTime_toReturn
+
+
+def CalculateAvgHeadway(TimeList):
+    if len(TimeList) > 1:
+        return int(round(float(sum(abs(x - y) for (x, y) in zip(TimeList[1:], TimeList[:-1]))/(len(TimeList)-1))/60, 0)) # minutes
+    else:
+        return None
 
 
 def MakeStopsFeatureClass(stopsfc, stoplist=None):

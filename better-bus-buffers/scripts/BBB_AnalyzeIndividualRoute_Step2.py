@@ -68,9 +68,7 @@ def RetrieveStatsForStop(stop_id, rtdirtuple):
 
     # Get the max wait time and the average headway
     MaxWaitTime = BBB_SharedFunctions.CalculateMaxWaitTime(StopTimesAtThisPoint, start_sec, end_sec)
-    AvgHeadway = None
-    if NumTrips > 1:
-        AvgHeadway = int(round(float(sum(abs(x - y) for (x, y) in zip(StopTimesAtThisPoint[1:], StopTimesAtThisPoint[:-1]))/(len(StopTimesAtThisPoint)-1))/60, 0)) # minutes
+    AvgHeadway = BBB_SharedFunctions.CalculateAvgHeadway(StopTimesAtThisPoint)
 
     return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
 
