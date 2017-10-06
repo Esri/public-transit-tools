@@ -7,7 +7,7 @@ Copyright 2017 Esri
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ##What this tool does
-BetterBusBuffers is a toolset to help you quantitatively measure access to public transit in your city.  The tools use GTFS public transit data and ArcGIS to count the number of transit trips available during a time window for areas within your city, point locations within your city, or at the transit stops themselves.
+BetterBusBuffers is a toolset to help you quantitatively measure access to public transit in your city.  The tools use GTFS public transit data and ArcGIS to count the number of transit trips available during a time window for areas within your city, point locations within your city, along specific corridors, or at the transit stops themselves.
 
 ##Overview of the BetterBusBuffers tools
 The *[Preprocess GTFS](#PreprocessGTFS)* tool converts your GTFS dataset(s) into a SQL database.  This SQL database is used as input for all the other BetterBusBuffers tools.  You should run this tool first.
@@ -30,10 +30,10 @@ Detailed instructions for each of these tools is given later in this document.
 
 ##Software requirements
 * ArcGIS 10.0 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher.
-* The *Count Trips at Points Online* tool cannot be run with ArcGIS 10.0.
+* The *Count Trips at Points Online* tool and those in the *Count Trips on Lines* toolset cannot be run with ArcGIS 10.0.
 * The *Count High Frequency Routes at Stops* tool requires ArcGIS 10.4 or higher or ArcGIS Pro 1.2 or higher.
 * You need the Desktop Advanced (ArcInfo) license in order to run the *Count Trips in Polygon Buffers around Stops* tool.
-* All tools except *Count Trips at Stops*, *Count Trips at Points Online*, and *Count High Frequency Routes at Stops* require the Network Analyst extension.
+* All tools except *Count Trips at Stops*, *Count Trips at Points Online*, *Count High Frequency Routes at Stops*, and those in the *Count Trips on Lines* toolset require the Network Analyst extension.
 * For the *Count Trips at Points Online*, an ArcGIS Online account with routing privileges and sufficient credits for your analysis.
 
 ##Data requirements
@@ -252,9 +252,9 @@ Step 2 adds the following fields to your feature classes:
 * **MaxWaitTime**: The maximum time, in minutes, between consecutive transit trip arrivals or departures during your time window.  This is the maximum amount of time during which there are no trips with this route_id available at this stop.  A MaxWaitTime of <Null> indicates that the MaxWaitTime could not be calculated for one of the following reasons:
   - There were fewer than two transit trips available within the time window.
   - The time between the start of the time window and the first trip or the last trip and the end of the time window was greater than the largest time between trips.
-* **AvgHeadway**: The average time, in minutes, between consecutive transit trip arrivals or departures during your time window.  Note that if the actual headway along your route changes during your time window, the average headway might not reflect the actual headway at any particular time of day.  Choose your time window carefully and be wary of the average headway value listed here. An AvgHeadway of \<Null\> indicates that the AvgHeadway could not be calculated because there were fewer than two transit trips available within the time window.
+* **AvgHeadway**: The average time, in minutes, between consecutive transit trips along the corridor during your time window.  Note that if the actual headway along your route changes during your time window, the average headway might not reflect the actual headway at any particular time of day.  Also, if you have chosen to combine all routes along a single corridor, the average headway does not reflect the actual headway of any individual route but rather the average time between vehicles serving that particular corridor.  Choose your time window carefully and be wary of the average headway value listed here. An AvgHeadway of \<Null\> indicates that the AvgHeadway could not be calculated because there were fewer than two transit trips available within the time window.
 
-Add something about symbology.
+When displaying the results of Step 2 in the map, the "Graduated symbols" symbology type under "Quanitities" is helpful.  Symbolize corridors with more frequent service using wider, bolder lines.
 
 
 ##<a name="CountTripsAtPoints"></a>Running *Count Trips at Points*
