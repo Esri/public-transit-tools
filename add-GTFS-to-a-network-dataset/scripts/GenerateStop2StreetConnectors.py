@@ -150,7 +150,7 @@ try:
         SelectionMessage = "Stops will snap only to street features where the \
 following is true: " + SelectExpression
         arcpy.AddMessage(SelectionMessage)
-    arcpy.analysis.Select(Streets, outTempSelection, SelectExpression)
+    arcpy.Select_analysis(Streets, outTempSelection, SelectExpression)
 
     # Snap the stops to the streets network, using the snapping tolerance
     # specified in the user's input.
