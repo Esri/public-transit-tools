@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 September 2017
+## Last updated: 6 October 2017
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -634,6 +634,7 @@ def CalculateMaxWaitTime(stoptimelist, start_sec, end_sec):
 
 
 def CalculateAvgHeadway(TimeList):
+    '''Find the average amount of time between all trips in a list. Cannot be calculated if there are fewer than 2 trips.'''
     if len(TimeList) > 1:
         return int(round(float(sum(abs(x - y) for (x, y) in zip(TimeList[1:], TimeList[:-1]))/(len(TimeList)-1))/60, 0)) # minutes
     else:
