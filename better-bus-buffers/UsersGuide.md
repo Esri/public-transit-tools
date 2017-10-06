@@ -16,6 +16,8 @@ The *[Count Trips for Individual Route](#CountTripsForIndividualRoute)* tool all
 
 The *[Count Trips in Polygon Buffers around Stops](#CountTripsInPolygonBuffersAroundStops)* tool generates polygon service areas around all the stops in your transit system and counts the number of transit trips available in those areas during a time window.  The output is a transit coverage map that can be color-coded by the number of available trips.
 
+The *[Count Trips on Lines](#CountTripsOnLines)* tool counts the number of transit trips that travel along corridors between stops during a time window. The output is a lines feature class that can by symbolized to emphasize high-frequency corridors and connections.
+
 The *[Count Trips at Points](#CountTripsAtPoints)* tool counts the number of transit trips available within a designated distance of specific point locations during a time window.  The output is a copy of the input point locations with fields indicating the number of transit trips available within a short walk during a time window.
 
 The *[Count Trips at Points Online](#CountTripsAtPointsOnline)* does the same thing as the *Count Trips at Points* tool, but it uses the ArcGIS Online Origin-Destination Cost Matrix service so that you don't need your own network datasets or a Network Analyst license.
@@ -201,6 +203,58 @@ A MaxWaitTime of \<Null\> (-1 for shapefile output) indicates that the MaxWaitTi
 * **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the *Preprocess GTFS* section.
 * **"Maximum sample size reached" when changing symbology in the output feature class**:  If you have a very large output feature class, you might run into some problems changing the symbology.  On the symbology tab, if you set the symbology to "Quantities" and use NumTrips or NumTripsPerHr as the Value field, you might get a warning message that says "Maximum sample size reached.  Not all records are being used.  Use this sample or change maximum sample size."  This simply means that your output file is large and that the classification and color ramp aren't looking at all the values in your table, only a certain sample of them.  It's possible that it won't find the minimum or maximum value in your table and that the color ramp will not include those values.  This problem is easy to fix.  First open your attributes table and figure out how many rows are in your table.  Then, in the symbology window, click the "Classify..." button.  Click "Sampling..." Change the Maximum Sample Size to something larger than the number of entries in your table.
 * **Polygon outlines are obscuring your color-coded polygons**:  On the Symbology tab, select one of the entries in your symbol menu.  Right click, and choose "Properties for All Symbols".  Under Outline Color, choose No Color.
+
+
+##<a name="CountTripsOnLines"></a>Running *Count Trips on Lines*
+
+###What this tool does
+The *Count Trips on Lines* tool counts the number of transit trips that travel along corridors between stops during a time window. The output is a lines feature class that can by symbolized to emphasize high-frequency corridors and connections.  You can choose whether you want to combine all routes along a particular corridor (make only one line representing all routes between the same pair of stops) or not (make a separate line for each separate GTFS route_id traveling between the same pair of stops).
+
+The lines produced are simply straight lines between connected stops rather than the actual paths traveled by the transit vehicles as represented in shapes.txt.
+
+###Workflow
+This tool contains two parts.  Step 1 need only be run once for a given transit system.  It creates a template feature class of transit lines that is used as input to Step 2.  In Step 2, you select the time window you wish to analyze, and the results are added to a copy of the template feature class.  Re-run Step 2 for each time window you wish to analyze.
+
+###Step 1 – Preprocess Lines
+
+![Screenshot of tool dialog](./images/Screenshot_PreprocessLines_Dialog.png)
+
+###Inputs
+* **Output transit lines template feature class**:  Choose a location and filename for the template transit lines feature class that you will use as input to Step 2. It must be a feature class in a file geodatabase and not a shapefile.
+* **SQL database of preprocessed GTFS data**: The SQL database you created in the *Preprocess GTFS* tool.
+* **Combine routes along corridors**: Choose whether you want to combine all routes along a particular corridor (make only one line representing all routes between the same pair of stops) or not (make a separate line for each separate GTFS route_id traveling between the same pair of stops).
+
+###Outputs
+
+* **[Output feature class]**:  This lines feature class contains a straight line between each pair of connected stops in your GTFS dataset. They do not represent the actual paths traveled by the transit vehicles as represented in shapes.txt.  If the **Combine routes along corridors** parameter is true, then there will be only one line between each pair of connected stops.  If it is false, then there will be one line per unique route_id.  There may be multiple overlapping lines if multiple routes travel between the same pair of stops.
+
+###Step 2 – Count Trips on Lines
+
+![Screenshot of tool dialog](./images/Screenshot_CountTripsOnLines_Dialog.png)
+
+###Inputs
+* **Transit lines template created in Step 1**:  The feature class produced when you ran Step 1.
+* **SQL database of preprocessed GTFS data**: The SQL database you created in the *Preprocess GTFS* tool. This must be the same SQL database you used in Step 1 of this tool.
+* **Output feature class**: Choose a location and filename for the tool output. It must be a feature class in a file geodatabase and not a shapefile.
+* **Weekday or YYYYMMDD date**:  Choose the day you wish to consider.  You can select a generic weekday, such as Tuesday, and all trips running on a typical Tuesday (as defined in your GTFS calendar.txt file) will be counted.  You cannot use a generic weekday if your GTFS data does not have a calendar.txt file.  Alternatively, you can enter a specific date in YYYYMMDD format, such as 20160212 for February 12, 2016.  All trips running on that specific date, as defined in your GTFS dataset's calendar.txt and calendar_dates.txt file, will be counted.  Specific dates are useful if you want to analyze a holiday, if your calendar.txt file has non-overlapping date ranges, or if your GTFS dataset does not have a calendar.txt file.
+* **Time window start (HH:MM) (24-hour time)**:  The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.
+* **Time window end (HH:MM) (24-hour time)**:  The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.  If you wish to analyze a time window spanning midnight, you can use times greater than 23:59.  For instance, a time window of 11pm to 1am should have a start time of 23:00 and an end time of 25:00.
+
+###Outputs
+* **[Output feature class]**:  The output feature class is a copy of your input template feature class with fields appended, as described below.
+
+###Understanding the output
+This lines produced in Step 1 are simply straight lines between each pair of connected stops in your GTFS dataset. They do not represent the actual paths traveled by the transit vehicles as represented in shapes.txt.  If the **Combine routes along corridors** parameter is true, then there will be only one line between each pair of connected stops.  If it is false, then there will be one line per unique route_id.  There may be multiple overlapping lines if multiple routes travel between the same pair of stops.
+
+Step 2 adds the following fields to your feature classes:
+* **NumTrips**:  The number of transit trips that travel along this corridor during the time window.  Only trips that fall completely within the analysis time window are counted.  So, the trip will only be counted if both the departure_time from the first stop and the arrival_time at the second stop in this segment must fall within the time window.
+* **NumTripsPerHr**: The average number of trips per hour at this stop during the time window.  This number is calculated by dividing NumTrips by the length of the time window.
+* **MaxWaitTime**: The maximum time, in minutes, between consecutive transit trip arrivals or departures during your time window.  This is the maximum amount of time during which there are no trips with this route_id available at this stop.  A MaxWaitTime of <Null> indicates that the MaxWaitTime could not be calculated for one of the following reasons:
+  - There were fewer than two transit trips available within the time window.
+  - The time between the start of the time window and the first trip or the last trip and the end of the time window was greater than the largest time between trips.
+* **AvgHeadway**: The average time, in minutes, between consecutive transit trip arrivals or departures during your time window.  Note that if the actual headway along your route changes during your time window, the average headway might not reflect the actual headway at any particular time of day.  Choose your time window carefully and be wary of the average headway value listed here. An AvgHeadway of \<Null\> indicates that the AvgHeadway could not be calculated because there were fewer than two transit trips available within the time window.
+
+Add something about symbology.
 
 
 ##<a name="CountTripsAtPoints"></a>Running *Count Trips at Points*
