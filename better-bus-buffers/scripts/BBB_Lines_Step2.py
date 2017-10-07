@@ -88,9 +88,6 @@ tool. You have ArcGIS version %s." % BBB_SharedFunctions.ArcVersion)
         # Convert to seconds
         end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
 
-        # Will we calculate the max wait time?
-        CalcWaitTime = "true"
-
         # Does the user want to count arrivals or departures at the stops?
         DepOrArr = "departure_time"
 
@@ -124,6 +121,8 @@ tool. You have ArcGIS version %s." % BBB_SharedFunctions.ArcVersion)
     try:
         arcpy.AddMessage("Writing output data...")
 
+        combine_corridors = "route_id" not in [f.name for f in arcpy.ListFields(linesFC)]
+
         arcpy.management.AddField(linesFC, "NumTrips", "SHORT")
         arcpy.management.AddField(linesFC, "NumTripsPerHr", "DOUBLE")
         arcpy.management.AddField(linesFC, "MaxWaitTime", "SHORT")
@@ -135,8 +134,8 @@ tool. You have ArcGIS version %s." % BBB_SharedFunctions.ArcVersion)
             for row in ucursor:
                 NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway = \
                             BBB_SharedFunctions.RetrieveStatsForLines(
-                                [str(row[0])], linetimedict, CalcWaitTime,
-                                start_sec, end_sec)
+                                str(row[0]), linetimedict,
+                                start_sec, end_sec, combine_corridors)
                 row[1] = NumTrips
                 row[2] = NumTripsPerHr
                 row[3] = MaxWaitTime

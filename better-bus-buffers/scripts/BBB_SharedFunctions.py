@@ -38,6 +38,9 @@ ConsiderTomorrow = None
 frequencies_dict_initialized = False
 frequencies_dict = {}
 
+# Global dictionary of {trip_id: route_id}
+triproute_dict = {}
+
 # The GTFS spec uses WGS 1984 coordinates
 WGSCoords = "GEOGCS['GCS_WGS_1984',DATUM['D_WGS_1984', \
 SPHEROID['WGS_1984',6378137.0,298.257223563]], \
@@ -221,6 +224,33 @@ def MakeTripList(serviceidlist):
     triplist = list(set(triplist))
 
     return triplist
+
+
+def MakeTripRouteDict():
+    '''Make global dictionary of {trip_id: route_id}'''
+    
+    global triproute_dict
+    triproute_dict = {}
+    ctr = conn.cursor()
+
+    # First, make sure there are no duplicate trip_id values, as this will mess things up later.
+    tripDuplicateFetch = "SELECT trip_id, count(*) from trips group by trip_id having count(*) > 1"
+    ctr.execute(tripDuplicateFetch)
+    tripdups = ctr.fetchall()
+    tripdupslist = [tripdup for tripdup in tripdups]
+    if tripdupslist:
+        arcpy.AddError("Your GTFS trips table is invalid.  It contains multiple trips with the same trip_id.")
+        for tripdup in tripdupslist:
+            arcpy.AddError("There are %s instances of the trip_id value '%s'." % (str(tripdup[1]), unicode(tripdup[0])))
+        raise
+ 
+    tripsfetch = '''
+        SELECT trip_id, route_id
+        FROM trips
+        ;'''
+    ctr.execute(tripsfetch)
+    for trip in ctr:
+        triproute_dict[trip[0]] = trip[1]
 
 
 def MakeFrequenciesDict():
@@ -577,7 +607,7 @@ def RetrieveStatsForSetOfStops(stoplist, stoptimedict, CalcWaitTime, start_sec, 
     return NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime
 
 
-def RetrieveStatsForLines(linelist, linetimedict, CalcWaitTime, start_sec, end_sec):
+def RetrieveStatsForLines(linekey, linetimedict, start_sec, end_sec, combine_corridors):
     '''For a set of lines, query the linetimedict {line_key: [[trip_id, start_time, end_time]]}
     and return the NumTrips, NumTripsPerHr, and MaxWaitTime for
     that set of lines.'''
@@ -585,22 +615,27 @@ def RetrieveStatsForLines(linelist, linetimedict, CalcWaitTime, start_sec, end_s
     # Find the list of unique trips
     triplist = []
     StartTimesOnThisLine = []
-    for line in linelist:
-        try:
-            linetimelist = linetimedict[line]
-            for linetime in linetimelist:
-                trip = linetime[0]
+    route_id = None
+    if not combine_corridors:
+        linekeyparts = linekey.split(" , ")
+        linekey = linekeyparts[0] + " , " + linekeyparts[1]
+        route_id = linekeyparts[2]
+        if not triproute_dict:
+            MakeTripRouteDict()
+    try:
+        linetimelist = linetimedict[linekey]
+        for linetime in linetimelist:
+            trip = linetime[0]
+            if combine_corridors or triproute_dict[trip] == route_id:
                 triplist.append(trip)
                 StartTimesOnThisLine.append(linetime[1])
-        except KeyError:
-            pass
+    except KeyError:
+        pass
     triplist = list(set(triplist))
     NumTrips = len(triplist)
     NumTripsPerHr = round(float(NumTrips) / ((end_sec - start_sec) / 3600), 2)
 
-    MaxWaitTime = None
-    if CalcWaitTime == "true":
-        MaxWaitTime = CalculateMaxWaitTime(StartTimesOnThisLine, start_sec, end_sec)
+    MaxWaitTime = CalculateMaxWaitTime(StartTimesOnThisLine, start_sec, end_sec)
     AvgHeadway = CalculateAvgHeadway(StartTimesOnThisLine)
 
     return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway

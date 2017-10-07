@@ -77,33 +77,13 @@ tool. You have ArcGIS version %s." % BBB_SharedFunctions.ArcVersion)
 # ----- Connect to SQL locally for further queries and entries -----
 
     # Connect to the SQL database
-    conn = sqlite3.connect(SQLDbase)
+    conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
     c = conn.cursor()
 
 
 # ----- Make dictionary of {trip_id: route_id} -----
 
-    # First, make sure there are no duplicate trip_id values, as this will mess things up later.
-    tripDuplicateFetch = "SELECT trip_id, count(*) from trips group by trip_id having count(*) > 1"
-    c.execute(tripDuplicateFetch)
-    tripdups = c.fetchall()
-    tripdupslist = [tripdup for tripdup in tripdups]
-    if tripdupslist:
-        arcpy.AddError("Your GTFS trips table is invalid.  It contains multiple trips with the same trip_id.")
-        for tripdup in tripdupslist:
-            arcpy.AddError("There are %s instances of the trip_id value '%s'." % (str(tripdup[1]), unicode(tripdup[0])))
-        raise CustomError
-
-    # Now make the dictionary
-    trip_routeid_dict = {}
-    if not combine_corridors:
-        tripsfetch = '''
-            SELECT trip_id, route_id
-            FROM trips
-            ;'''
-        c.execute(tripsfetch)
-        for trip in c:
-            trip_routeid_dict[trip[0]] = trip[1]
+    BBB_SharedFunctions.MakeTripRouteDict()
 
 
 # ----- Generate transit stops feature class (for the final ND) -----
@@ -196,14 +176,13 @@ tool. You have ArcGIS version %s." % BBB_SharedFunctions.ArcVersion)
         start_stop = previous_stop
         end_stop = stop_id
         end_time = arrival_time
+        SourceOIDkey = "%s , %s" % (start_stop, end_stop)
         if combine_corridors:
             # All trips between each pair of stops will be combined, regardless of route_id
-            SourceOIDkey = "%s , %s" % (start_stop, end_stop)
+            linefeature_dict[SourceOIDkey] = True
         else:
-            # Include the route_id as a part of the key so a separate line will be created for each separate route between the same two stops
-            SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, trip_routeid_dict[trip_id])
-        # This stop pair needs a line feature
-        linefeature_dict[SourceOIDkey] = True
+            # A separate line will be created for each separate route between the same two stops
+            linefeature_dict[SourceOIDkey + " , " + BBB_SharedFunctions.triproute_dict[trip_id]] = True
         stmt = """INSERT INTO schedules (key, start_time, end_time, trip_id) VALUES ('%s', %s, %s, '%s');""" % (SourceOIDkey, start_time, end_time, trip_id)
         c2.execute(stmt)
         previous_stop = stop_id
@@ -269,7 +248,7 @@ these stops will be ignored. " + unicode(badStops))
     arcpy.management.Delete(outStopsFC)
 
     # Clean up lines with 0 length.  They will just produce build errors and
-    # are not valuable for the network dataset in any other way.
+    # are not valuable for visualization anyway.
     expression = """"Shape_Length" = 0"""
     with arcpy.da.UpdateCursor(outLinesFC, ["pair_id"], expression) as cur2:
         for row in cur2:
