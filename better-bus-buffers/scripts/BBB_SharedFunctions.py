@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 6 October 2017
+## Last updated: 7 October 2017
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -609,7 +609,7 @@ def RetrieveStatsForSetOfStops(stoplist, stoptimedict, CalcWaitTime, start_sec, 
 
 def RetrieveStatsForLines(linekey, linetimedict, start_sec, end_sec, combine_corridors):
     '''For a set of lines, query the linetimedict {line_key: [[trip_id, start_time, end_time]]}
-    and return the NumTrips, NumTripsPerHr, and MaxWaitTime for
+    and return the NumTrips, NumTripsPerHr, MaxWaitTime, and AvgHeadway for
     that set of lines.'''
 
     # Find the list of unique trips
