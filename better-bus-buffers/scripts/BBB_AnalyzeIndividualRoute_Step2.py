@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips for Individual Route
 ## Step 2: Count Trips for Route
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 September 2017
+## Last updated: 6 October 2017
 ############################################################################
 '''BetterBusBuffers - Count Trips for Individual Route - Step 2: Count Trips for Route
 
@@ -68,9 +68,7 @@ def RetrieveStatsForStop(stop_id, rtdirtuple):
 
     # Get the max wait time and the average headway
     MaxWaitTime = BBB_SharedFunctions.CalculateMaxWaitTime(StopTimesAtThisPoint, start_sec, end_sec)
-    AvgHeadway = None
-    if NumTrips > 1:
-        AvgHeadway = int(round(float(sum(abs(x - y) for (x, y) in zip(StopTimesAtThisPoint[1:], StopTimesAtThisPoint[:-1]))/(len(StopTimesAtThisPoint)-1))/60, 0)) # minutes
+    AvgHeadway = BBB_SharedFunctions.CalculateAvgHeadway(StopTimesAtThisPoint)
 
     return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
 

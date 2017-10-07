@@ -451,6 +451,7 @@ def create_indices():
     cur.execute("CREATE INDEX stopTimes_index_stopIdsArr ON stop_times (stop_id, arrival_time);")
     cur.execute("CREATE INDEX stopTimes_index_tripIdsDep ON stop_times (trip_id, departure_time);")
     cur.execute("CREATE INDEX stopTimes_index_tripIdsArr ON stop_times (trip_id, arrival_time);")
+    cur.execute("CREATE INDEX stopTimes_index_tripIdsSeq ON stop_times (trip_id, stop_sequence);")
     cur.execute("CREATE INDEX calendar_index_serviceIds ON calendar (service_id);")
     cur.execute("CREATE INDEX calendardates_index_date ON calendar_dates (date);")
     db.commit()
