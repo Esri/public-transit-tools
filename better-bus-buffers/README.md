@@ -1,6 +1,6 @@
 # better-bus-buffers
 
-BetterBusBuffers is a toolset to help you quantitatively measure access to public transit in your city. The tools use GTFS public transit data and ArcGIS to count the number of transit trips available during a time window for areas within your city, point locations within your city, or at the transit stops themselves.
+BetterBusBuffers is a toolset to help you quantitatively measure access to public transit in your city.  The tools use GTFS public transit data and ArcGIS to count the number of transit trips available during a time window for areas within your city, point locations within your city, along specific corridors, or at the transit stops themselves.
 
 ## Features
 * Create service areas (ie, walksheds, or network buffers) around transit stops.
