@@ -1,8 +1,8 @@
 ################################################################################
 # sqlize_csv.py, originally written by Luitien Pan
-# Last updated 25 October 2016 by Melinda Morang
+# Last updated 18 October 2017 by Melinda Morang
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -37,7 +37,6 @@ import os
 import re
 import sqlite3
 import sys
-import arcpy
 
 import hms
 
@@ -92,26 +91,17 @@ sql_schema = {
                 "date" :      (str, True) ,
                 "exception_type" :         (int, True) ,
             } ,
-        "stop_times" : { # The stop_times table is no longer created
+        "stop_times" : {
                 "trip_id" :     (str, True) ,
                 "arrival_time" :    (float, True) ,
                 "departure_time" :  (float, True) ,
                 "stop_id" :         (str, True) ,
                 "stop_sequence" :   (int, True) ,
-                "stop_headsign" :   (str, "NULL") ,
-                "pickup_type" :     (int, "0") ,
-                "drop_off_type" :   (int, "0") ,
-                "shape_dist_traveled" : (float, "NULL")
             } ,
         "trips" : {
                 "route_id" :    (str, True) ,
                 "service_id" :  (str, True) ,
                 "trip_id" :     (str, True) ,
-                "trip_headsign" :   (str, "NULL") ,
-                "trip_short_name" :     (str, "NULL") ,
-                "direction_id" : (int, "NULL") ,
-                "block_id" :    (str, "NULL") ,
-                "shape_id" :    (str, "NULL") ,
                 "wheelchair_accessible" :   (int, "0"),
                 "bikes_allowed":    (int, "0"),
             } ,
@@ -140,6 +130,7 @@ sql_schema = {
                 "eid" :    (int, True)
             },
         "schedules" : { # Non-GTFS table for each instance of a transit trip crossing a line
+                "SourceOIDKey" :     (str, True),
                 "SourceOID" :     (int, True),
                 "trip_id" :     (str, True),
                 "start_time" :  (float, True),
@@ -154,6 +145,14 @@ def connect(dbname):
     global db
     if db == None:
         db = sqlite3.connect(dbname)
+        # Turn off journaling and synchronous mode to make things run faster.
+        # We don't care about data corruption and backups because if sqlite crashes, 
+        # the user will have to re-run this tool anyway.
+        c = db.cursor()
+        c.execute("PRAGMA journal_mode = OFF;")
+        c.execute("PRAGMA synchronous = OFF;")
+        db.commit()
+        c.close()
 
 
 def check_time_str(s):
@@ -327,10 +326,12 @@ def column_specs(tablename):
 
 
 def create_table(tablename):
-    db.execute("DROP TABLE IF EXISTS %s;" % tablename)
+    cur = db.cursor()
+    cur.execute("DROP TABLE IF EXISTS %s;" % tablename)
     create_stmt = "CREATE TABLE %s (%s);" % (tablename, column_specs (tablename))
-    db.execute(create_stmt)
+    cur.execute(create_stmt)
     db.commit()
+    cur.close()
 
 
 def handle_file(fname, service_label):
@@ -380,8 +381,8 @@ def handle_file(fname, service_label):
     rows = itertools.imap(columns_filter, rows)
 
     # Add to the SQL table
-    values_placeholders = ["?"] * len(columns)
     cur = db.cursor()
+    values_placeholders = ["?"] * len(columns)
     cur.executemany("INSERT INTO %s (%s) VALUES (%s);" %
                         (tablename,
                         ",".join(columns),
@@ -446,17 +447,9 @@ def create_indices():
     cur.execute("CREATE INDEX trips_index_serviceIDs ON trips (service_id);")
     cur.execute("CREATE INDEX trips_index_tripIDs ON trips (trip_id);")
     cur.execute("CREATE INDEX stops_index_locationtype ON stops (location_type, parent_station);")
+    cur.execute("CREATE INDEX stopTimes_index_tripIdsSeq ON stop_times (trip_id, stop_sequence);")
     db.commit()
     cur.close()
-
-
-def metadata():
-    db.execute("DROP TABLE IF EXISTS metadata;")
-    db.execute("CREATE TABLE metadata (key TEXT, value TEXT);")
-    db.execute("""INSERT INTO metadata (key, value) VALUES ("sql_format", "1");""")
-    db.execute("""INSERT INTO metadata (key, value) VALUES ("sqlize_csv", "$Id: sqlize_csv.py 32 2012-04-18 21:04:34Z luitien $");""")
-    db.execute("""INSERT INTO metadata (key, value) VALUES ("timestamp", ?);""", (datetime.datetime.now().isoformat(),))
-    db.commit()
 
 
 def check_nonoverlapping_dateranges():
@@ -513,21 +506,3 @@ assistance.  Date ranges do not overlap in the following pairs of service_ids: "
     c.close()
 
     return overlapwarning
-
-
-# Only used from standalone:
-def main(argv):
-    argv = argv[1:]  # make local copy
-    dbname = argv.pop(0)
-    connect(dbname)
-    for tblname in sql_schema:
-        create_table(tblname)
-    for gtfs_dir in argv:
-        handle_agency(gtfs_dir)
-    print >>sys.stderr, "Creating indices..."
-    create_indices()
-    metadata()
-    return 0
-
-if __name__ == '__main__':
-    sys.exit(main (sys.argv))
