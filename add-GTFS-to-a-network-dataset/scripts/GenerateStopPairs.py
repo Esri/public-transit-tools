@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 1) Generate Transit Lines and Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 26 September 2017
+## Last updated: 21 October 2017
 ################################################################################
 ''' This tool generates feature classes of transit stops and lines from the
 information in the GTFS dataset.  The stop locations are taken directly from the
@@ -87,6 +87,7 @@ try:
 # ----- SQLize the GTFS data -----
 
     arcpy.AddMessage("SQLizing the GTFS data...")
+    arcpy.AddMessage("(This will take a few minutes for large datasets.)")
 
     # Fix up list of GTFS datasets (it comes in as a ;-separated list)
     inGTFSdirList = inGTFSdir.split(";")
@@ -97,7 +98,6 @@ try:
             inGTFSdirList[loc] = d[1:-1]
 
     # The main SQLizing work is done in the sqlize_csv module
-    # written by Luitien Pan for GTFS_NATools.
     # Connect to or create the SQL file.
     sqlize_csv.connect(SQLDbase)
     # Create tables.
@@ -124,7 +124,7 @@ try:
 # ----- Connect to SQL locally for further queries and entries -----
 
     # Connect to the SQL database
-    conn = sqlite3.connect(SQLDbase)
+    conn = sqlize_csv.db #sqlite3.connect(SQLDbase)
     c = conn.cursor()
 
 
@@ -263,309 +263,241 @@ This is invalid, so trips with this id will not be included in your network." % 
     arcpy.AddMessage("Obtaining and processing transit schedule and line information...")
     arcpy.AddMessage("(This will take a few minutes for large datasets.)")
 
-    # If there are multiple GTFS datasets, handle each one separately to keep memory usage as low as possible
-    GTFSCount = 0
-    AddToOID = 0
-    for gtfs_dir in inGTFSdirList:
-        arcpy.AddMessage("- Handling GTFS directory %s" % os.path.basename(gtfs_dir))
-        GTFSCount += 1
+    def Make_Frequency_Rows(trip_id, stop_times):
+        '''If the trip uses the frequencies.txt file, extrapolate the stop_times
+        throughout the day using the relative time between the stops given in
+        stop_times and the headways listed in frequencies. Construct rows of 
+        (SourceOIDkey, start_time, end_time, trip_id) to insert into schedule table'''
 
-        stop_times_dict = {} # {trip_id: [stop_id, stop_sequence, arrival_time, departure_time]}
-        # One entry per transit line connecting a unique pair of stops (with duplicate entries for different
-        # route_type values connecting the same pair of stops). Size shouldn't be terribly much larger than the
-        # number of stops for a normal network. Only central stations and transit hubs have large numbers of
-        # connections.
-        linefeature_dict = {}
+        if len(stop_times) < 2: # No complete stop-stop segments for this trip
+            return []
 
-        #-- Read in everything from the CSV table
-        stop_times_file = os.path.join(gtfs_dir, "stop_times.txt")
-        with open(stop_times_file) as f:
-            reader = csv.reader(f)
+        global linefeature_dict
+        route_type = trip_routetype_dict[trip_id]
 
-            # Put everything in utf-8 to handle BOMs and weird characters.
-            # Eliminate blank rows (extra newlines) while we're at it.
-            reader = ([x.decode('utf-8-sig').strip() for x in r] for r in reader if len(r) > 0)
+        stop_times_current_trip = []
+        first_trip_initial_start_time = stop_times[0][2] # First start time of trip is departure_time of first stop
+        previous_stop = stop_times[0][0] # Initialize as the first stop
+        start_time = stop_times[0][2] # Initialize as the departure_time of first stop
+        # Loop over stop_times entries for this trip and convert to a line-based model
+        for st in stop_times[1:]:
+            stop_id = st[0]
+            arrival_time = st[1]
+            departure_time = st[2]
+            start_stop = previous_stop
+            end_stop = stop_id
+            start_time_along_trip = start_time - first_trip_initial_start_time # Start time of line segment is departure time of first stop
+            end_time_along_trip = arrival_time - first_trip_initial_start_time # End time of line segment is arrival time at second stop
+            SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, route_type)
+            linefeature_dict[SourceOIDkey] = True
+            # Loop over all time windows in frequencies.txt for this trip
+            for window in frequencies_dict[trip_id]: # {trip_id: [start_time, end_time, headway_secs]}
+                start_timeofday = window[0]
+                end_timeofday = window[1]
+                headway = window[2]
+                # Loop over the range of times based on headway
+                for i in range(int(round(start_timeofday, 0)), int(round(end_timeofday, 0)), headway):
+                    start_time_extrapolated = i + start_time_along_trip # current trip initial start time + time along trip
+                    end_time_extrapolated = i + end_time_along_trip # current trip initial start time + time along trip
+                    stop_times_current_trip.append((SourceOIDkey, start_time_extrapolated, end_time_extrapolated, trip_id))
+            previous_stop = stop_id # Increment previous_stop
+            start_time = departure_time # Reset start_time to current stop's departure_time
 
-            # First row is column names:
-            columns = [name.strip() for name in reader.next()]
+        return stop_times_current_trip
 
-            #-- Do some data validity checking and reformatting
-            # Check that all required fields are present
-            service_label = re.sub("[^A-Za-z0-9]", "", os.path.basename(os.path.normpath(gtfs_dir)))
-            sqlize_csv.check_for_required_fields("stop_times", columns, service_label)
+    def Make_StopsTimes_Rows(trip_id, stop_times):
+        '''Using values from stop_times for a particular trip, construct rows of 
+        (SourceOIDkey, start_time, end_time, trip_id) to insert into schedule table'''
+        
+        if len(stop_times) < 2: # No complete stop-stop segments for this trip
+            return []
 
-            idx_trip_id = columns.index("trip_id")
-            idx_stop_id = columns.index("stop_id")
-            idx_stop_sequence = columns.index("stop_sequence")
-            idx_arrival_time = columns.index("arrival_time")
-            idx_departure_time = columns.index("departure_time")
+        global linefeature_dict
+        route_type = trip_routetype_dict[trip_id]
 
-            for row in reader:
-                trip_id = "%s:%s" % (service_label, row[idx_trip_id].strip())
-                stop_id = "%s:%s" % (service_label, row[idx_stop_id].strip())
-                arrival_time = row[idx_arrival_time]
-                departure_time = row[idx_departure_time]
-                if arrival_time == '' or departure_time == '':
-                    msg = u"GTFS dataset " + os.path.basename(gtfs_dir) + u" contains empty \
-values for arrival_time or departure_time in stop_times.txt.  Although the \
-GTFS spec allows empty values for these fields, this toolbox \
-requires exact time values for all stops.  You will not be able to use this \
-dataset for your analysis."
-                    arcpy.AddError(msg)
-                    raise CustomError
-                if not sqlize_csv.check_time_str(arrival_time) or not sqlize_csv.check_time_str(departure_time):
-                    msg = u"GTFS dataset " + os.path.basename(gtfs_dir) + u" contains invalid \
-values for arrival_time or departure_time in stop_times.txt that are not in HH:MM:SS format."
-                    arcpy.AddError(msg)
-                else:
-                    arrival_time = hms.str2sec(arrival_time)
-                    departure_time = hms.str2sec(departure_time)
-                datarow = [stop_id, int(row[idx_stop_sequence]), arrival_time, departure_time]
-                stop_times_dict.setdefault(trip_id, []).append(datarow)
+        stop_times_current_trip = []
+        current_trip_initial_start_time = stop_times[0][2] # First start time of trip is departure_time of first stop
+        previous_stop = stop_times[0][0] # Initialize as the first stop
+        start_time = stop_times[0][2] # Initialize as the departure_time of first stop
+        # Loop over stop_times entries for this trip and convert to a line-based model
+        for st in stop_times[1:]:
+            stop_id = st[0]
+            arrival_time = st[1]
+            departure_time = st[2]
+            start_stop = previous_stop
+            end_stop = stop_id
+            end_time = arrival_time # End time of line segment is arrival time at second stop
+            SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, route_type)
+            linefeature_dict[SourceOIDkey] = True
+            stop_times_current_trip.append((SourceOIDkey, start_time, end_time, trip_id))
+            previous_stop = stop_id # Increment previous_stop
+            start_time = departure_time # Reset start_time to current stop's departure_time
 
-        # For each trip, select stops in the trip, put them in order, and get pairs
-        # of directly-connected stops
-        for trip in stop_times_dict.keys():
-            selectedstops = stop_times_dict[trip]
-            selectedstops.sort(key=operator.itemgetter(1))
-            for x in range(0, len(selectedstops)-1):
-                start_stop = selectedstops[x][0]
-                end_stop = selectedstops[x+1][0]
-                SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, str(trip_routetype_dict[trip]))
-                # This stop pair needs a line feature
-                linefeature_dict[SourceOIDkey] = True
+        return stop_times_current_trip
+
+    def Insert_Schedules(rows):
+        '''Insert into schedules table'''
+        c2 = conn.cursor()
+        columns = ["SourceOIDKey", "start_time", "end_time", "trip_id"]
+        values_placeholders = ["?"] * len(columns)
+        c2.executemany("INSERT INTO schedules (%s) VALUES (%s);" %
+                        (",".join(columns), ",".join(values_placeholders)), rows)
+
+    def Make_Rows_For_Trip(trip_id):
+        '''Find pairs of directly-connected stops for this trip and prepare to insert in schedule table'''
+
+        stoptimefetch = '''
+        SELECT stop_id, arrival_time, departure_time
+        FROM stop_times
+        WHERE trip_id = '%s'
+        ORDER BY stop_sequence
+        ;''' % trip_id
+        c.execute(stoptimefetch)
+        stop_time_data = c.fetchall()
+        if trip_id in frequencies_dict:
+            stop_times_current_trip = Make_Frequency_Rows(trip_id, stop_time_data)
+        else:
+            stop_times_current_trip = Make_StopsTimes_Rows(trip_id, stop_time_data)
+        return stop_times_current_trip
 
 
-        # ----- Write pairs to a points feature class (this is intermediate and will NOT go into the final ND) -----
+    global linefeature_dict
+    linefeature_dict = {}
+    # Insert the trip schedules into the table
+    rows = itertools.chain.from_iterable(itertools.imap(Make_Rows_For_Trip, trip_routetype_dict.keys()))
+    Insert_Schedules(rows)
+    conn.commit()
 
-        # Create a points feature class for the point pairs.
-        arcpy.management.CreateFeatureclass(outGDB, outStopPairsFCName, "POINT", "", "", "", outFD_SR)
-        arcpy.management.AddField(outStopPairsFC, "stop_id", "TEXT")
-        arcpy.management.AddField(outStopPairsFC, "pair_id", "TEXT")
-        arcpy.management.AddField(outStopPairsFC, "sequence", "SHORT")
+    # Delete stop_times table because it's huge and we're done with it.
+    c2 = conn.cursor()
+    c2.execute("DROP TABLE stop_times;")
+    conn.commit()
 
-        # Add pairs of stops to the feature class in preparation for generating line features
-        badStops = []
-        badkeys = []
-        with arcpy.da.InsertCursor(outStopPairsFC, ["SHAPE@", "stop_id", "pair_id", "sequence"]) as cur:
-            # linefeature_dict = {"start_stop , end_stop , route_type": True}
-            for SourceOIDkey in linefeature_dict:
-                stopPair = SourceOIDkey.split(" , ")
-                # {stop_id: [stop_lat, stop_lon]}
-                try:
-                    stop1 = stopPair[0]
-                    stop1_geom = stoplatlon_dict[stop1]
-                except KeyError:
-                    badStops.append(stop1)
-                    badkeys.append(SourceOIDkey)
-                    continue
-                try:
-                    stop2 = stopPair[1]
-                    stop2_geom = stoplatlon_dict[stop2]
-                except KeyError:
-                    badStops.append(stop2)
-                    badkeys.append(SourceOIDkey)
-                    continue
-                cur.insertRow((stop1_geom, stop1, SourceOIDkey, 1))
-                cur.insertRow((stop2_geom, stop2, SourceOIDkey, 2))
 
-        if badStops:
-            badStops = list(set(badStops))
-            arcpy.AddWarning("Your stop_times.txt lists times for the following \
+# ----- Write pairs to a points feature class (this is intermediate and will NOT go into the final ND) -----
+
+    # Create a points feature class for the point pairs.
+    arcpy.management.CreateFeatureclass(outGDB, outStopPairsFCName, "POINT", "", "", "", outFD_SR)
+    arcpy.management.AddField(outStopPairsFC, "stop_id", "TEXT")
+    arcpy.management.AddField(outStopPairsFC, "pair_id", "TEXT")
+    arcpy.management.AddField(outStopPairsFC, "sequence", "SHORT")
+
+    # Add pairs of stops to the feature class in preparation for generating line features
+    badStops = []
+    badkeys = []
+    with arcpy.da.InsertCursor(outStopPairsFC, ["SHAPE@", "stop_id", "pair_id", "sequence"]) as cur:
+        # linefeature_dict = {"start_stop , end_stop , route_type": True}
+        for SourceOIDkey in linefeature_dict:
+            stopPair = SourceOIDkey.split(" , ")
+            # {stop_id: [stop_lat, stop_lon]}
+            try:
+                stop1 = stopPair[0]
+                stop1_geom = stoplatlon_dict[stop1]
+            except KeyError:
+                badStops.append(stop1)
+                badkeys.append(SourceOIDkey)
+                continue
+            try:
+                stop2 = stopPair[1]
+                stop2_geom = stoplatlon_dict[stop2]
+            except KeyError:
+                badStops.append(stop2)
+                badkeys.append(SourceOIDkey)
+                continue
+            cur.insertRow((stop1_geom, stop1, SourceOIDkey, 1))
+            cur.insertRow((stop2_geom, stop2, SourceOIDkey, 2))
+
+    if badStops:
+        badStops = list(set(badStops))
+        arcpy.AddWarning("Your stop_times.txt lists times for the following \
 stops which are not included in your stops.txt file. Schedule information for \
 these stops will be ignored. " + unicode(badStops))
 
-        # Remove these entries from the linefeatures dictionary so it doesn't cause false records later
-        if badkeys:
-            badkeys = list(set(badkeys))
-            for key in badkeys:
-                del linefeature_dict[key]
-
-    # ----- Generate lines between all stops (for the final ND) -----
-
-        if GTFSCount == 1:
-            outLinesFC_ThisTime = outLinesFC
-        else:
-            outLinesFC_ThisTime = outLinesFC + service_label
-
-        arcpy.management.PointsToLine(outStopPairsFC, outLinesFC_ThisTime, "pair_id", "sequence")
-        arcpy.management.AddField(outLinesFC_ThisTime, "route_type", "SHORT")
-        arcpy.management.AddField(outLinesFC_ThisTime, "route_type_text", "TEXT")
-
-        # We don't need the points for anything anymore, so delete them.
-        arcpy.Delete_management(outStopPairsFC)
-
-        if GTFSCount == 1:
-            AddToOID_firstTime = int(arcpy.management.GetCount(outLinesFC_ThisTime).getOutput(0))
-
-        # Clean up lines with 0 length.  They will just produce build errors and
-        # are not valuable for the network dataset in any other way.
-        expression = """"Shape_Length" = 0"""
-        with arcpy.da.UpdateCursor(outLinesFC_ThisTime, ["pair_id"], expression) as cur2:
-            for row in cur2:
-                del linefeature_dict[row[0]]
-                cur2.deleteRow()
-
-        # Insert the route type into the output lines
-        with arcpy.da.UpdateCursor(outLinesFC_ThisTime, ["pair_id", "route_type", "route_type_text", "OID@"]) as cur4:
-            # StopPairs: {pairID: [firstStop_id, secondStop_id, route_type]}
-            counter = 0
-            for row in cur4:
-                counter += 1
-                pair_id_list = row[0].split(" , ")
-                try:
-                    route_type = int(pair_id_list[2])
-                except ValueError:
-                    # The route_type has an invalid non-integer value.  If that's the case, just leave it as a string for now.
-                    route_type = pair_id_list[2]
-                # While we're at it, add the line's ObjectID value to the linefeature_dict dictionary
-                # Ammend it based on the number already in the final output
-                if GTFSCount == 1:
-                    # If this is the first GTFS dataset, the OID is whatever is in the file (there may be gaps from deleted rows)
-                    linefeature_dict[row[0]] = long(row[3])
-                else:
-                    # If this is not the first GTFS dataset, the append tool will add rows after the highest existing OID value
-                    # and remove any gaps from deleted rows
-                    linefeature_dict[row[0]] = AddToOID + counter
-                try:
-                    route_type_text = route_type_dict[route_type]
-                except KeyError: # The user's data isn't a standard type from the GTFS spec
-                    route_type_text = "Other / Type not specified (%s)" % unicode(route_type)
-                if not isinstance(route_type, int):
-                    row[1] = None
-                else:
-                    row[1] = route_type
-                row[2] = route_type_text
-                cur4.updateRow(row)
-            # Increment by the number of lines we added for this GTFS dataset
-            if GTFSCount == 1:
-                AddToOID += AddToOID_firstTime # There could be OID gaps in the first GTFS dataset
-            else:
-                AddToOID += counter # After that, gaps are removed when the Append tool is run
-
-        # If this is an additional GTFS dataset, append the line features to the first lines feature class
-        if GTFSCount != 1:
-            arcpy.management.Append(outLinesFC_ThisTime, outLinesFC, "TEST")
-            arcpy.management.Delete(outLinesFC_ThisTime)
+    # Remove these entries from the linefeatures dictionary so it doesn't cause false records later
+    if badkeys:
+        badkeys = list(set(badkeys))
+        for key in badkeys:
+            del linefeature_dict[key]
 
 
-        # ----- Add schedule information to the SQL database -----
+# ----- Generate lines between all stops (for the final ND) -----
 
-        def Add_Schedule_To_SQL(trip):
-            'Generate rows of ["SourceOID", "trip_id", "start_time", "end_time"] to add to the SQL database'
+    arcpy.management.PointsToLine(outStopPairsFC, outLinesFC, "pair_id", "sequence")
+    arcpy.management.AddField(outLinesFC, "route_type", "SHORT")
+    arcpy.management.AddField(outLinesFC, "route_type_text", "TEXT")
 
-            # Select the stop_times entries associated with this trip and sort them by sequence
-            selectedstops = stop_times_dict[trip]
-            selectedstops.sort(key=operator.itemgetter(1))
+    # We don't need the points for anything anymore, so delete them.
+    arcpy.Delete_management(outStopPairsFC)
 
-            stopvisitlist = [] # One entry per line feature per trip instance
+    # Clean up lines with 0 length.  They will just produce build errors and
+    # are not valuable for the network dataset in any other way.
+    expression = """"Shape_Length" = 0"""
+    with arcpy.da.UpdateCursor(outLinesFC, ["pair_id"], expression) as cur2:
+        for row in cur2:
+            del linefeature_dict[row[0]]
+            cur2.deleteRow()
 
-            # If the trip uses the frequencies.txt file, extrapolate the stop_times
-            # throughout the day using the relative time between the stops given in
-            # stop_times and the headways listed in frequencies.
-            if trip in frequencies_dict:
-                # Collect the stop pairs in the trip and the relative time between them
-                freq_trip_time_dict = {} # {pairID: [SourceOID, time_along_trip, time_between]}
-                first_stop = True
-                for x in range(0, len(selectedstops)-1):
-                    start_stop = selectedstops[x][0]
-                    end_stop = selectedstops[x+1][0]
-                    SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, str(trip_routetype_dict[trip]))
-                    # Calculate the travel time between the two stops
-                    start_time = selectedstops[x][3]
-                    end_time = selectedstops[x+1][2]
-                    if first_stop:
-                        trip_start_time = start_time
-                        first_stop = False
-                    time_between = end_time - start_time
-                    time_along_trip = start_time - trip_start_time
-                    freq_trip_time_dict[SourceOIDkey] = [time_along_trip, time_between]
-
-                # Extrapolate using the headway and time windows from frequencies to fill in the stop visits
-                for window in frequencies_dict[trip]:
-                    start_timeofday = window[0]
-                    end_timeofday = window[1]
-                    headway = window[2]
-                    for i in range(int(round(start_timeofday, 0)), int(round(end_timeofday, 0)), headway):
-                        for SourceOIDkey in freq_trip_time_dict:
-                            try:
-                                SourceOID = linefeature_dict[SourceOIDkey]
-                            except KeyError:
-                                # This was most likely a line feature that was deleted for having 0 length
-                                continue
-                            start_time = i + freq_trip_time_dict[SourceOIDkey][0] #current trip start time + time along trip
-                            end_time = start_time + freq_trip_time_dict[SourceOIDkey][1] #segment start time plus time between start and end
-                            stopvisitlist.append((SourceOID, trip, start_time, end_time))
-
-            else:
-                # Otherwise, directly insert the stop visits from stop_times into StopPairTimes dictionary
-                for x in range(0, len(selectedstops)-1):
-                    start_stop = selectedstops[x][0]
-                    end_stop = selectedstops[x+1][0]
-                    SourceOIDkey = "%s , %s , %s" % (start_stop, end_stop, str(trip_routetype_dict[trip]))
-                    try:
-                        SourceOID = linefeature_dict[SourceOIDkey]
-                    except KeyError:
-                        # This was most likely a line feature that was deleted for having 0 length
-                        continue
-                    # Add the schedule data
-                    start_time = selectedstops[x][3]
-                    end_time = selectedstops[x+1][2]
-                    stopvisitlist.append((SourceOID, trip, start_time, end_time))
-
-            # Delete the entries in the giant stop_times dictionary associated with this trip_id, just to unclog memory
-            # (not sure if this actually works)
-            del stop_times_dict[trip]
-
-            return stopvisitlist
-
-
-        # Convert the stop visit list into rows appropriately formatted for insertion into the SQL table
-        rows = itertools.chain.from_iterable(itertools.imap(Add_Schedule_To_SQL, stop_times_dict.keys()))
-
-        # Add the rows to the SQL table
-        columns = ["SourceOID", "trip_id", "start_time", "end_time"]
-        values_placeholders = ["?"] * len(columns)
-        c.executemany("INSERT INTO schedules (%s) VALUES (%s);" %
-                            (",".join(columns),
-                            ",".join(values_placeholders))
-                            , rows)
-        conn.commit()
-
-
-    # ----- Add transit line feature information to the SQL database -----
-
-        def retrieve_linefeatures_info(in_key):
-            '''Creates the correct rows for insertion into the linefeatures table.'''
-            SourceOID = linefeature_dict[in_key]
-            pair_id_list = in_key.split(" , ")
-            from_stop = pair_id_list[0]
-            to_stop = pair_id_list[1]
+    # Insert the route type into the output lines
+    with arcpy.da.UpdateCursor(outLinesFC, ["pair_id", "route_type", "route_type_text", "OID@"]) as cur4:
+        # StopPairs: {pairID: [firstStop_id, secondStop_id, route_type]}
+        for row in cur4:
+            pair_id_list = row[0].split(" , ")
             try:
                 route_type = int(pair_id_list[2])
             except ValueError:
-                # The route_type field has an invalid non-integer value, so just set it to a dummy value
-                route_type = "NULL"
-            out_row = (SourceOID, from_stop, to_stop, route_type)
-            return out_row
-
-        # Convert the dictionary into rows appropriately formatted for insertion into the SQL table
-        rows = itertools.imap(retrieve_linefeatures_info, linefeature_dict.keys())
-
-        # Add the rows to the SQL table
-        columns = ["SourceOID", "from_stop", "to_stop", "route_type"]
-        values_placeholders = ["?"] * len(columns)
-        c.executemany("INSERT INTO linefeatures (%s) VALUES (%s);" %
-                            (",".join(columns),
-                            ",".join(values_placeholders))
-                            , rows)
-        conn.commit()
+                # The route_type has an invalid non-integer value.  If that's the case, just leave it as a string for now.
+                route_type = pair_id_list[2]
+            # While we're at it, add the line's ObjectID value to the linefeature_dict dictionary
+            linefeature_dict[row[0]] = long(row[3])
+            try:
+                route_type_text = route_type_dict[route_type]
+            except KeyError: # The user's data isn't a standard type from the GTFS spec
+                route_type_text = "Other / Type not specified (%s)" % unicode(route_type)
+            if not isinstance(route_type, int):
+                row[1] = None
+            else:
+                row[1] = route_type
+            row[2] = route_type_text
+            cur4.updateRow(row)
 
 
-# Done iterating over GTFS datasets
+# ----- Add transit line feature information to the SQL database -----
+
+    def retrieve_linefeatures_info(in_key):
+        '''Creates the correct rows for insertion into the linefeatures table.'''
+        SourceOID = linefeature_dict[in_key]
+        pair_id_list = in_key.split(" , ")
+        from_stop = pair_id_list[0]
+        to_stop = pair_id_list[1]
+        try:
+            route_type = int(pair_id_list[2])
+        except ValueError:
+            # The route_type field has an invalid non-integer value, so just set it to a dummy value
+            route_type = "NULL"
+        out_row = (SourceOID, from_stop, to_stop, route_type)
+        return out_row
+
+    # Convert the dictionary into rows appropriately formatted for insertion into the SQL table
+    rows = itertools.imap(retrieve_linefeatures_info, linefeature_dict.keys())
+
+    # Add the rows to the SQL table
+    columns = ["SourceOID", "from_stop", "to_stop", "route_type"]
+    values_placeholders = ["?"] * len(columns)
+    c.executemany("INSERT INTO linefeatures (%s) VALUES (%s);" %
+                        (",".join(columns),
+                        ",".join(values_placeholders))
+                        , rows)
+    conn.commit()
 
     # Index the new table for fast lookups later (particularly in GetEIDs)
     c.execute("CREATE INDEX linefeatures_index_SourceOID ON linefeatures (SourceOID);")
+    conn.commit()
+
+
+# ----- Add the TransitLines feature class OID values to the schedules table for future reference -----
+
+    conn.create_function("getSourceOID", 1, lambda v: linefeature_dict[v] if v in linefeature_dict else -1)
+    c.execute("UPDATE schedules SET SourceOID = getSourceOID(SourceOIDKey)")
     conn.commit()
 
 
