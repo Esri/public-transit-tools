@@ -107,7 +107,7 @@ fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
 
         # SQL database of preprocessed GTFS from Step 1
         SQLDbase = arcpy.GetParameterAsText(1)
-        conn = sqlite3.connect(SQLDbase)
+        conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
         c = BBB_SharedFunctions.c = conn.cursor()
 
         # Weekday or specific date to analyze.
