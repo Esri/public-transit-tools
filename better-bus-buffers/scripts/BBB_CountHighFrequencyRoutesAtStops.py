@@ -122,7 +122,7 @@ You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
 
         # GTFS SQL dbase - must be created ahead of time.
         SQLDbase = arcpy.GetParameterAsText(0)
-        conn = sqlite3.connect(SQLDbase)
+        conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
         c = BBB_SharedFunctions.c = conn.cursor()
 
         # Weekday or specific date to analyze.
