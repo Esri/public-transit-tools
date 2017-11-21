@@ -1,4 +1,24 @@
+################################################################################
+## Toolbox: Add GTFS to a Network Dataset / Transit Analysis Tools
+## Created by: Melinda Morang, Esri, mmorang@esri.com
+## Last updated: 21 November 2017
+################################################################################
+'''Helper methods for analysis tools.'''
+################################################################################
+'''Copyright 2017 Esri
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+       http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.'''
+################################################################################
+
 import datetime
+import arcpy
 
 def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input):
     '''Make a list of datetimes to use as input for a network analysis time of day run in a loop'''
