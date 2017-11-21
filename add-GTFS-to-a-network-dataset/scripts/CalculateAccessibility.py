@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset / Transit Analysis Tools
 ## Tool name: Calculate Accessibility Matrix
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 13 September 2017
+## Last updated: 21 November 2017
 ################################################################################
 '''Count the number of destinations reachable from each origin by transit and 
 walking. The tool calculates an Origin-Destination Cost Matrix for each start 
@@ -89,7 +89,10 @@ try:
         raise CustomError
 
     # Make list of times of day to run the analysis
-    timelist = AnalysisHelpers.make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input)
+    try:
+        timelist = AnalysisHelpers.make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input)
+    except:
+        raise CustomError
 
     
     # ----- Add Origins and Destinations to the OD layer -----
