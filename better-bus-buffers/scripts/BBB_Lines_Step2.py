@@ -33,126 +33,119 @@ class CustomError(Exception):
     pass
 
 
-try:
-    # ------ Get input parameters and set things up. -----
+def runTool(step1LinesFC, SQLDbase, linesFC, day, start_time, end_time):
     try:
+        # ------ Get input parameters and set things up. -----
+        try:
 
-        # Figure out what version of ArcGIS they're running
-        BBB_SharedFunctions.DetermineArcVersion()
-        if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
-            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
-You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
-            raise CustomError
-        if BBB_SharedFunctions.ArcVersion == "10.0":
-            arcpy.AddError("You must have ArcGIS 10.1 or higher (or ArcGIS Pro) to run this \
-tool. You have ArcGIS version %s." % BBB_SharedFunctions.ArcVersion)
-            raise CustomError
+            # Figure out what version of ArcGIS they're running
+            BBB_SharedFunctions.DetermineArcVersion()
+            if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
+                arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+    You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
+                raise CustomError
+            if BBB_SharedFunctions.ArcVersion == "10.0":
+                arcpy.AddError("You must have ArcGIS 10.1 or higher (or ArcGIS Pro) to run this \
+    tool. You have ArcGIS version %s." % BBB_SharedFunctions.ArcVersion)
+                raise CustomError
 
-        # Get the files from Step 1 to work with.
-        step1LinesFC = arcpy.GetParameter(0)
-        SQLDbase = arcpy.GetParameterAsText(1)
-        linesFC = arcpy.GetParameterAsText(2)
+            try:
+                # If it was a feature layer, it will have a data source property
+                step1LinesFC = step1LinesFC.dataSource
+            except:
+                # Otherwise, assume it was a catalog path and use as is
+                pass
+
+            # GTFS SQL dbase - must be created ahead of time.
+            BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
+
+            # Weekday or specific date to analyze.
+            # Note: Datetime format check is in tool validation code
+            # day = "20160812"
+            if day in BBB_SharedFunctions.days: #Generic weekday
+                Specific = False
+            else: #Specific date
+                Specific = True
+                day = datetime.datetime.strptime(day, '%Y%m%d')
+                
+            # Lower end of time window (HH:MM in 24-hour time)
+            # Default start time is midnight if they leave it blank.
+            if start_time == "":
+                start_time = "00:00"
+            # Convert to seconds
+            start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
+            # Upper end of time window (HH:MM in 24-hour time)
+            # Default end time is 11:59pm if they leave it blank.
+            if end_time == "":
+                end_time = "23:59"
+            # Convert to seconds
+            end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
+
+            # Does the user want to count arrivals or departures at the stops?
+            DepOrArr = "departure_time"
+
+        except:
+            arcpy.AddError("Error getting user inputs.")
+            raise
+
+
+        # ----- Prepare output file -----
 
         try:
-            # If it was a feature layer, it will have a data source property
-            step1LinesFC = step1LinesFC.dataSource
+            arcpy.management.Copy(step1LinesFC, linesFC)
         except:
-            # Otherwise, assume it was a catalog path and use as is
-            pass
-
-        # GTFS SQL dbase - must be created ahead of time.
-        BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
-
-        # Weekday or specific date to analyze.
-        # Note: Datetime format check is in tool validation code
-        # day = "20160812"
-        day = arcpy.GetParameterAsText(3)
-        if day in BBB_SharedFunctions.days: #Generic weekday
-            Specific = False
-        else: #Specific date
-            Specific = True
-            day = datetime.datetime.strptime(day, '%Y%m%d')
-            
-        # Lower end of time window (HH:MM in 24-hour time)
-        start_time = arcpy.GetParameterAsText(4)
-        # Default start time is midnight if they leave it blank.
-        if start_time == "":
-            start_time = "00:00"
-        # Convert to seconds
-        start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
-        # Upper end of time window (HH:MM in 24-hour time)
-        end_time = arcpy.GetParameterAsText(5)
-        # Default end time is 11:59pm if they leave it blank.
-        if end_time == "":
-            end_time = "23:59"
-        # Convert to seconds
-        end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
-
-        # Does the user want to count arrivals or departures at the stops?
-        DepOrArr = "departure_time"
-
-    except:
-        arcpy.AddError("Error getting user inputs.")
-        raise
+            arcpy.AddError("Error copying template lines feature class to output %s," % linesFC)
+            raise
 
 
-    # ----- Prepare output file -----
+        # ----- Query the GTFS data to count the trips on each line segment -----
+        try:
+            arcpy.AddMessage("Calculating the number of transit trips available during the time window...")
 
-    try:
-        arcpy.management.Copy(step1LinesFC, linesFC)
-    except:
-        arcpy.AddError("Error copying template lines feature class to output %s," % linesFC)
-        raise
+            # Get a dictionary of {line_key: [[trip_id, start_time, end_time]]} for our time window
+            linetimedict = BBB_SharedFunctions.CountTripsOnLines(day, start_sec, end_sec, DepOrArr, Specific)
+
+        except:
+            arcpy.AddError("Error counting arrivals or departures at during time window.")
+            raise
 
 
-    # ----- Query the GTFS data to count the trips on each line segment -----
-    try:
-        arcpy.AddMessage("Calculating the number of transit trips available during the time window...")
+        # ----- Write to output -----
+        try:
+            arcpy.AddMessage("Writing output data...")
 
-        # Get a dictionary of {line_key: [[trip_id, start_time, end_time]]} for our time window
-        linetimedict = BBB_SharedFunctions.CountTripsOnLines(day, start_sec, end_sec, DepOrArr, Specific)
+            combine_corridors = "route_id" not in [f.name for f in arcpy.ListFields(linesFC)]
+
+            arcpy.management.AddField(linesFC, "NumTrips", "SHORT")
+            arcpy.management.AddField(linesFC, "NumTripsPerHr", "DOUBLE")
+            arcpy.management.AddField(linesFC, "MaxWaitTime", "SHORT")
+            arcpy.management.AddField(linesFC, "AvgHeadway", "SHORT")
+
+            with arcpy.da.UpdateCursor(linesFC, ["pair_id", "NumTrips",
+                                                "NumTripsPerHr",
+                                                "MaxWaitTime", "AvgHeadway"]) as ucursor:
+                for row in ucursor:
+                    NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway = \
+                                BBB_SharedFunctions.RetrieveStatsForLines(
+                                    str(row[0]), linetimedict,
+                                    start_sec, end_sec, combine_corridors)
+                    row[1] = NumTrips
+                    row[2] = NumTripsPerHr
+                    row[3] = MaxWaitTime
+                    row[4] = AvgHeadway
+                    ucursor.updateRow(row)
+
+        except:
+            arcpy.AddError("Error writing to output.")
+            raise
+
+        arcpy.AddMessage("Finished!")
+        arcpy.AddMessage("Your output is located at " + linesFC)
+
+    except CustomError:
+        arcpy.AddError("Failed to count trips on lines.")
+        pass
 
     except:
-        arcpy.AddError("Error counting arrivals or departures at during time window.")
+        arcpy.AddError("Failed to count trips on lines.")
         raise
-
-
-    # ----- Write to output -----
-    try:
-        arcpy.AddMessage("Writing output data...")
-
-        combine_corridors = "route_id" not in [f.name for f in arcpy.ListFields(linesFC)]
-
-        arcpy.management.AddField(linesFC, "NumTrips", "SHORT")
-        arcpy.management.AddField(linesFC, "NumTripsPerHr", "DOUBLE")
-        arcpy.management.AddField(linesFC, "MaxWaitTime", "SHORT")
-        arcpy.management.AddField(linesFC, "AvgHeadway", "SHORT")
-
-        with arcpy.da.UpdateCursor(linesFC, ["pair_id", "NumTrips",
-                                             "NumTripsPerHr",
-                                             "MaxWaitTime", "AvgHeadway"]) as ucursor:
-            for row in ucursor:
-                NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway = \
-                            BBB_SharedFunctions.RetrieveStatsForLines(
-                                str(row[0]), linetimedict,
-                                start_sec, end_sec, combine_corridors)
-                row[1] = NumTrips
-                row[2] = NumTripsPerHr
-                row[3] = MaxWaitTime
-                row[4] = AvgHeadway
-                ucursor.updateRow(row)
-
-    except:
-        arcpy.AddError("Error writing to output.")
-        raise
-
-    arcpy.AddMessage("Finished!")
-    arcpy.AddMessage("Your output is located at " + linesFC)
-
-except CustomError:
-    arcpy.AddError("Failed to count trips on lines.")
-    pass
-
-except:
-    arcpy.AddError("Failed to count trips on lines.")
-    raise

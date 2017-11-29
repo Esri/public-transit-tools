@@ -40,64 +40,63 @@ import BBB_SharedFunctions
 class CustomError(Exception):
     pass
 
-try:
-    
-    # Figure out what version of ArcGIS they're running
-    BBB_SharedFunctions.DetermineArcVersion()
-    if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
-        arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
-You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
-        raise CustomError
-
-    #----- SQLize the GTFS data-----
-    arcpy.AddMessage("SQLizing the GTFS data...")
-    arcpy.AddMessage("(This will take a while for large datasets.)")
-
-    # GTFS files
-    inGTFSdir = arcpy.GetParameterAsText(0)
-    SQLDbase = arcpy.GetParameterAsText(1)
-    if not SQLDbase.lower().endswith(".sql"):
-        SQLDbase = SQLDbase + ".sql"
-
-    # Fix up list of GTFS datasets
-    inGTFSdirList = inGTFSdir.split(";")
-    # Remove single quotes ArcGIS puts in if there are spaces in the filename.
-    for d in inGTFSdirList:
-        if d[0] == "'" and d[-1] == "'":
-            loc = inGTFSdirList.index(d)
-            inGTFSdirList[loc] = d[1:-1]
-
-    # The main SQLizing work is done in the sqlize_csv module
-    # written by Luitien Pan.
-    # Connect to or create the SQL file.
-    sqlize_csv.connect(SQLDbase)
-    # Create tables.
-    for tblname in sqlize_csv.sql_schema:
-        sqlize_csv.create_table(tblname)
-    # SQLize all the GTFS files, for each separate GTFS dataset.
-    for gtfs_dir in inGTFSdirList:
-        # handle_agency checks for blank values in arrival_time and departure_time
-        GTFSErrors = sqlize_csv.handle_agency(gtfs_dir)
-        if GTFSErrors:
-            for error in GTFSErrors:
-                arcpy.AddError(error)
+def runTool(inGTFSdir, SQLDbase):
+    try:
+        
+        # Figure out what version of ArcGIS they're running
+        BBB_SharedFunctions.DetermineArcVersion()
+        if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
+            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+    You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
             raise CustomError
 
-    # Create indices to make queries faster.
-    sqlize_csv.create_indices()
+        #----- SQLize the GTFS data-----
+        arcpy.AddMessage("SQLizing the GTFS data...")
+        arcpy.AddMessage("(This will take a while for large datasets.)")
 
-    # Check for non-overlapping date ranges to prevent double-counting.
-    overlapwarning = sqlize_csv.check_nonoverlapping_dateranges()
-    if overlapwarning:
-        arcpy.AddWarning(overlapwarning)
+        # GTFS files
+        if not SQLDbase.lower().endswith(".sql"):
+            SQLDbase = SQLDbase + ".sql"
 
-    arcpy.AddMessage("Successfully created SQL database of GTFS data:")
-    arcpy.AddMessage("- " + SQLDbase)
+        # Fix up list of GTFS datasets
+        inGTFSdirList = inGTFSdir.split(";")
+        # Remove single quotes ArcGIS puts in if there are spaces in the filename.
+        for d in inGTFSdirList:
+            if d[0] == "'" and d[-1] == "'":
+                loc = inGTFSdirList.index(d)
+                inGTFSdirList[loc] = d[1:-1]
 
-except CustomError:
-    arcpy.AddMessage("Failed to create SQL database of GTFS data.")
-    pass
+        # The main SQLizing work is done in the sqlize_csv module
+        # written by Luitien Pan.
+        # Connect to or create the SQL file.
+        sqlize_csv.connect(SQLDbase)
+        # Create tables.
+        for tblname in sqlize_csv.sql_schema:
+            sqlize_csv.create_table(tblname)
+        # SQLize all the GTFS files, for each separate GTFS dataset.
+        for gtfs_dir in inGTFSdirList:
+            # handle_agency checks for blank values in arrival_time and departure_time
+            GTFSErrors = sqlize_csv.handle_agency(gtfs_dir)
+            if GTFSErrors:
+                for error in GTFSErrors:
+                    arcpy.AddError(error)
+                raise CustomError
 
-except:
-    arcpy.AddMessage("Failed to create SQL database of GTFS data.")
-    raise
+        # Create indices to make queries faster.
+        sqlize_csv.create_indices()
+
+        # Check for non-overlapping date ranges to prevent double-counting.
+        overlapwarning = sqlize_csv.check_nonoverlapping_dateranges()
+        if overlapwarning:
+            arcpy.AddWarning(overlapwarning)
+
+        arcpy.AddMessage("Successfully created SQL database of GTFS data:")
+        arcpy.AddMessage("- " + SQLDbase)
+
+    except CustomError:
+        arcpy.AddMessage("Failed to create SQL database of GTFS data.")
+        pass
+
+    except:
+        arcpy.AddMessage("Failed to create SQL database of GTFS data.")
+        raise

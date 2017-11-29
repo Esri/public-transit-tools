@@ -79,386 +79,370 @@ def runOD(Points, Stops):
                     SID = stopOIDdict[row[1]]
                     PointsAndStops.setdefault(str(UID), []).append(str(SID))
 
-try:
-    
-    # Source FC names are not prepended to field names.
-    arcpy.env.qualifiedFieldNames = False
-    # It's okay to overwrite in-memory stuff.
-    OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
-    arcpy.env.overwriteOutput = True
-    
-    # Figure out what version of ArcGIS they're running
-    BBB_SharedFunctions.DetermineArcVersion()
-    ArcVersion = BBB_SharedFunctions.ArcVersion
-    ProductName = BBB_SharedFunctions.ProductName
-    if ArcVersion == "10.0":
-        arcpy.AddError("You must have ArcGIS 10.1 or higher (or ArcGIS Pro) to run this \
-tool. You have ArcGIS version %s." % ArcVersion)
-        raise CustomError
-    if ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
-        arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
-You have ArcGIS Pro version %s." % ArcVersion)
-        raise CustomError
+
+def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, end_time, 
+            BufferSize, BufferUnits, DepOrArrChoice, username, password):
+    try:
+        # Source FC names are not prepended to field names.
+        arcpy.env.qualifiedFieldNames = False
+        # It's okay to overwrite in-memory stuff.
+        OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
+        arcpy.env.overwriteOutput = True
+        
+        # Figure out what version of ArcGIS they're running
+        BBB_SharedFunctions.DetermineArcVersion()
+        ArcVersion = BBB_SharedFunctions.ArcVersion
+        ProductName = BBB_SharedFunctions.ProductName
+        if ArcVersion == "10.0":
+            arcpy.AddError("You must have ArcGIS 10.1 or higher (or ArcGIS Pro) to run this \
+    tool. You have ArcGIS version %s." % ArcVersion)
+            raise CustomError
+        if ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
+            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
+    You have ArcGIS Pro version %s." % ArcVersion)
+            raise CustomError
 
 
-    #----- Get input parameters -----
-    
-    # Output files and location
-    outFile = arcpy.GetParameterAsText(0)
-    # GTFS SQL dbase - must be created ahead of time.
-    SQLDbase = arcpy.GetParameterAsText(1)
-    BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
-    # Points to Analyze
-    inPointsLayer = arcpy.GetParameterAsText(2)
-    # Unique ID for input points
-    inLocUniqueID = arcpy.GetParameterAsText(3)
+        #----- Get input parameters -----
 
-    # Weekday or specific date to analyze.
-    # Note: Datetime format check is in tool validation code
-    day = arcpy.GetParameterAsText(4)
-    if day in BBB_SharedFunctions.days: #Generic weekday
-        Specific = False
-    else: #Specific date
-        Specific = True
-        day = datetime.datetime.strptime(day, '%Y%m%d')
+        # GTFS SQL dbase - must be created ahead of time.
+        BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
 
-    # Lower end of time window (HH:MM in 24-hour time)
-    start_time = arcpy.GetParameterAsText(5)
-    # Default start time is midnight if they leave it blank.
-    if start_time == "":
-        start_time = "00:00"
-    # Convert to seconds
-    start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
-    # Upper end of time window (HH:MM in 24-hour time)
-    end_time = arcpy.GetParameterAsText(6)
-    # Default end time is 11:59pm if they leave it blank.
-    if end_time == "":
-        end_time = "23:59"
-    # Convert to seconds
-    end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
+        # Weekday or specific date to analyze.
+        # Note: Datetime format check is in tool validation code
+        if day in BBB_SharedFunctions.days: #Generic weekday
+            Specific = False
+        else: #Specific date
+            Specific = True
+            day = datetime.datetime.strptime(day, '%Y%m%d')
 
-    # Distance between stops and points
-    BufferSize = arcpy.GetParameter(7)
-    BufferUnits = arcpy.GetParameterAsText(8)
-    
-    BufferSize_padded = BufferSize + (.2 * BufferSize)
-    BufferLinearUnit = str(BufferSize_padded) + " " + BufferUnits
+        # Lower end of time window (HH:MM in 24-hour time)
+        # Default start time is midnight if they leave it blank.
+        if start_time == "":
+            start_time = "00:00"
+        # Convert to seconds
+        start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
+        # Upper end of time window (HH:MM in 24-hour time)
+        # Default end time is 11:59pm if they leave it blank.
+        if end_time == "":
+            end_time = "23:59"
+        # Convert to seconds
+        end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
 
-    # Will we calculate the max wait time? This slows down the calculation, so leave it optional.
-    CalcWaitTime = arcpy.GetParameterAsText(9)
+        # Distance between stops and points
+        BufferSize_padded = BufferSize + (.2 * BufferSize)
+        BufferLinearUnit = str(BufferSize_padded) + " " + BufferUnits
 
-    DepOrArrChoice = arcpy.GetParameterAsText(10)
-    if DepOrArrChoice == "Arrivals":
-        DepOrArr = "arrival_time"
-    elif DepOrArrChoice == "Departures":
-        DepOrArr = "departure_time"
+        # Will we calculate the max wait time?
+        CalcWaitTime = "true"
 
-    # Username and password will be used if present.  Otherwise, we rely on a token
-    username = arcpy.GetParameterAsText(11)
-    password = arcpy.GetParameterAsText(12)
+        if DepOrArrChoice == "Arrivals":
+            DepOrArr = "arrival_time"
+        elif DepOrArrChoice == "Departures":
+            DepOrArr = "departure_time"
 
-    # Output file designated by user
-    outDir = os.path.dirname(outFile)
-    outFilename = os.path.basename(outFile)
-    ispgdb = "esriDataSourcesGDB.AccessWorkspaceFactory" in arcpy.Describe(outDir).workspaceFactoryProgID
-    isshp = ".shp" in outFilename
+        # Output file designated by user
+        outDir = os.path.dirname(outFile)
+        outFilename = os.path.basename(outFile)
+        ispgdb = "esriDataSourcesGDB.AccessWorkspaceFactory" in arcpy.Describe(outDir).workspaceFactoryProgID
+        isshp = ".shp" in outFilename
 
-    # If ObjectID was selected as the unique ID, copy the values to a new field
-    # so they don't get messed up when copying the table.
-    pointsOID = arcpy.Describe(inPointsLayer).OIDFieldName
-    if inLocUniqueID == pointsOID:
+        # If ObjectID was selected as the unique ID, copy the values to a new field
+        # so they don't get messed up when copying the table.
+        pointsOID = arcpy.Describe(inPointsLayer).OIDFieldName
+        if inLocUniqueID == pointsOID:
+            try:
+                inLocUniqueID = "BBBUID"
+                arcpy.AddMessage("You have selected your input features' ObjectID field as the unique ID to use for this analysis. \
+    In order to use this field, we have to transfer the ObjectID values to a new field in your input data called '%s' because ObjectID values \
+    may change when the input data is copied to the output. Adding the '%s' field now, and calculating the values to be the same as the current \
+    ObjectID values..." % (inLocUniqueID, inLocUniqueID))
+                arcpy.management.AddField(inPointsLayer, inLocUniqueID, "LONG")
+                arcpy.management.CalculateField(inPointsLayer, inLocUniqueID, "!" + pointsOID + "!", "PYTHON_9.3")
+            except:
+                arcpy.AddError("Unable to add or calculate new unique ID field. Please fix your data or choose a different unique ID field.")
+                raise
+
+
+        # ----- Prepare OD service -----
         try:
-            inLocUniqueID = "BBBUID"
-            arcpy.AddMessage("You have selected your input features' ObjectID field as the unique ID to use for this analysis. \
-In order to use this field, we have to transfer the ObjectID values to a new field in your input data called '%s' because ObjectID values \
-may change when the input data is copied to the output. Adding the '%s' field now, and calculating the values to be the same as the current \
-ObjectID values..." % (inLocUniqueID, inLocUniqueID))
-            arcpy.management.AddField(inPointsLayer, inLocUniqueID, "LONG")
-            arcpy.management.CalculateField(inPointsLayer, inLocUniqueID, "!" + pointsOID + "!", "PYTHON_9.3")
+            arcpy.AddMessage("Obtaining credentials for and information about OD Cost Matrix service...")
+        
+            # Hard-wired OD variables
+            TravelMode = "Walking Distance"
+            PathShape = "None"
+        
+            OD_service_name = "World/OriginDestinationCostMatrix"
+            Utility_service_name = "World/Utilities"
+            # Get the credentials from the signed in user and import the service
+            if username and password:
+                ODservice = BBB_SharedFunctions.import_AGOLservice(OD_service_name, username=username, password=password)
+                Utilityservice = BBB_SharedFunctions.import_AGOLservice(Utility_service_name, username=username, password=password)
+            else:
+                credentials = arcpy.GetSigninToken()
+                if not credentials:
+                    arcpy.AddError("Please sign into ArcGIS Online or pass a username and password to the tool.")
+                    raise CustomError
+                token = credentials["token"]
+                referer = credentials["referer"]
+                ODservice = BBB_SharedFunctions.import_AGOLservice(OD_service_name, token=token, referer=referer)
+                Utilityservice = BBB_SharedFunctions.import_AGOLservice(Utility_service_name, token=token, referer=referer)
+        
+            # Get the service limits from the OD service (how many origins and destinations allowed)
+            utilresult = Utilityservice.GetToolInfo("asyncODCostMatrix", "GenerateOriginDestinationCostMatrix")
+            utilresultstring = utilresult.getOutput(0)
+            utilresultjson = json.loads(utilresultstring)
+            origin_limit = int(utilresultjson['serviceLimits']['maximumDestinations'])
+            destination_limit = int(utilresultjson['serviceLimits']['maximumOrigins'])
+
         except:
-            arcpy.AddError("Unable to add or calculate new unique ID field. Please fix your data or choose a different unique ID field.")
+            arcpy.AddError("Failed to obtain credentials for and information about OD Cost Matrix service.")
             raise
 
 
-    # ----- Prepare OD service -----
-    try:
-        arcpy.AddMessage("Obtaining credentials for and information about OD Cost Matrix service...")
-    
-        # Hard-wired OD variables
-        TravelMode = "Walking Distance"
-        PathShape = "None"
-    
-        OD_service_name = "World/OriginDestinationCostMatrix"
-        Utility_service_name = "World/Utilities"
-        # Get the credentials from the signed in user and import the service
-        if username and password:
-            ODservice = BBB_SharedFunctions.import_AGOLservice(OD_service_name, username=username, password=password)
-            Utilityservice = BBB_SharedFunctions.import_AGOLservice(Utility_service_name, username=username, password=password)
-        else:
-            credentials = arcpy.GetSigninToken()
-            if not credentials:
-                arcpy.AddError("Please sign into ArcGIS Online or pass a username and password to the tool.")
-                raise CustomError
-            token = credentials["token"]
-            referer = credentials["referer"]
-            ODservice = BBB_SharedFunctions.import_AGOLservice(OD_service_name, token=token, referer=referer)
-            Utilityservice = BBB_SharedFunctions.import_AGOLservice(Utility_service_name, token=token, referer=referer)
-    
-        # Get the service limits from the OD service (how many origins and destinations allowed)
-        utilresult = Utilityservice.GetToolInfo("asyncODCostMatrix", "GenerateOriginDestinationCostMatrix")
-        utilresultstring = utilresult.getOutput(0)
-        utilresultjson = json.loads(utilresultstring)
-        origin_limit = int(utilresultjson['serviceLimits']['maximumDestinations'])
-        destination_limit = int(utilresultjson['serviceLimits']['maximumOrigins'])
-
-    except:
-        arcpy.AddError("Failed to obtain credentials for and information about OD Cost Matrix service.")
-        raise
-
-
-    # ----- Create a feature class of stops ------
-    try:
-        arcpy.AddMessage("Getting GTFS stops...")
-        tempstopsname = "Temp_Stops"
-        if isshp:
-            tempstopsname += ".shp"
-        StopsLayer, StopList = BBB_SharedFunctions.MakeStopsFeatureClass(os.path.join(outDir, tempstopsname))
-        
-        # Select only the stops within a reasonable distance of points to reduce problem size
-        arcpy.management.MakeFeatureLayer(StopsLayer, "StopsToRemove")
-        arcpy.management.SelectLayerByLocation("StopsToRemove", "WITHIN_A_DISTANCE_GEODESIC", inPointsLayer, BufferLinearUnit, invert_spatial_relationship="INVERT")
-        arcpy.management.DeleteRows("StopsToRemove")
-        arcpy.management.Delete("StopsToRemove")
-        
-        # Make Feature Layer of stops to use later
-        arcpy.management.MakeFeatureLayer(StopsLayer, "StopsLayer")
-        stopsOID = arcpy.Describe("StopsLayer").OIDFieldName
-
-    except:
-        arcpy.AddError("Error creating feature class of GTFS stops.")
-        raise
-
-
-    # ----- Prepare input data -----
-    try:
-        arcpy.AddMessage("Preparing input points...")
-        
-        # Select only the points within a reasonable distance of stops to reduce problem size
-        if isshp:
-            temppointsname = outFilename.split(".shp")[0] + "_Temp.shp"
-        else:
-            temppointsname = outFilename + "_Temp"
-        relevantPoints = os.path.join(outDir, temppointsname)
-        arcpy.management.MakeFeatureLayer(inPointsLayer, "PointsToKeep")
-        arcpy.management.SelectLayerByLocation("PointsToKeep", "WITHIN_A_DISTANCE_GEODESIC", StopsLayer, BufferLinearUnit)
-        num_points = int(arcpy.management.GetCount("PointsToKeep").getOutput(0))
-        
-        # If the number of points is large, sort them spatially for smart chunking
-        if num_points > origin_limit:
-            shapeFieldName = arcpy.Describe("PointsToKeep").shapeFieldName
-            arcpy.management.Sort("PointsToKeep", relevantPoints, shapeFieldName, "PEANO")
-        # Otherwise, just copy them.
-        else:
-            arcpy.management.CopyFeatures("PointsToKeep", relevantPoints)
-        arcpy.management.Delete("PointsToKeep")
-        
-        # Store OIDs in a dictionary for later joining
-        pointsOIDdict = {} # {OID: inLocUniqueID}
-        with arcpy.da.SearchCursor(relevantPoints, ["OID@", inLocUniqueID]) as cur:
-            for row in cur:
-                pointsOIDdict[row[0]] = row[1]
-        relevantpointsOID = arcpy.Describe(relevantPoints).OIDFieldName
-
-    except:
-        arcpy.AddError("Error preparing input points for analysis.")
-        raise
-
-
-    #----- Create OD Matrix between stops and user's points -----
-    try:
-        arcpy.AddMessage("Creating OD matrix between points and stops...")
-        arcpy.AddMessage("(This step could take a while for large datasets or buffer sizes.)")
-
-        global PointsAndStops
-        # PointsAndStops = {LocID: [stop_1, stop_2, ...]}
-        PointsAndStops = {}
-
-        # Chunk the points to fit the service limits and loop through chunks
-        points_numchunks = int(math.ceil(float(num_points)/origin_limit))
-        points_chunkstart = 0
-        points_chunkend = origin_limit
-        current_chunk = 0
-        for x in range(0, points_numchunks):
-            current_chunk += 1
-            arcpy.AddMessage("Handling input points chunk %i of %i" % (current_chunk, points_numchunks))
-           
-            # Select only the points belonging to this chunk
-            points_chunk = sorted(pointsOIDdict.keys())[points_chunkstart:points_chunkend]
-            points_chunkstart = points_chunkend
-            points_chunkend = points_chunkstart + origin_limit
-            if ispgdb:
-                points_selection_query = '[{0}] IN ({1})'.format(relevantpointsOID, ','.join(map(str, points_chunk)))
-            else:
-                points_selection_query = '"{0}" IN ({1})'.format(relevantpointsOID, ','.join(map(str, points_chunk)))
-            arcpy.MakeFeatureLayer_management(relevantPoints, "PointsLayer", points_selection_query)
+        # ----- Create a feature class of stops ------
+        try:
+            arcpy.AddMessage("Getting GTFS stops...")
+            tempstopsname = "Temp_Stops"
+            if isshp:
+                tempstopsname += ".shp"
+            StopsLayer, StopList = BBB_SharedFunctions.MakeStopsFeatureClass(os.path.join(outDir, tempstopsname))
             
-            # Select only the stops within the safe buffer of these points
-            arcpy.management.SelectLayerByLocation("StopsLayer", "WITHIN_A_DISTANCE_GEODESIC", "PointsLayer", BufferLinearUnit)
-            num_stops = int(arcpy.GetCount_management("StopsLayer").getOutput(0))
-            stopOIDdict = {} # {OID: stop_id}
-            with arcpy.da.SearchCursor("StopsLayer", ["OID@", "stop_id"]) as cur:
+            # Select only the stops within a reasonable distance of points to reduce problem size
+            arcpy.management.MakeFeatureLayer(StopsLayer, "StopsToRemove")
+            arcpy.management.SelectLayerByLocation("StopsToRemove", "WITHIN_A_DISTANCE_GEODESIC", inPointsLayer, BufferLinearUnit, invert_spatial_relationship="INVERT")
+            arcpy.management.DeleteRows("StopsToRemove")
+            arcpy.management.Delete("StopsToRemove")
+            
+            # Make Feature Layer of stops to use later
+            arcpy.management.MakeFeatureLayer(StopsLayer, "StopsLayer")
+            stopsOID = arcpy.Describe("StopsLayer").OIDFieldName
+
+        except:
+            arcpy.AddError("Error creating feature class of GTFS stops.")
+            raise
+
+
+        # ----- Prepare input data -----
+        try:
+            arcpy.AddMessage("Preparing input points...")
+            
+            # Select only the points within a reasonable distance of stops to reduce problem size
+            if isshp:
+                temppointsname = outFilename.split(".shp")[0] + "_Temp.shp"
+            else:
+                temppointsname = outFilename + "_Temp"
+            relevantPoints = os.path.join(outDir, temppointsname)
+            arcpy.management.MakeFeatureLayer(inPointsLayer, "PointsToKeep")
+            arcpy.management.SelectLayerByLocation("PointsToKeep", "WITHIN_A_DISTANCE_GEODESIC", StopsLayer, BufferLinearUnit)
+            num_points = int(arcpy.management.GetCount("PointsToKeep").getOutput(0))
+            
+            # If the number of points is large, sort them spatially for smart chunking
+            if num_points > origin_limit:
+                shapeFieldName = arcpy.Describe("PointsToKeep").shapeFieldName
+                arcpy.management.Sort("PointsToKeep", relevantPoints, shapeFieldName, "PEANO")
+            # Otherwise, just copy them.
+            else:
+                arcpy.management.CopyFeatures("PointsToKeep", relevantPoints)
+            arcpy.management.Delete("PointsToKeep")
+            
+            # Store OIDs in a dictionary for later joining
+            pointsOIDdict = {} # {OID: inLocUniqueID}
+            with arcpy.da.SearchCursor(relevantPoints, ["OID@", inLocUniqueID]) as cur:
                 for row in cur:
-                    stopOIDdict[row[0]] = row[1]
+                    pointsOIDdict[row[0]] = row[1]
+            relevantpointsOID = arcpy.Describe(relevantPoints).OIDFieldName
 
-            # If the number of stops in range exceeds the destination limit, we have to chunk these as well.
-            if num_stops > destination_limit:
-                stops_numchunks = int(math.ceil(float(num_stops)/destination_limit))
-                stops_chunkstart = 0
-                stops_chunkend = destination_limit
-                for x in range(0, stops_numchunks):
-                    stops_chunk = sorted(stopOIDdict.keys())[stops_chunkstart:stops_chunkend]
-                    stops_chunkstart = stops_chunkend
-                    stops_chunkend = stops_chunkstart + destination_limit
-                    if ispgdb:
-                        stops_selection_query = '[{0}] IN ({1})'.format(stopsOID, ','.join(map(str, stops_chunk)))
-                    else:
-                        stops_selection_query = '"{0}" IN ({1})'.format(stopsOID, ','.join(map(str, stops_chunk)))
-                    arcpy.MakeFeatureLayer_management("StopsLayer", "StopsLayer_Chunk", stops_selection_query)
-                    runOD("PointsLayer", "StopsLayer_Chunk")
-                arcpy.management.Delete("StopsLayer_Chunk")
-            # Otherwise, just run them all.
-            else:
-                runOD("PointsLayer", "StopsLayer")
-
-        # Clean up
-        arcpy.management.Delete("StopsLayer")
-        arcpy.management.Delete("PointsLayer")
-        arcpy.management.Delete(StopsLayer)
-        arcpy.management.Delete(relevantPoints)
-
-    except:
-        arcpy.AddError("Error creating OD matrix between stops and input points.")
-        raise
+        except:
+            arcpy.AddError("Error preparing input points for analysis.")
+            raise
 
 
-    #----- Query the GTFS data to count the trips at each stop -----
-    try:
-        arcpy.AddMessage("Calculating the number of transit trips available during the time window...")
+        #----- Create OD Matrix between stops and user's points -----
+        try:
+            arcpy.AddMessage("Creating OD matrix between points and stops...")
+            arcpy.AddMessage("(This step could take a while for large datasets or buffer sizes.)")
 
-        # Get a dictionary of stop times in our time window {stop_id: [[trip_id, stop_time]]}
-        stoptimedict = BBB_SharedFunctions.CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific)
+            global PointsAndStops
+            # PointsAndStops = {LocID: [stop_1, stop_2, ...]}
+            PointsAndStops = {}
 
-    except:
-        arcpy.AddError("Error calculating the number of transit trips available during the time window.")
-        raise
-
-
-    # ----- Generate output data -----
-    try:
-        arcpy.AddMessage("Writing output data...")
-
-        arcpy.management.CopyFeatures(inPointsLayer, outFile)
-        # Add a field to the output file for number of trips and num trips / hour.
-        if isshp:
-            arcpy.management.AddField(outFile, "NumTrips", "SHORT")
-            arcpy.management.AddField(outFile, "TripsPerHr", "DOUBLE")
-            arcpy.management.AddField(outFile, "NumStops", "SHORT")
-            arcpy.management.AddField(outFile, "MaxWaitTm", "SHORT")
-        else:
-            arcpy.management.AddField(outFile, "NumTrips", "SHORT")
-            arcpy.management.AddField(outFile, "NumTripsPerHr", "DOUBLE")
-            arcpy.management.AddField(outFile, "NumStopsInRange", "SHORT")
-            arcpy.management.AddField(outFile, "MaxWaitTime", "SHORT")
-
-        if ArcVersion == "10.0":
-            if isshp:
-                ucursor = arcpy.UpdateCursor(outFile, "", "",
-                                        inLocUniqueID[0:10] + "; NumTrips; TripsPerHr; NumStops; MaxWaitTm")
-                for row in ucursor:
-                    try:
-                        ImportantStops = PointsAndStops[str(row.getValue(inLocUniqueID))]
-                    except KeyError:
-                        # This point had no stops in range
-                        ImportantStops = []
-                    NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                    ImportantStops, stoptimedict, CalcWaitTime,
-                                    start_sec, end_sec)
-                    row.NumTrips = NumTrips
-                    row.TripsPerHr = NumTripsPerHr
-                    row.NumStops = NumStopsInRange
-                    if MaxWaitTime == None:
-                        row.MaxWaitTm = -1
-                    else:
-                        row.MaxWaitTm = MaxWaitTime
-                    ucursor.updateRow(row)
-            else:
-                ucursor = arcpy.UpdateCursor(outFile, "", "",
-                                        inLocUniqueID + "; NumTrips; NumTripsPerHr; NumStopsInRange; MaxWaitTime")
-                for row in ucursor:
-                    try:
-                        ImportantStops = PointsAndStops[str(row.getValue(inLocUniqueID))]
-                    except KeyError:
-                        # This point had no stops in range
-                        ImportantStops = []
-                    NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                    ImportantStops, stoptimedict, CalcWaitTime,
-                                    start_sec, end_sec)
-                    row.NumTrips = NumTrips
-                    row.NumTripsPerHr = NumTripsPerHr
-                    row.NumStopsInRange = NumStopsInRange
-                    row.MaxWaitTime = MaxWaitTime
-                    ucursor.updateRow(row)
-
-        else:
-            # For everything 10.1 and forward
-            if isshp:
-                ucursor = arcpy.da.UpdateCursor(outFile,
-                                                [inLocUniqueID[0:10], "NumTrips",
-                                                 "TripsPerHr", "NumStops",
-                                                 "MaxWaitTm"])
-            else:
-                ucursor = arcpy.da.UpdateCursor(outFile,
-                                            [inLocUniqueID, "NumTrips",
-                                             "NumTripsPerHr", "NumStopsInRange",
-                                             "MaxWaitTime"])
-            for row in ucursor:
-                try:
-                    ImportantStops = PointsAndStops[str(row[0])]
-                except KeyError:
-                    # This point had no stops in range
-                    ImportantStops = []
-                NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime =\
-                                BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                    ImportantStops, stoptimedict, CalcWaitTime,
-                                    start_sec, end_sec)
-                row[1] = NumTrips
-                row[2] = NumTripsPerHr
-                row[3] = NumStopsInRange
-                if isshp and MaxWaitTime == None:
-                    row[4] = -1
+            # Chunk the points to fit the service limits and loop through chunks
+            points_numchunks = int(math.ceil(float(num_points)/origin_limit))
+            points_chunkstart = 0
+            points_chunkend = origin_limit
+            current_chunk = 0
+            for x in range(0, points_numchunks):
+                current_chunk += 1
+                arcpy.AddMessage("Handling input points chunk %i of %i" % (current_chunk, points_numchunks))
+            
+                # Select only the points belonging to this chunk
+                points_chunk = sorted(pointsOIDdict.keys())[points_chunkstart:points_chunkend]
+                points_chunkstart = points_chunkend
+                points_chunkend = points_chunkstart + origin_limit
+                if ispgdb:
+                    points_selection_query = '[{0}] IN ({1})'.format(relevantpointsOID, ','.join(map(str, points_chunk)))
                 else:
-                    row[4] = MaxWaitTime
-                ucursor.updateRow(row)
-        del ucursor
+                    points_selection_query = '"{0}" IN ({1})'.format(relevantpointsOID, ','.join(map(str, points_chunk)))
+                arcpy.MakeFeatureLayer_management(relevantPoints, "PointsLayer", points_selection_query)
                 
+                # Select only the stops within the safe buffer of these points
+                arcpy.management.SelectLayerByLocation("StopsLayer", "WITHIN_A_DISTANCE_GEODESIC", "PointsLayer", BufferLinearUnit)
+                num_stops = int(arcpy.GetCount_management("StopsLayer").getOutput(0))
+                stopOIDdict = {} # {OID: stop_id}
+                with arcpy.da.SearchCursor("StopsLayer", ["OID@", "stop_id"]) as cur:
+                    for row in cur:
+                        stopOIDdict[row[0]] = row[1]
+
+                # If the number of stops in range exceeds the destination limit, we have to chunk these as well.
+                if num_stops > destination_limit:
+                    stops_numchunks = int(math.ceil(float(num_stops)/destination_limit))
+                    stops_chunkstart = 0
+                    stops_chunkend = destination_limit
+                    for x in range(0, stops_numchunks):
+                        stops_chunk = sorted(stopOIDdict.keys())[stops_chunkstart:stops_chunkend]
+                        stops_chunkstart = stops_chunkend
+                        stops_chunkend = stops_chunkstart + destination_limit
+                        if ispgdb:
+                            stops_selection_query = '[{0}] IN ({1})'.format(stopsOID, ','.join(map(str, stops_chunk)))
+                        else:
+                            stops_selection_query = '"{0}" IN ({1})'.format(stopsOID, ','.join(map(str, stops_chunk)))
+                        arcpy.MakeFeatureLayer_management("StopsLayer", "StopsLayer_Chunk", stops_selection_query)
+                        runOD("PointsLayer", "StopsLayer_Chunk")
+                    arcpy.management.Delete("StopsLayer_Chunk")
+                # Otherwise, just run them all.
+                else:
+                    runOD("PointsLayer", "StopsLayer")
+
+            # Clean up
+            arcpy.management.Delete("StopsLayer")
+            arcpy.management.Delete("PointsLayer")
+            arcpy.management.Delete(StopsLayer)
+            arcpy.management.Delete(relevantPoints)
+
+        except:
+            arcpy.AddError("Error creating OD matrix between stops and input points.")
+            raise
+
+
+        #----- Query the GTFS data to count the trips at each stop -----
+        try:
+            arcpy.AddMessage("Calculating the number of transit trips available during the time window...")
+
+            # Get a dictionary of stop times in our time window {stop_id: [[trip_id, stop_time]]}
+            stoptimedict = BBB_SharedFunctions.CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific)
+
+        except:
+            arcpy.AddError("Error calculating the number of transit trips available during the time window.")
+            raise
+
+
+        # ----- Generate output data -----
+        try:
+            arcpy.AddMessage("Writing output data...")
+
+            arcpy.management.CopyFeatures(inPointsLayer, outFile)
+            # Add a field to the output file for number of trips and num trips / hour.
+            if isshp:
+                arcpy.management.AddField(outFile, "NumTrips", "SHORT")
+                arcpy.management.AddField(outFile, "TripsPerHr", "DOUBLE")
+                arcpy.management.AddField(outFile, "NumStops", "SHORT")
+                arcpy.management.AddField(outFile, "MaxWaitTm", "SHORT")
+            else:
+                arcpy.management.AddField(outFile, "NumTrips", "SHORT")
+                arcpy.management.AddField(outFile, "NumTripsPerHr", "DOUBLE")
+                arcpy.management.AddField(outFile, "NumStopsInRange", "SHORT")
+                arcpy.management.AddField(outFile, "MaxWaitTime", "SHORT")
+
+            if ArcVersion == "10.0":
+                if isshp:
+                    ucursor = arcpy.UpdateCursor(outFile, "", "",
+                                            inLocUniqueID[0:10] + "; NumTrips; TripsPerHr; NumStops; MaxWaitTm")
+                    for row in ucursor:
+                        try:
+                            ImportantStops = PointsAndStops[str(row.getValue(inLocUniqueID))]
+                        except KeyError:
+                            # This point had no stops in range
+                            ImportantStops = []
+                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
+                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
+                                        ImportantStops, stoptimedict, CalcWaitTime,
+                                        start_sec, end_sec)
+                        row.NumTrips = NumTrips
+                        row.TripsPerHr = NumTripsPerHr
+                        row.NumStops = NumStopsInRange
+                        if MaxWaitTime == None:
+                            row.MaxWaitTm = -1
+                        else:
+                            row.MaxWaitTm = MaxWaitTime
+                        ucursor.updateRow(row)
+                else:
+                    ucursor = arcpy.UpdateCursor(outFile, "", "",
+                                            inLocUniqueID + "; NumTrips; NumTripsPerHr; NumStopsInRange; MaxWaitTime")
+                    for row in ucursor:
+                        try:
+                            ImportantStops = PointsAndStops[str(row.getValue(inLocUniqueID))]
+                        except KeyError:
+                            # This point had no stops in range
+                            ImportantStops = []
+                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
+                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
+                                        ImportantStops, stoptimedict, CalcWaitTime,
+                                        start_sec, end_sec)
+                        row.NumTrips = NumTrips
+                        row.NumTripsPerHr = NumTripsPerHr
+                        row.NumStopsInRange = NumStopsInRange
+                        row.MaxWaitTime = MaxWaitTime
+                        ucursor.updateRow(row)
+
+            else:
+                # For everything 10.1 and forward
+                if isshp:
+                    ucursor = arcpy.da.UpdateCursor(outFile,
+                                                    [inLocUniqueID[0:10], "NumTrips",
+                                                    "TripsPerHr", "NumStops",
+                                                    "MaxWaitTm"])
+                else:
+                    ucursor = arcpy.da.UpdateCursor(outFile,
+                                                [inLocUniqueID, "NumTrips",
+                                                "NumTripsPerHr", "NumStopsInRange",
+                                                "MaxWaitTime"])
+                for row in ucursor:
+                    try:
+                        ImportantStops = PointsAndStops[str(row[0])]
+                    except KeyError:
+                        # This point had no stops in range
+                        ImportantStops = []
+                    NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime =\
+                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
+                                        ImportantStops, stoptimedict, CalcWaitTime,
+                                        start_sec, end_sec)
+                    row[1] = NumTrips
+                    row[2] = NumTripsPerHr
+                    row[3] = NumStopsInRange
+                    if isshp and MaxWaitTime == None:
+                        row[4] = -1
+                    else:
+                        row[4] = MaxWaitTime
+                    ucursor.updateRow(row)
+            del ucursor
+                    
+        except:
+            arcpy.AddError("Error writing output.")
+            raise
+
+        arcpy.AddMessage("Done!")
+        arcpy.AddMessage("Output files written:")
+        arcpy.AddMessage("- " + outFile)
+
+    except CustomError:
+        arcpy.AddError("Error counting transit trips at input locations.")
+        pass
+
     except:
-        arcpy.AddError("Error writing output.")
+        arcpy.AddError("Error counting transit trips at input locations.")
         raise
 
-    arcpy.AddMessage("Done!")
-    arcpy.AddMessage("Output files written:")
-    arcpy.AddMessage("- " + outFile)
-
-except CustomError:
-    arcpy.AddError("Error counting transit trips at input locations.")
-    pass
-
-except:
-    arcpy.AddError("Error counting transit trips at input locations.")
-    raise
-
-finally:
-    # Reset overwriteOutput to what it was originally.
-    arcpy.env.overwriteOutput = OverwriteOutput
+    finally:
+        # Reset overwriteOutput to what it was originally.
+        arcpy.env.overwriteOutput = OverwriteOutput
