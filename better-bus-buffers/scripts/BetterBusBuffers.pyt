@@ -135,6 +135,16 @@ trips that visit those stops.'''
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
+
+        param_SQLDbase = parameters[1]
+        param_day = parameters[2]
+        start_time = parameters[3]
+        end_time = parameters[4]
+
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.check_time_window(start_time, end_time)
+
         return
 
     def execute(self, parameters, messages):
@@ -170,7 +180,7 @@ the number of transit trips available within a short walk during a time window.'
             parameterType="Required",
             direction="Input")
 
-        params = [make_parameter(output_feature_class),
+        params = [make_parameter(param_output_feature_class),
                     make_parameter(param_SQLDbase),
                     make_parameter(param_points_to_analyze),
                     make_parameter(param_points_UniqueID),
@@ -192,11 +202,31 @@ the number of transit trips available within a short walk during a time window.'
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
+
+        param_fc = parameters[2]
+        param_UID = parameters[3]
+        param_ND = parameters[7]
+        param_restr = parameters[10]
+        param_imp = parameters[8]
+
+        ToolValidator.populate_UniqueID(param_fc, param_UID)
+        ToolValidator.populate_restrictions_and_impedances(param_ND, param_restr, param_imp)
+
         return
 
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
+
+        param_SQLDbase = parameters[1]
+        param_day = parameters[4]
+        start_time = parameters[5]
+        end_time = parameters[6]
+
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.check_time_window(start_time, end_time)
+
         return
 
     def execute(self, parameters, messages):
@@ -263,7 +293,7 @@ network datasets or a Network Analyst license'''
             parameterType="Optional",
             direction="Input")
         
-        params = [make_parameter(output_feature_class),
+        params = [make_parameter(param_output_feature_class),
                     make_parameter(param_SQLDbase),
                     make_parameter(param_points_to_analyze),
                     make_parameter(param_points_UniqueID),
@@ -286,11 +316,28 @@ network datasets or a Network Analyst license'''
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
+
+        param_fc = parameters[2]
+        param_UID = parameters[3]
+        ToolValidator.populate_UniqueID(param_fc, param_UID)
+
         return
 
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
+
+        param_SQLDbase = parameters[1]
+        param_fc = parameters[2]
+        param_day = parameters[4]
+        start_time = parameters[5]
+        end_time = parameters[6]
+
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+        ToolValidator.forbid_shapefile(param_fc)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.check_time_window(start_time, end_time)
+
         return
 
     def execute(self, parameters, messages):
@@ -389,13 +436,23 @@ save time by not having to re-run the Step 1 processes each time.'''
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
+
+        param_ND = parameters[3]
+        param_restr = parameters[6]
+        param_imp = parameters[4]
+        ToolValidator.populate_restrictions_and_impedances(param_ND, param_restr, param_imp)
+
         return
 
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
-        param_GTFSDirs = parameters[0]
-        ToolValidator.check_input_gtfs(param_GTFSDirs)
+        
+        param_outDir = parameters[0]
+        param_outGDB = parameters[1]
+
+        ToolValidator.check_out_gdb(param_outGDB, param_outDir)
+
         return
 
     def execute(self, parameters, messages):
@@ -458,8 +515,16 @@ specific time window.'''
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
-        param_GTFSDirs = parameters[0]
-        ToolValidator.check_input_gtfs(param_GTFSDirs)
+
+        param_inStep1GDB = parameters[0]
+        param_day = parameters[2]
+        start_time = parameters[3]
+        end_time = parameters[4]
+
+        ToolValidator.check_Step1_gdb(param_inStep1GDB, param_day)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.check_time_window(start_time, end_time)
+
         return
 
     def execute(self, parameters, messages):
@@ -534,13 +599,26 @@ Step 1 creates the stops and service area feature classes.'''
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
+
+        param_SQLDbase = parameters[1]
+        param_route = parameters[2]
+        param_ND = parameters[3]
+        param_restr = parameters[6]
+        param_imp = parameters[4]
+
+        ToolValidator.populate_restrictions_and_impedances(param_ND, param_restr, param_imp)
+        ToolValidator.populate_GTFS_routes(param_SQLDbase, param_route)
+
         return
 
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
-        param_GTFSDirs = parameters[0]
-        ToolValidator.check_input_gtfs(param_GTFSDirs)
+        
+        param_SQLDbase = parameters[1]
+
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "routes" "stop_times"], ["calendar", "calendar_dates"])
+
         return
 
     def execute(self, parameters, messages):
@@ -613,8 +691,16 @@ time window.'''
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
-        param_GTFSDirs = parameters[0]
-        ToolValidator.check_input_gtfs(param_GTFSDirs)
+        
+        param_SQLDbase = parameters[1]
+        param_day = parameters[2]
+        start_time = parameters[3]
+        end_time = parameters[4]
+
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "routes", "stop_times"], ["calendar", "calendar_dates"], param_day)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.check_time_window(start_time, end_time)
+
         return
 
     def execute(self, parameters, messages):
@@ -681,8 +767,13 @@ transit system.'''
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
-        param_GTFSDirs = parameters[0]
-        ToolValidator.check_input_gtfs(param_GTFSDirs)
+        
+        param_linesFC = parameters[0]
+        param_SQLDbase = parameters[1]
+
+        ToolValidator.forbid_shapefile(param_linesFC)
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+
         return
 
     def execute(self, parameters, messages):
@@ -741,8 +832,18 @@ service during specific time windows.'''
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
-        param_GTFSDirs = parameters[0]
-        ToolValidator.check_input_gtfs(param_GTFSDirs)
+        
+        param_SQLDbase = parameters[1]
+        param_linesFC = parameters[2]
+        param_day = parameters[3]
+        start_time = parameters[4]
+        end_time = parameters[5]
+
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+        ToolValidator.forbid_shapefile(param_linesFC)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.check_time_window(start_time, end_time)
+
         return
 
     def execute(self, parameters, messages):
@@ -810,6 +911,16 @@ or shorter.'''
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
+
+        param_SQLDbase = parameters[1]
+        param_day = parameters[2]
+        start_time = parameters[3]
+        end_time = parameters[4]
+
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.check_time_window(start_time, end_time)
+
         return
 
     def execute(self, parameters, messages):
@@ -866,8 +977,7 @@ param_day = CommonParameter(
     "GPString",
     "Required",
     "Input",
-    default_val="Monday",
-    filter_list=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+    default_val="Monday")
 
 param_time_window_start = CommonParameter(
     "Time window start (HH:MM) (24 hour time)",
