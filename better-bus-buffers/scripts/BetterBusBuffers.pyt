@@ -865,21 +865,25 @@ param_day = CommonParameter(
     "day",
     "GPString",
     "Required",
-    "Input")
+    "Input",
+    default_val="Monday",
+    filter_list=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
 
 param_time_window_start = CommonParameter(
     "Time window start (HH:MM) (24 hour time)",
     "time_window_start",
     "GPString",
     "Required",
-    "Input")
+    "Input",
+    default_val="00:00")
 
 param_time_window_end = CommonParameter(
     "Time window end (HH:MM) (24 hour time)",
     "time_window_end",
     "GPString",
     "Required",
-    "Input")
+    "Input",
+    default_val="23:59")
 
 param_depOrArr = CommonParameter(
     "Count arrivals or departures",
@@ -938,4 +942,5 @@ param_polygon_trim = CommonParameter(
     "polygon_trim",
     "GPDouble",
     "Optional",
-    "Input")
+    "Input",
+    default_val=20)
