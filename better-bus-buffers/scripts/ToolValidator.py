@@ -24,6 +24,7 @@ import re
 import sqlite3
 import datetime
 import arcpy
+import BBB_SharedFunctions
 
 ispy3 = sys.version_info >= (3, 0)
 
@@ -153,23 +154,26 @@ def allow_YYYYMMDD_day(param_day, param_SQLDbase):
     allows us to accept both a weekday an a YYYYMMDD date.'''
     
     # Define the filter list
-    weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    param_day.filter.list = weekdays
-
-    # Clear the filter list error
-    if param_day.hasError():
-        msg_id = param_day.message.split(':')[0]
-        param_day.clearMessage()
-        param_day.setErrorMessage("Exact text: " + msg_id)
-        if msg_id == 'ERROR 000800':
-            param_day.clearMessage()
+    param_day.filter.list = BBB_SharedFunctions.days
     
     if param_day.altered:
         # Make sure if it's not a weekday that it's in YYYYMMDD date format
-        if param_day.valueAsText not in weekdays:
+        if param_day.valueAsText not in BBB_SharedFunctions.days:
             # If it's not one of the weekday strings, it must be in YYYYMMDD format
             try:
                 datetime.datetime.strptime(param_day.valueAsText, '%Y%m%d')
+                # This is a valid YYYYMMDD date, so clear the filter list error
+                if param_day.hasError():
+                    msg_id = param_day.message.split(':')[0]
+                    if msg_id == 'ERROR 000800':
+                        # clearMessage() does not work in python toolboxes because of an ArcGIS bug,
+                        # so catch the error and convert it to a warning so that the tool will run.
+                        # This is the only solution I've been able to come up with.
+                        param_day.setWarningMessage("You have chosen to use a specific date for this analysis. \
+Please double check your GTFS calendar.txt and/or calendar_dates.txt files to make sure this specific \
+date falls within the date range covered by your GTFS data.")
+                        # Keep this here in case it starts working at some point
+                        param_day.clearMessage()
             except ValueError:
                 param_day.setErrorMessage("Please enter a date in YYYYMMDD format or a weekday.")
         else:
