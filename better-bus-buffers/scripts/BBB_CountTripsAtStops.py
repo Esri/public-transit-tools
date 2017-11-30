@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers - Count Trips at Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 8 February 2016
+## Last updated: 30 November 2017
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Stops
 
@@ -14,7 +14,7 @@ the number of trips per hour and the maximum time between subsequent trips
 during that time window.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -82,57 +82,28 @@ def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice):
             arcpy.AddMessage("Writing output data...")
 
             # Create an update cursor to add numtrips, trips/hr, and maxwaittime to stops
-            if BBB_SharedFunctions.ArcVersion == "10.0":
-                if ".shp" in outStops:
-                    ucursor = arcpy.UpdateCursor(outStops, "", "", "stop_id; NumTrips; TripsPerHr; MaxWaitTm")
-                    for row in ucursor:
-                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                    [str(row.getValue("stop_id"))], stoptimedict,
-                                    CalcWaitTime, start_sec, end_sec)
-                        row.NumTrips = NumTrips
-                        row.TripsPerHr = NumTripsPerHr
-                        if MaxWaitTime == None:
-                            row.MaxWaitTm = -1
-                        else:
-                            row.MaxWaitTm = MaxWaitTime
-                        ucursor.updateRow(row)
-                else:
-                    ucursor = arcpy.UpdateCursor(outStops, "", "", "stop_id; NumTrips; NumTripsPerHr; MaxWaitTime")
-                    for row in ucursor:
-                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                    [str(row.getValue("stop_id"))], stoptimedict,
-                                    CalcWaitTime, start_sec, end_sec)
-                        row.NumTrips = NumTrips
-                        row.NumTripsPerHr = NumTripsPerHr
-                        row.MaxWaitTime = MaxWaitTime
-                        ucursor.updateRow(row)
-
+            if ".shp" in outStops:
+                ucursor = arcpy.da.UpdateCursor(outStops,
+                                            ["stop_id", "NumTrips",
+                                            "TripsPerHr",
+                                            "MaxWaitTm"])
             else:
-                # For everything 10.1 and forward
-                if ".shp" in outStops:
-                    ucursor = arcpy.da.UpdateCursor(outStops,
-                                                ["stop_id", "NumTrips",
-                                                "TripsPerHr",
-                                                "MaxWaitTm"])
+                ucursor = arcpy.da.UpdateCursor(outStops,
+                                            ["stop_id", "NumTrips",
+                                            "NumTripsPerHr",
+                                            "MaxWaitTime"])
+            for row in ucursor:
+                NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
+                            BBB_SharedFunctions.RetrieveStatsForSetOfStops(
+                                [str(row[0])], stoptimedict, CalcWaitTime,
+                                start_sec, end_sec)
+                row[1] = NumTrips
+                row[2] = NumTripsPerHr
+                if ".shp" in outStops and MaxWaitTime == None:
+                    row[3] = -1
                 else:
-                    ucursor = arcpy.da.UpdateCursor(outStops,
-                                                ["stop_id", "NumTrips",
-                                                "NumTripsPerHr",
-                                                "MaxWaitTime"])
-                for row in ucursor:
-                    NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                    [str(row[0])], stoptimedict, CalcWaitTime,
-                                    start_sec, end_sec)
-                    row[1] = NumTrips
-                    row[2] = NumTripsPerHr
-                    if ".shp" in outStops and MaxWaitTime == None:
-                        row[3] = -1
-                    else:
-                        row[3] = MaxWaitTime
-                    ucursor.updateRow(row)
+                    row[3] = MaxWaitTime
+                ucursor.updateRow(row)
 
         except:
             arcpy.AddError("Error writing to output.")
