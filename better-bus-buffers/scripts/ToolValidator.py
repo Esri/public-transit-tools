@@ -142,13 +142,13 @@ def check_calendar_existence(SQLDbase):
         return True
 
 
-def allow_YYYYMMDD_day(param_day, param_SQLDbase):
+def allow_YYYYMMDD_day(param_day, SQLDbase):
     '''Make Day parameter accept a weekday or a YYYYMMDD date string. Throw error if
     generic weekday is chosen but GTFS does not have calendar.txt.
     Hack for Pro: Define the filter list in updateMessages to trick UI control
     into allowing free text entry in addition to selection from the list. This
     allows us to accept both a weekday an a YYYYMMDD date.'''
-    
+
     # Define the filter list
     param_day.filter.list = BBB_SharedFunctions.days
     
@@ -174,7 +174,7 @@ date falls within the date range covered by your GTFS data.")
                 param_day.setErrorMessage("Please enter a date in YYYYMMDD format or a weekday.")
         else:
             # If it's a generic weekday, the SQL file must have a calendar file
-            if param_SQLDbase.valueAsText and not check_calendar_existence(param_SQLDbase.valueAsText):
+            if SQLDbase and not check_calendar_existence(SQLDbase):
                 param_day.setErrorMessage(specificDatesRequiredMessage)
 
 
@@ -311,7 +311,7 @@ def populate_UniqueID(param_points, param_UniqueID):
         # param_points is the user-entered locations dataset
         inLocs = param_points.value
         desc = arcpy.Describe(inLocs)
-        fieldnames = [f.name for f in desc.fields in f.type in acceptable_field_types]
+        fieldnames = [f.name for f in desc.fields if f.type in acceptable_field_types]
         # Put the value list of field names into the GUI field.
         param_UniqueID.filter.list = fieldnames
 

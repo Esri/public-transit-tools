@@ -19,6 +19,7 @@ suite.'''
 ################################################################################
 
 import arcpy
+import os
 import ToolValidator
 
 class Toolbox(object):
@@ -142,7 +143,7 @@ trips that visit those stops.'''
         end_time = parameters[4]
 
         ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
-        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase.valueAsText)
         ToolValidator.check_time_window(start_time, end_time)
 
         return
@@ -224,7 +225,7 @@ the number of transit trips available within a short walk during a time window.'
         end_time = parameters[6]
 
         ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
-        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase.valueAsText)
         ToolValidator.check_time_window(start_time, end_time)
 
         return
@@ -335,7 +336,7 @@ network datasets or a Network Analyst license'''
 
         ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
         ToolValidator.forbid_shapefile(param_fc)
-        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase.valueAsText)
         ToolValidator.check_time_window(start_time, end_time)
 
         return
@@ -522,7 +523,12 @@ specific time window.'''
         end_time = parameters[4]
 
         ToolValidator.check_Step1_gdb(param_inStep1GDB, param_day)
-        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+
+        SQLDbase = None
+        if param_inStep1GDB.value and not param_inStep1GDB.hasError():
+            SQLDbase = os.path.join(param_inStep1GDB.valueAsText, "Step1_GTFS.sql")
+        ToolValidator.allow_YYYYMMDD_day(param_day, SQLDbase)
+
         ToolValidator.check_time_window(start_time, end_time)
 
         return
@@ -698,7 +704,7 @@ time window.'''
         end_time = parameters[4]
 
         ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "routes", "stop_times"], ["calendar", "calendar_dates"], param_day)
-        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase.valueAsText)
         ToolValidator.check_time_window(start_time, end_time)
 
         return
@@ -841,7 +847,7 @@ service during specific time windows.'''
 
         ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
         ToolValidator.forbid_shapefile(param_linesFC)
-        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase.valueAsText)
         ToolValidator.check_time_window(start_time, end_time)
 
         return
@@ -918,7 +924,7 @@ or shorter.'''
         end_time = parameters[4]
 
         ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
-        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase)
+        ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase.valueAsText)
         ToolValidator.check_time_window(start_time, end_time)
 
         return
@@ -1036,7 +1042,7 @@ param_restrictions = CommonParameter(
     "Network restrictions (Choose ones appropriate for pedestrians.)",
     "restrictions",
     "GPString",
-    "Required",
+    "Optional",
     "Input",
     True)
 
