@@ -1028,5 +1028,13 @@ def CleanUpDepOrArr(DepOrArrChoice):
         return "departure_time"
     return None
 
+def CheckSpecificDate(day):
+    '''Is the chosen day a specific date or a generic weekday?'''
+    # Note: Datetime format check is in tool validation code
+    if day in days: #Generic weekday
+        return False, day
+    else: #Specific date
+        return True, datetime.datetime.strptime(day, '%Y%m%d')
+
 class CustomError(Exception):
     pass

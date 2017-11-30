@@ -93,13 +93,7 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         # GTFS SQL dbase - must be created ahead of time.
         BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
 
-        # Weekday or specific date to analyze.
-        # Note: Datetime format check is in tool validation code
-        if day in BBB_SharedFunctions.days: #Generic weekday
-            Specific = False
-        else: #Specific date
-            Specific = True
-            day = datetime.datetime.strptime(day, '%Y%m%d')
+        Specific, day = BBB_SharedFunctions.CheckSpecificDate(day)
 
         # Lower end of time window (HH:MM in 24-hour time)
         # Default start time is midnight if they leave it blank.
