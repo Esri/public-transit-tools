@@ -94,7 +94,7 @@ def runTool(FCs, SQLDbase, dayString, start_time, end_time, DepOrArrChoice):
                 for field in RequiredFields:
                     if not field in FieldNames[FC]:
                         arcpy.AddError("Feature class %s does not have the required \
-    fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
+fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
                         raise BBB_SharedFunctions.CustomError
 
             # SQL database of preprocessed GTFS from Step 1
@@ -181,10 +181,10 @@ def runTool(FCs, SQLDbase, dayString, start_time, end_time, DepOrArrChoice):
 
                 if not triproutelist:
                     arcpy.AddWarning("Your GTFS dataset does not contain any trips \
-    corresponding to Route %s and Direction %s. Please ensure that \
-    you have selected the correct GTFS SQL file for this input file or that your \
-    GTFS data is good. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (route_id, str(direction_id)))
+corresponding to Route %s and Direction %s. Please ensure that \
+you have selected the correct GTFS SQL file for this input file or that your \
+GTFS data is good. Output fields will be generated, but \
+the values will be 0 or <Null>." % (route_id, str(direction_id)))
 
                 for triproute in triproutelist:
                     # Only keep trips running on the correct day
@@ -197,8 +197,8 @@ def runTool(FCs, SQLDbase, dayString, start_time, end_time, DepOrArrChoice):
 
                 if not trip_route_dict and not trip_route_dict_tom and not trip_route_dict_yest:
                     arcpy.AddWarning("There is no service for route %s in direction %s \
-    on %s during the time window you selected. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
+on %s during the time window you selected. Output fields will be generated, but \
+the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
 
         except:
             arcpy.AddError("Error getting trips associated with route.")
@@ -243,8 +243,8 @@ def runTool(FCs, SQLDbase, dayString, start_time, end_time, DepOrArrChoice):
                 # Add a warning if there is no service.
                 if not stoptimedict:
                     arcpy.AddWarning("There is no service for route %s in direction %s \
-    on %s during the time window you selected. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (rtdirpair[0], str(rtdirpair[1]), dayString))
+on %s during the time window you selected. Output fields will be generated, but \
+the values will be 0 or <Null>." % (rtdirpair[0], str(rtdirpair[1]), dayString))
 
         except:
             arcpy.AddError("Error counting arrivals or departures at stop during time window.")
@@ -285,7 +285,7 @@ def runTool(FCs, SQLDbase, dayString, start_time, end_time, DepOrArrChoice):
 
         arcpy.AddMessage("Finished!")
         arcpy.AddMessage("Calculated trip counts, frequency, max wait time, and \
-    headway were written to the following fields in your input feature class(es):")
+headway were written to the following fields in your input feature class(es):")
         for field in fields_to_fill:
             arcpy.AddMessage("- " + field)
 

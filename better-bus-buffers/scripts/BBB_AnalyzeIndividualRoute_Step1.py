@@ -42,7 +42,6 @@ conn = None
 
 def runTool(outGDB, SQLDbase, RouteText, inNetworkDataset, imp, BufferSize, restrictions, TrimSettings):
     try:
-        # ------ Get input parameters and set things up. -----
         BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
         BBB_SharedFunctions.CheckOutNALicense()
         BBB_SharedFunctions.CheckWorkspace()
@@ -111,8 +110,8 @@ def runTool(outGDB, SQLDbase, RouteText, inNetworkDataset, imp, BufferSize, rest
                 trip_dir_dict.setdefault(triproute[1], []).append(triproute[0])
             if not trip_dir_dict:
                 arcpy.AddError("There are no trips in the GTFS data for the route \
-    you have selected (%s).  Please select a different route or fix your GTFS \
-    dataset." % RouteText)
+you have selected (%s).  Please select a different route or fix your GTFS \
+dataset." % RouteText)
                 raise BBB_SharedFunctions.CustomError
 
         except:
@@ -140,8 +139,8 @@ def runTool(outGDB, SQLDbase, RouteText, inNetworkDataset, imp, BufferSize, rest
             # to the output fc names, so add an _ here for prettiness.
             if len(stoplist) > 1:
                 arcpy.AddMessage("Route %s contains trips going in more than one \
-    direction. A separate feature class will be created for each direction, and the \
-    GTFS direction_id will be appended to the feature class name." % route_short_name)
+direction. A separate feature class will be created for each direction, and the \
+GTFS direction_id will be appended to the feature class name." % route_short_name)
                 outStopsname += "_"
                 outPolysname += "_"
 

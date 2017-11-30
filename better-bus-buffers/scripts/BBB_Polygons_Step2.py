@@ -148,9 +148,9 @@ def runTool(inStep1GDB, outFile, day, start_time, end_time, TravelFromTo):
 
             if badpolys:
                 arcpy.AddWarning("Warning! BetterBusBuffers could not calculate trip \
-    statistics for one or more polygons due to a geometry issue. These polygons will \
-    appear in your output data, but all output values will be null. Bad polygon \
-    PolyID values: " + str(badpolys))
+statistics for one or more polygons due to a geometry issue. These polygons will \
+appear in your output data, but all output values will be null. Bad polygon \
+PolyID values: " + str(badpolys))
 
         except:
             arcpy.AddMessage("Error writing output.")

@@ -182,10 +182,10 @@ def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice, Frequ
                 triproutelist = c2.fetchall()
                 if not triproutelist:
                     arcpy.AddWarning("Your GTFS dataset does not contain any trips \
-    corresponding to Route %s and Direction %s. Please ensure that \
-    you have selected the correct GTFS SQL file for this input file or that your \
-    GTFS data is good. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (route_id, str(direction_id)))
+corresponding to Route %s and Direction %s. Please ensure that \
+you have selected the correct GTFS SQL file for this input file or that your \
+GTFS data is good. Output fields will be generated, but \
+the values will be 0 or <Null>." % (route_id, str(direction_id)))
 
                 for triproute in triproutelist:
                     # Only keep trips running on the correct day
@@ -198,8 +198,8 @@ def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice, Frequ
 
                 if not trip_route_dict and not trip_route_dict_tom and not trip_route_dict_yest:
                     arcpy.AddWarning("There is no service for route %s in direction %s \
-    on %s during the time window you selected. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
+on %s during the time window you selected. Output fields will be generated, but \
+the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
 
         except:
             arcpy.AddError("Error getting trips associated with route.")
@@ -245,8 +245,8 @@ def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice, Frequ
                     stoptimedict_service_check_counter+=1
             if stoptimedict_service_check_counter>0:
                 arcpy.AddWarning("There is no service for %s route-direction pair(s) \
-    on %s during the time window you selected. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (str(stoptimedict_service_check_counter),str(day)))
+on %s during the time window you selected. Output fields will be generated, but \
+the values will be 0 or <Null>." % (str(stoptimedict_service_check_counter),str(day)))
 
 
         except:

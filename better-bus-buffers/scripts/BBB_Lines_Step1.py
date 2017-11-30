@@ -174,8 +174,8 @@ def runTool(outLinesFC, SQLDbase, combine_corridors):
         if badStops:
             badStops = list(set(badStops))
             arcpy.AddWarning("Your stop_times.txt lists times for the following \
-    stops which are not included in your stops.txt file. Schedule information for \
-    these stops will be ignored. " + unicode(badStops))
+stops which are not included in your stops.txt file. Schedule information for \
+these stops will be ignored. " + unicode(badStops))
 
         # Remove these entries from the linefeatures dictionary so it doesn't cause false records later
         if badkeys:
