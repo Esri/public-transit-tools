@@ -63,18 +63,11 @@ def runOD(Points, Stops):
     # Get the resulting OD Lines and store the stops that are reachable from points.
     if result_severity != 2:
         linesSubLayer = result.getOutput(1)
-        if ArcVersion == "10.0":
-            with arcpy.SearchCursor(linesSubLayer, "", "", "OriginOID; DestinationOID") as ODCursor:
-                for row in ODCursor:
-                    UID = pointsOIDdict[row.getValue("OriginOID")]
-                    SID = stopOIDdict[row.getValue("DestinationOID")]
-                    PointsAndStops.setdefault(str(UID), []).append(str(SID))
-        else:
-            with arcpy.da.SearchCursor(linesSubLayer, ["OriginOID", "DestinationOID"]) as ODCursor:
-                for row in ODCursor:
-                    UID = pointsOIDdict[row[0]]
-                    SID = stopOIDdict[row[1]]
-                    PointsAndStops.setdefault(str(UID), []).append(str(SID))
+        with arcpy.da.SearchCursor(linesSubLayer, ["OriginOID", "DestinationOID"]) as ODCursor:
+            for row in ODCursor:
+                UID = pointsOIDdict[row[0]]
+                SID = stopOIDdict[row[1]]
+                PointsAndStops.setdefault(str(UID), []).append(str(SID))
 
 
 def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, end_time, 
@@ -297,77 +290,34 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
                 arcpy.management.AddField(outFile, "NumStopsInRange", "SHORT")
                 arcpy.management.AddField(outFile, "MaxWaitTime", "SHORT")
 
-            if ArcVersion == "10.0":
-                if isshp:
-                    ucursor = arcpy.UpdateCursor(outFile, "", "",
-                                            inLocUniqueID[0:10] + "; NumTrips; TripsPerHr; NumStops; MaxWaitTm")
-                    for row in ucursor:
-                        try:
-                            ImportantStops = PointsAndStops[str(row.getValue(inLocUniqueID))]
-                        except KeyError:
-                            # This point had no stops in range
-                            ImportantStops = []
-                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                        ImportantStops, stoptimedict, CalcWaitTime,
-                                        start_sec, end_sec)
-                        row.NumTrips = NumTrips
-                        row.TripsPerHr = NumTripsPerHr
-                        row.NumStops = NumStopsInRange
-                        if MaxWaitTime == None:
-                            row.MaxWaitTm = -1
-                        else:
-                            row.MaxWaitTm = MaxWaitTime
-                        ucursor.updateRow(row)
-                else:
-                    ucursor = arcpy.UpdateCursor(outFile, "", "",
-                                            inLocUniqueID + "; NumTrips; NumTripsPerHr; NumStopsInRange; MaxWaitTime")
-                    for row in ucursor:
-                        try:
-                            ImportantStops = PointsAndStops[str(row.getValue(inLocUniqueID))]
-                        except KeyError:
-                            # This point had no stops in range
-                            ImportantStops = []
-                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                        ImportantStops, stoptimedict, CalcWaitTime,
-                                        start_sec, end_sec)
-                        row.NumTrips = NumTrips
-                        row.NumTripsPerHr = NumTripsPerHr
-                        row.NumStopsInRange = NumStopsInRange
-                        row.MaxWaitTime = MaxWaitTime
-                        ucursor.updateRow(row)
-
+            if isshp:
+                ucursor = arcpy.da.UpdateCursor(outFile,
+                                                [inLocUniqueID[0:10], "NumTrips",
+                                                "TripsPerHr", "NumStops",
+                                                "MaxWaitTm"])
             else:
-                # For everything 10.1 and forward
-                if isshp:
-                    ucursor = arcpy.da.UpdateCursor(outFile,
-                                                    [inLocUniqueID[0:10], "NumTrips",
-                                                    "TripsPerHr", "NumStops",
-                                                    "MaxWaitTm"])
+                ucursor = arcpy.da.UpdateCursor(outFile,
+                                            [inLocUniqueID, "NumTrips",
+                                            "NumTripsPerHr", "NumStopsInRange",
+                                            "MaxWaitTime"])
+            for row in ucursor:
+                try:
+                    ImportantStops = PointsAndStops[str(row[0])]
+                except KeyError:
+                    # This point had no stops in range
+                    ImportantStops = []
+                NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime =\
+                                BBB_SharedFunctions.RetrieveStatsForSetOfStops(
+                                    ImportantStops, stoptimedict, CalcWaitTime,
+                                    start_sec, end_sec)
+                row[1] = NumTrips
+                row[2] = NumTripsPerHr
+                row[3] = NumStopsInRange
+                if isshp and MaxWaitTime == None:
+                    row[4] = -1
                 else:
-                    ucursor = arcpy.da.UpdateCursor(outFile,
-                                                [inLocUniqueID, "NumTrips",
-                                                "NumTripsPerHr", "NumStopsInRange",
-                                                "MaxWaitTime"])
-                for row in ucursor:
-                    try:
-                        ImportantStops = PointsAndStops[str(row[0])]
-                    except KeyError:
-                        # This point had no stops in range
-                        ImportantStops = []
-                    NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime =\
-                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                        ImportantStops, stoptimedict, CalcWaitTime,
-                                        start_sec, end_sec)
-                    row[1] = NumTrips
-                    row[2] = NumTripsPerHr
-                    row[3] = NumStopsInRange
-                    if isshp and MaxWaitTime == None:
-                        row[4] = -1
-                    else:
-                        row[4] = MaxWaitTime
-                    ucursor.updateRow(row)
+                    row[4] = MaxWaitTime
+                ucursor.updateRow(row)
             del ucursor
                     
         except:

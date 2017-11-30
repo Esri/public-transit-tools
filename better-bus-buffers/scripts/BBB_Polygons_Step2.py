@@ -112,81 +112,39 @@ def runTool(inStep1GDB, outFile, day, start_time, end_time, TravelFromTo):
             arcpy.management.CopyFeatures(FlatPolys, outFile)
             badpolys = []
 
-            if BBB_SharedFunctions.ArcVersion == "10.0":
-                if ".shp" in outFilename:
-                    ucursor = arcpy.UpdateCursor(outFile, "", "",
-                                            "PolyID; NumTrips; NumTripsPe; NumStopsIn; MaxWaitTim")
-                    for row in ucursor:
-                        try:
-                            ImportantStops = stackedpointdict[str(row.getValue("PolyID"))]
-                        except KeyError:
-                            badpolys.append(str(row.getValue("PolyID")))
-                            continue
-                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                        ImportantStops, stoptimedict, CalcWaitTime,
-                                        start_sec, end_sec)
-                        row.NumTrips = NumTrips
-                        row.TripsPerHr = NumTripsPerHr
-                        row.NumStops = NumStopsInRange
-                        if MaxWaitTime == None:
-                            row.MaxWaitTm = -1
-                        else:
-                            row.MaxWaitTm = MaxWaitTime
-                        ucursor.updateRow(row)
-                else:
-                    ucursor = arcpy.UpdateCursor(outFile, "", "",
-                                            "PolyID; NumTrips; NumTripsPerHr; NumStopsInRange; MaxWaitTime")
-                    for row in ucursor:
-                        try:
-                            ImportantStops = stackedpointdict[str(row.getValue("PolyID"))]
-                        except KeyError:
-                            badpolys.append(str(row.getValue("PolyID")))
-                            continue
-                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                        ImportantStops, stoptimedict, CalcWaitTime,
-                                        start_sec, end_sec)
-                        row.NumTrips = NumTrips
-                        row.NumTripsPerHr = NumTripsPerHr
-                        row.NumStopsInRange = NumStopsInRange
-                        row.MaxWaitTime = MaxWaitTime
-                        ucursor.updateRow(row)
-
-            else:
-                if ".shp" in outFilename:
-                    ucursor = arcpy.da.UpdateCursor(outFile,
-                                                    ["PolyID", "NumTrips",
-                                                    "NumTripsPe", "NumStopsIn",
-                                                    "MaxWaitTim"])
-                else:
-                    ucursor = arcpy.da.UpdateCursor(outFile,
+            if ".shp" in outFilename:
+                ucursor = arcpy.da.UpdateCursor(outFile,
                                                 ["PolyID", "NumTrips",
-                                                "NumTripsPerHr", "NumStopsInRange",
-                                                "MaxWaitTime"])
-                for row in ucursor:
-                    try:
-                        ImportantStops = stackedpointdict[int(row[0])]
-                    except KeyError:
-                        # If we got a KeyError here, then an output polygon never
-                        # got a point associated with it, probably the result of a
-                        # geometry problem because of the large cluster tolerance
-                        # used to generate the polygons in Step 1. Just skip this
-                        # polygon and alert the user.
-                        badpolys.append(row[0])
-                        continue
-                    NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                        ImportantStops, stoptimedict, CalcWaitTime,
-                                        start_sec, end_sec)
-                    row[1] = NumTrips
-                    row[2] = NumTripsPerHr
-                    row[3] = NumStopsInRange
-                    if ".shp" in outFilename and MaxWaitTime == None:
-                        row[4] = -1
-                    else:
-                        row[4] = MaxWaitTime
-                    ucursor.updateRow(row)
+                                                "NumTripsPe", "NumStopsIn",
+                                                "MaxWaitTim"])
+            else:
+                ucursor = arcpy.da.UpdateCursor(outFile,
+                                            ["PolyID", "NumTrips",
+                                            "NumTripsPerHr", "NumStopsInRange",
+                                            "MaxWaitTime"])
+            for row in ucursor:
+                try:
+                    ImportantStops = stackedpointdict[int(row[0])]
+                except KeyError:
+                    # If we got a KeyError here, then an output polygon never
+                    # got a point associated with it, probably the result of a
+                    # geometry problem because of the large cluster tolerance
+                    # used to generate the polygons in Step 1. Just skip this
+                    # polygon and alert the user.
+                    badpolys.append(row[0])
+                    continue
+                NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
+                                BBB_SharedFunctions.RetrieveStatsForSetOfStops(
+                                    ImportantStops, stoptimedict, CalcWaitTime,
+                                    start_sec, end_sec)
+                row[1] = NumTrips
+                row[2] = NumTripsPerHr
+                row[3] = NumStopsInRange
+                if ".shp" in outFilename and MaxWaitTime == None:
+                    row[4] = -1
+                else:
+                    row[4] = MaxWaitTime
+                ucursor.updateRow(row)
 
             if badpolys:
                 arcpy.AddWarning("Warning! BetterBusBuffers could not calculate trip \

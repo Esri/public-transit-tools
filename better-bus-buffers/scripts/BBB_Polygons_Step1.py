@@ -117,15 +117,6 @@ def runTool(outDir, outGDB, inSQLDbase, inNetworkDataset, imp, BufferSize, restr
             arcpy.AddMessage("Reformatting polygons for further analysis...")
             arcpy.AddMessage("(This step will take a while for large networks.)")
 
-            polycopy = os.path.join(outGDBwPath, "Temp_Polygons")
-            if BBB_SharedFunctions.ArcVersion == "10.0":
-                # For some reason, passing an NALayer reference object to FeatureToPolygon
-                # in PostProcessPolys() causes ArcMap 10.0 to crash.  Avoid this
-                # by saving the layer to a feature class and passing the path.
-                arcpy.management.CopyFeatures(polygons, polycopy)
-                polygons = polycopy
-
-
             # ----- Flatten the overlapping service area polygons -----
 
             # Use World Cylindrical Equal Area (WKID 54034) to ensure proper use of cluster tolerance in meters
@@ -186,21 +177,12 @@ def runTool(outDir, outGDB, inSQLDbase, inNetworkDataset, imp, BufferSize, restr
             # Add data to the table. Track Polygon IDs with no associated stop_ids so we can delete them.
             FIDsToDelete = []
             AddToStackedPts = []
-            if BBB_SharedFunctions.ArcVersion == "10.0":
-                StackedPtCursor = arcpy.SearchCursor(StackedPoints, "", "", "ORIG_FID; stop_id")
-                for row in StackedPtCursor:
-                    if not row.stop_id:
-                        FIDsToDelete.append(row.ORIG_FID)
-                    else:
-                        AddToStackedPts.append((row.ORIG_FID, row.stop_id,))
-            else:
-                StackedPtCursor = arcpy.da.SearchCursor(StackedPoints, ["ORIG_FID", "stop_id"])
+            with arcpy.da.SearchCursor(StackedPoints, ["ORIG_FID", "stop_id"]) as StackedPtCursor:
                 for row in StackedPtCursor:
                     if not row[1]:
                         FIDsToDelete.append(row[0])
                     else:
                         AddToStackedPts.append((row[0], row[1],))
-            del StackedPtCursor
             # Add the OD items to the SQL table
             c.executemany('''INSERT INTO StackedPoints \
                             (Polygon_FID, stop_id) \
@@ -240,9 +222,6 @@ def runTool(outDir, outGDB, inSQLDbase, inNetworkDataset, imp, BufferSize, restr
         except:
             arcpy.AddError("Error post-processing polygons")
             raise
-        finally:
-            if arcpy.Exists(polycopy):
-                arcpy.management.Delete(polycopy)
 
         arcpy.AddMessage("Done!")
         arcpy.AddMessage("Files written to output geodatabase " + outGDBwPath + ":")

@@ -176,7 +176,7 @@ def GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific=
             serviceidlist_tom, nonoverlappingsids_tom = MakeServiceIDList(Tomorrow, Specific)
     except:
         arcpy.AddError("Error getting list of service_ids for time window.")
-        raise
+        raise CustomError
 
     # Make sure there is service on the day we're analyzing.
     if not serviceidlist and not serviceidlist_yest and not serviceidlist_tom:
@@ -242,7 +242,7 @@ def MakeTripRouteDict():
         arcpy.AddError("Your GTFS trips table is invalid.  It contains multiple trips with the same trip_id.")
         for tripdup in tripdupslist:
             arcpy.AddError("There are %s instances of the trip_id value '%s'." % (str(tripdup[1]), unicode(tripdup[0])))
-        raise
+        raise CustomError
  
     tripsfetch = '''
         SELECT trip_id, route_id
@@ -517,7 +517,7 @@ def GetTripLists(day, start_sec, end_sec, DepOrArr, Specific=False):
                 triplist_tom = MakeTripList(serviceidlist_tom)
     except:
         arcpy.AddError("Error creating list of trips for time window.")
-        raise
+        raise CustomError
 
     # Make sure there is service on the day we're analyzing.
     if not triplist and not triplist_yest and not triplist_tom:
@@ -547,7 +547,7 @@ def CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific=False):
 
     except:
         arcpy.AddError("Error creating dictionary of stops and trips in time window.")
-        raise
+        raise CustomError
 
     return stoptimedict
 
@@ -571,7 +571,7 @@ def CountTripsOnLines(day, start_sec, end_sec, DepOrArr, Specific=False):
 
     except:
         arcpy.AddError("Error creating dictionary of lines and trips in time window.")
-        raise
+        raise CustomError
 
     return linetimedict
 
@@ -721,67 +721,36 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
         DetermineArcVersion()
 
     # Add the stops table to a feature class.
-    if ArcVersion == "10.0":
-        cur3 = arcpy.InsertCursor(StopsLayer)
-        for stopitem in StopTable:
-            stop = list(stopitem)
-            # Shapefile output can't handle null values, so make them empty strings.
-            if ".shp" in stopsfc_name:
-                for idx in possiblenulls:
-                    if not stop[idx]:
-                        stop[idx] = ""
-            row = cur3.newRow()
-            pt = arcpy.Point()
-            pt.X = float(stop[5])
-            pt.Y = float(stop[4])
-            row.shape = pt
-            row.setValue("stop_id", stop[0])
-            row.setValue("stop_code", stop[1])
-            row.setValue("stop_name", stop[2])
-            row.setValue("stop_desc", stop[3])
-            row.setValue("zone_id", stop[6])
-            row.setValue("stop_url", stop[7])
-            if ".shp" in stopsfc_name:
-                row.setValue("loc_type", stop[8])
-                row.setValue("parent_sta", stop[9])
-            else:
-                row.setValue("location_type", stop[8])
-                row.setValue("parent_station", stop[9])
-            cur3.insertRow(row)
-        del row
-
+    if ".shp" in stopsfc_name:
+        cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@X", "SHAPE@Y", "stop_id",
+                                                    "stop_code", "stop_name", "stop_desc",
+                                                    "zone_id", "stop_url", "loc_type",
+                                                    "parent_sta"])
     else:
-        # For everything 10.1 and forward
+        cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@X", "SHAPE@Y", "stop_id",
+                                                    "stop_code", "stop_name", "stop_desc",
+                                                    "zone_id", "stop_url", "location_type",
+                                                    "parent_station"])
+    # Schema of stops table
+    ##   0 - stop_id
+    ##   1 - stop_code
+    ##   2 - stop_name
+    ##   3 - stop_desc
+    ##   4 - stop_lat
+    ##   5 - stop_lon
+    ##   6 - zone_id
+    ##   7 - stop_url
+    ##   8 - location_type
+    ##   9 - parent_station
+    for stopitem in StopTable:
+        stop = list(stopitem)
+        # Shapefile output can't handle null values, so make them empty strings.
         if ".shp" in stopsfc_name:
-            cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@X", "SHAPE@Y", "stop_id",
-                                                     "stop_code", "stop_name", "stop_desc",
-                                                     "zone_id", "stop_url", "loc_type",
-                                                     "parent_sta"])
-        else:
-            cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@X", "SHAPE@Y", "stop_id",
-                                                     "stop_code", "stop_name", "stop_desc",
-                                                     "zone_id", "stop_url", "location_type",
-                                                     "parent_station"])
-        # Schema of stops table
-        ##   0 - stop_id
-        ##   1 - stop_code
-        ##   2 - stop_name
-        ##   3 - stop_desc
-        ##   4 - stop_lat
-        ##   5 - stop_lon
-        ##   6 - zone_id
-        ##   7 - stop_url
-        ##   8 - location_type
-        ##   9 - parent_station
-        for stopitem in StopTable:
-            stop = list(stopitem)
-            # Shapefile output can't handle null values, so make them empty strings.
-            if ".shp" in stopsfc_name:
-                for idx in possiblenulls:
-                    if not stop[idx]:
-                        stop[idx] = ""
-            cur3.insertRow((float(stop[5]), float(stop[4]), stop[0], stop[1],
-                             stop[2], stop[3], stop[6], stop[7], stop[8], stop[9]))
+            for idx in possiblenulls:
+                if not stop[idx]:
+                    stop[idx] = ""
+        cur3.insertRow((float(stop[5]), float(stop[4]), stop[0], stop[1],
+                            stop[2], stop[3], stop[6], stop[7], stop[8], stop[9]))
     del cur3
 
     return stopsfc, StopIDList
@@ -811,40 +780,25 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
         DetermineArcVersion()
 
     # SALayer is the NA Layer object returned by getOutput(0)
-    if ArcVersion == "10.0":
-        # Make the service area layer
-        # Can't use the hierarchy attribute in 10.0.
+    # Make the service area layer
+    # The "hierarcy" attribute for SA is only available in 10.1.
+    # Default is that hierarchy is on, but we don't want it on for
+    # pedestrian travel (probably makes little difference).
+    try:
         SALayer = arcpy.na.MakeServiceAreaLayer(inNetworkDataset, outNALayer_SA,
                                     impedanceAttribute, TravelFromTo,
                                     BufferSize, PolyType, merge,
                                     NestingType, LineType, overlap,
                                     split, exclude, accumulate, uturns,
-                                    restrictions, TrimPolys, TrimPolysValue).getOutput(0)
-    else:
-        # For everything 10.1 and forward
-        # Make the service area layer
-        # The "hierarcy" attribute for SA is only available in 10.1.
-        # Default is that hierarchy is on, but we don't want it on for
-        # pedestrian travel (probably makes little difference).
-        try:
-            SALayer = arcpy.na.MakeServiceAreaLayer(inNetworkDataset, outNALayer_SA,
-                                        impedanceAttribute, TravelFromTo,
-                                        BufferSize, PolyType, merge,
-                                        NestingType, LineType, overlap,
-                                        split, exclude, accumulate, uturns,
-                                        restrictions, TrimPolys, TrimPolysValue, "", hierarchy).getOutput(0)
-        except:
-            errors = arcpy.GetMessages(2).split("\n")
-            if errors[0] == "ERROR 030152: Geoprocessing Current Workspace not found.":
-                arcpy.AddMessage(CurrentGPWorkspaceError)
-                print(CurrentGPWorkspaceError)
-            raise
+                                    restrictions, TrimPolys, TrimPolysValue, "", hierarchy).getOutput(0)
+    except:
+        errors = arcpy.GetMessages(2).split("\n")
+        if errors[0] == "ERROR 030152: Geoprocessing Current Workspace not found.":
+            arcpy.AddMessage(CurrentGPWorkspaceError)
+        raise CustomError
 
     # To refer to the SA sublayers, get the sublayer names.  This is essential for localization.
-    if ArcVersion == "10.0":
-        naSubLayerNames = dict((sublayer.datasetName, sublayer.name) for sublayer in  arcpy.mapping.ListLayers(SALayer)[1:])
-    else:
-        naSubLayerNames = arcpy.na.GetNAClassNames(SALayer)
+    naSubLayerNames = arcpy.na.GetNAClassNames(SALayer)
     facilities = naSubLayerNames["Facilities"]
 
     # Add a field for stop_id as a unique identifier for service areas.
@@ -854,12 +808,9 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
         arcpy.na.AddFieldToAnalysisLayer(outNALayer_SA, facilities, "stop_id", "TEXT", field_length=255)
 
     # Specify the field mappings for the stop_id field.
-    if ArcVersion == "10.0":
-        fieldMappingSA = "Name stop_id #; stop_id stop_id #"
-    else:
-        fieldMappingSA = arcpy.na.NAClassFieldMappings(SALayer, facilities)
-        fieldMappingSA["Name"].mappedFieldName = "stop_id"
-        fieldMappingSA["stop_id"].mappedFieldName = "stop_id"
+    fieldMappingSA = arcpy.na.NAClassFieldMappings(SALayer, facilities)
+    fieldMappingSA["Name"].mappedFieldName = "stop_id"
+    fieldMappingSA["stop_id"].mappedFieldName = "stop_id"
 
     # Add the GTFS stops as locations for the analysis.
     if ProductName == "ArcGISPro":
