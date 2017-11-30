@@ -38,15 +38,9 @@ def runTool(step1LinesFC, SQLDbase, linesFC, day, start_time, end_time):
         # ------ Get input parameters and set things up. -----
         try:
 
-            # Figure out what version of ArcGIS they're running
-            BBB_SharedFunctions.DetermineArcVersion()
-            if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
-                arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
-    You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
-                raise CustomError
-            if BBB_SharedFunctions.ArcVersion == "10.0":
-                arcpy.AddError("You must have ArcGIS 10.1 or higher (or ArcGIS Pro) to run this \
-    tool. You have ArcGIS version %s." % BBB_SharedFunctions.ArcVersion)
+            version_error = BBB_SharedFunctions.CheckProVersion("1.2")
+            if version_error:
+                arcpy.AddError(version_error)
                 raise CustomError
 
             try:

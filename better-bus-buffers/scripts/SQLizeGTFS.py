@@ -44,10 +44,9 @@ def runTool(inGTFSdir, SQLDbase):
     try:
         
         # Figure out what version of ArcGIS they're running
-        BBB_SharedFunctions.DetermineArcVersion()
-        if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
-            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
-    You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
+        version_error = BBB_SharedFunctions.CheckProVersion("1.2")
+        if version_error:
+            arcpy.AddError(version_error)
             raise CustomError
 
         #----- SQLize the GTFS data-----

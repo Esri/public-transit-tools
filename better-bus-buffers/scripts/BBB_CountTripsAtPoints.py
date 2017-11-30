@@ -38,14 +38,12 @@ class CustomError(Exception):
 def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, end_time,
             inNetworkDataset, imp, BufferSize, restrictions, DepOrArrChoice):
     try:
-        # Figure out what version of ArcGIS they're running
-        BBB_SharedFunctions.DetermineArcVersion()
+        version_error = BBB_SharedFunctions.CheckProVersion("1.2")
+        if version_error:
+            arcpy.AddError(version_error)
+            raise CustomError
         ArcVersion = BBB_SharedFunctions.ArcVersion
         ProductName = BBB_SharedFunctions.ProductName
-        if BBB_SharedFunctions.ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
-            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
-    You have ArcGIS Pro version %s." % ArcVersion)
-            raise CustomError
 
         #----- Get input parameters -----
         BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)

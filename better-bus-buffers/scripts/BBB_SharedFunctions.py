@@ -953,6 +953,17 @@ def DetermineArcVersion():
     ProductName = ArcVersionInfo['ProductName']
     ArcVersion = ArcVersionInfo['Version']
 
+def CheckProVersion(min_version):
+    DetermineArcVersion()
+    pro_versions = ["1.0", "1.1", "1.1.1", "1.2"]
+    if min_version not in pro_versions:
+        return "Invalid ArcGIS Pro version number: %s" % str(min_version))
+    version_idx = pro_versions.index(min_version)
+    if ProductName == "ArcGISPro" and ArcVersion in pro_versions[:version_idx]:
+        return "The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to %s.\
+You have ArcGIS Pro version %s." % (min_version, ArcVersion)
+    return None
+
 def CheckAndSetWorkspace(workspace):
     '''Set arcpy.env.workspace if it's not already set to a file geodatabase. This is essential for Pro when creating NA layers.'''
     currentworkspace = arcpy.env.workspace
@@ -961,6 +972,26 @@ def CheckAndSetWorkspace(workspace):
         if desc.workspaceFactoryProgID != "esriDataSourcesGDB.FileGDBWorkspaceFactory.1": #File gdb
             arcpy.env.workspace = workspace
 
+def CleanUpTrimSettings(TrimSettings):
+    if TrimSettings:
+        TrimPolys = "TRIM_POLYS"
+        TrimPolysValue = str(TrimSettings) + " meters"
+    else:
+        TrimPolys = "NO_TRIM_POLYS"
+        TrimPolysValue = ""
+    return TrimPolys, TrimPolysValue
+
+def CleanUpImpedance(imp):
+    '''Extract impedance attribute and units from text string'''
+    # The input is formatted as "[Impedance] (Units: [Units])"
+    return = imp.split(" (")[0]
+
+def CleanUpDepOrArr(DepOrArrChoice):
+    if DepOrArrChoice == "Arrivals":
+        return "arrival_time"
+    elif DepOrArrChoice == "Departures":
+        return "departure_time"
+    return None
 
 class CustomError(Exception):
     pass

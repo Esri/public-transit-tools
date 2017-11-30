@@ -107,9 +107,9 @@ def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice, Frequ
             if (BBB_SharedFunctions.ProductName != "ArcGISPro") and (BBB_SharedFunctions.ArcVersion in ["10.1", "10.2", "10.2.1", "10.2.2", "10.3", "10.3.1"]):
                 arcpy.AddError("This tool requires ArcGIS version 10.4 or higher or ArcGIS Pro.")
                 raise CustomError
-            if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
-                arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
-    You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
+            version_error = BBB_SharedFunctions.CheckProVersion("1.2")
+            if version_error:
+                arcpy.AddError(version_error)
                 raise CustomError
 
             try:

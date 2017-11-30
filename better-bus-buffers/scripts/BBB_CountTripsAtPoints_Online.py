@@ -97,9 +97,9 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
             arcpy.AddError("You must have ArcGIS 10.1 or higher (or ArcGIS Pro) to run this \
     tool. You have ArcGIS version %s." % ArcVersion)
             raise CustomError
-        if ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
-            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
-    You have ArcGIS Pro version %s." % ArcVersion)
+        version_error = BBB_SharedFunctions.CheckProVersion("1.2")
+        if version_error:
+            arcpy.AddError(version_error)
             raise CustomError
 
 
