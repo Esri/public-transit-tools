@@ -60,7 +60,7 @@ def runTool(outDir, outGDB, inSQLDbase, inNetworkDataset, imp, BufferSize, restr
 
             # Append .gdb to geodatabase name.
             if not outGDB.lower().endswith(".gdb"):
-                outGDB = outGDB + ".gdb"
+                outGDB += ".gdb"
             outGDBwPath = os.path.join(outDir, outGDB)
             # Create a file geodatabase for the results.
             arcpy.management.CreateFileGDB(outDir, outGDB)
@@ -72,17 +72,8 @@ def runTool(outDir, outGDB, inSQLDbase, inNetworkDataset, imp, BufferSize, restr
             conn = sqlite3.connect(SQLDbase)
             c = BBB_SharedFunctions.c = conn.cursor()
 
-            # Extract impedance attribute and units from text string
-            # The input is formatted as "[Impedance] (Units: [Units])"
-            implist = imp.split(" (")
-            impedanceAttribute = implist[0]
-
-            if TrimSettings:
-                TrimPolys = "TRIM_POLYS"
-                TrimPolysValue = str(TrimSettings) + " meters"
-            else:
-                TrimPolys = "NO_TRIM_POLYS"
-                TrimPolysValue = ""
+            impedanceAttribute = BBB_SharedFunctions.CleanUpImpedance(imp)
+            TrimPolys, TrimPolysValue = BBB_SharedFunctions.CleanUpTrimSettings(TrimSettings)
 
         except:
             arcpy.AddError("Error setting up run.")

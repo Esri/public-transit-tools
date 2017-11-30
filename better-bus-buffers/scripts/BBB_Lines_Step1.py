@@ -37,26 +37,24 @@ import BBB_SharedFunctions
 # ----- Collect user inputs -----
 
 def runTool(outLinesFC, SQLDbase, combine_corridors):
-
-    # Derived inputs
-    outGDB = os.path.dirname(outLinesFC) # Must be in fgdb. Validated in tool validation.
-    # Create a guid to make sure temporary outputs have unique names. They should be deleted
-    # when the tool completes, but this ensures they don't conflict with any existing feature
-    # classes in the gdb and makes it easier to know what they are and delete them if they
-    # don't automatically get deleted.
-    guid = uuid.uuid4().hex
-    outStopPairsFCName = "StopPairs_" + guid
-    outStopPairsFC = os.path.join(outGDB, outStopPairsFCName)
-
-    # Get the original overwrite output setting so we can reset it at the end.
-    OverwriteOutput = arcpy.env.overwriteOutput
-    # It's okay to overwrite stuff in this tool
-    arcpy.env.overwriteOutput = True
-
-
     try:
 
         BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
+
+        # Derived inputs
+        outGDB = os.path.dirname(outLinesFC) # Must be in fgdb. Validated in tool validation.
+        # Create a guid to make sure temporary outputs have unique names. They should be deleted
+        # when the tool completes, but this ensures they don't conflict with any existing feature
+        # classes in the gdb and makes it easier to know what they are and delete them if they
+        # don't automatically get deleted.
+        guid = uuid.uuid4().hex
+        outStopPairsFCName = "StopPairs_" + guid
+        outStopPairsFC = os.path.join(outGDB, outStopPairsFCName)
+
+        # Get the original overwrite output setting so we can reset it at the end.
+        OverwriteOutput = arcpy.env.overwriteOutput
+        # It's okay to overwrite stuff in this tool
+        arcpy.env.overwriteOutput = True
 
         conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
 

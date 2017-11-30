@@ -138,6 +138,7 @@ def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice, Frequ
         except:
             arcpy.AddError("Error creating feature class of GTFS stops.")
             raise
+        
         # ----- Query the GTFS data to count the trips at each stop -----
         try:
             arcpy.AddMessage("Calculating the determining trips for route-direction pairs...")
