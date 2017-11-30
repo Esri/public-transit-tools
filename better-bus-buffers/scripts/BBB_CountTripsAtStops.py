@@ -32,24 +32,15 @@ import BBB_SharedFunctions
 
 def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice):
     try:
-        # ------ Get input parameters and set things up. -----
-        try:
             
-            BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
+        BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
+        BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
 
-            # GTFS SQL dbase - must be created ahead of time.
-            BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
+        Specific, day = BBB_SharedFunctions.CheckSpecificDate(day)
+        start_sec, end_sec = BBB_SharedFunctions.ConvertTimeWindowToSeconds(start_time, end_time)
 
-            Specific, day = BBB_SharedFunctions.CheckSpecificDate(day)
-            start_sec, end_sec = BBB_SharedFunctions.ConvertTimeWindowToSeconds(start_time, end_time)
-
-            # Will we calculate the max wait time?
-            CalcWaitTime = "true"
-
-        except:
-            arcpy.AddError("Error getting user inputs.")
-            raise
-
+        # Will we calculate the max wait time?
+        CalcWaitTime = True
 
         # ----- Create a feature class of stops and add fields for transit trip counts ------
         try:

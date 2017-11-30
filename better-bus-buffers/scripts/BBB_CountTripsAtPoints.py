@@ -47,7 +47,7 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         start_sec, end_sec = BBB_SharedFunctions.ConvertTimeWindowToSeconds(start_time, end_time)
 
         # Will we calculate the max wait time?
-        CalcWaitTime = "true"
+        CalcWaitTime = True
 
         # Hard-wired OD variables
         ExcludeRestricted = "EXCLUDE"

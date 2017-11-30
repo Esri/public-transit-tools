@@ -65,7 +65,7 @@ def runTool(inStep1GDB, outFile, day, start_time, end_time, TravelFromTo):
             start_sec, end_sec = BBB_SharedFunctions.ConvertTimeWindowToSeconds(start_time, end_time)
 
             # Will we calculate the max wait time? This slows down the calculation, so leave it optional.
-            CalcWaitTime = "true"
+            CalcWaitTime = True
 
             # It's okay to overwrite stuff.
             OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.

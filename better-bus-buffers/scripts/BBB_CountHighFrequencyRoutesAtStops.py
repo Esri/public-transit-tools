@@ -83,6 +83,8 @@ def RetrieveFrequencyStatsForStop(stop_id, rtdirtuple, snap_to_nearest_5_minutes
         if snap_to_nearest_5_minutes:
             AvgHeadway = round(AvgHeadway / 5.0) * 5
     return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
+
+
 def post_process_headways(avg_headway,number_of_trips_per_hour,trip_per_hr_threshold=.5,reset_headway_if_low_trip_count=180):
     """Used to adjust headways if there are low trips per hour observed in the GTFS dataset.
     If the number of trips per hour is below the trip frequency interval, headways are changed to
