@@ -87,10 +87,6 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         arcpy.env.overwriteOutput = True
         
         BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
-
-        #----- Get input parameters -----
-
-        # GTFS SQL dbase - must be created ahead of time.
         BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
 
         Specific, day = BBB_SharedFunctions.CheckSpecificDate(day)
@@ -109,22 +105,7 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         ispgdb = "esriDataSourcesGDB.AccessWorkspaceFactory" in arcpy.Describe(outDir).workspaceFactoryProgID
         isshp = ".shp" in outFilename
 
-        # If ObjectID was selected as the unique ID, copy the values to a new field
-        # so they don't get messed up when copying the table.
-        pointsOID = arcpy.Describe(inPointsLayer).OIDFieldName
-        if inLocUniqueID == pointsOID:
-            try:
-                inLocUniqueID = "BBBUID"
-                arcpy.AddMessage("You have selected your input features' ObjectID field as the unique ID to use for this analysis. \
-    In order to use this field, we have to transfer the ObjectID values to a new field in your input data called '%s' because ObjectID values \
-    may change when the input data is copied to the output. Adding the '%s' field now, and calculating the values to be the same as the current \
-    ObjectID values..." % (inLocUniqueID, inLocUniqueID))
-                arcpy.management.AddField(inPointsLayer, inLocUniqueID, "LONG")
-                arcpy.management.CalculateField(inPointsLayer, inLocUniqueID, "!" + pointsOID + "!", "PYTHON_9.3")
-            except:
-                arcpy.AddError("Unable to add or calculate new unique ID field. Please fix your data or choose a different unique ID field.")
-                raise
-
+        inLocUniqueID = BBB_SharedFunctions.HandleOIDUniqueID(inPointsLayer, inLocUniqueID)
 
         # ----- Prepare OD service -----
         try:
