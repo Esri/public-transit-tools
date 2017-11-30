@@ -29,19 +29,13 @@ during that time window.
 import arcpy
 import BBB_SharedFunctions
 
-class CustomError(Exception):
-    pass
-
 
 def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice):
     try:
         # ------ Get input parameters and set things up. -----
         try:
             
-            version_error = BBB_SharedFunctions.CheckProVersion("1.2")
-            if version_error:
-                arcpy.AddError(version_error)
-                raise CustomError
+            BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
 
             # GTFS SQL dbase - must be created ahead of time.
             BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
@@ -181,7 +175,7 @@ def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice):
         arcpy.AddMessage("Finished!")
         arcpy.AddMessage("Your output is located at " + outStops)
 
-    except CustomError:
+    except BBB_SharedFunctions.CustomError:
         arcpy.AddError("Failed to count trips at stops.")
         pass
 

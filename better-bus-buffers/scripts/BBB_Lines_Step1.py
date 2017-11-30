@@ -33,8 +33,6 @@ import sqlite3, os, uuid
 import arcpy
 import BBB_SharedFunctions
 
-class CustomError(Exception):
-    pass
 
 # ----- Collect user inputs -----
 
@@ -58,19 +56,9 @@ def runTool(outLinesFC, SQLDbase, combine_corridors):
 
     try:
 
-        version_error = BBB_SharedFunctions.CheckProVersion("1.2")
-        if version_error:
-            arcpy.AddError(version_error)
-            raise CustomError
+        BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
 
-
-    # ----- Connect to SQL locally for further queries and entries -----
-
-        # Connect to the SQL database
         conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
-
-
-    # ----- Make dictionary of {trip_id: route_id} -----
 
         BBB_SharedFunctions.MakeTripRouteDict()
 
@@ -229,7 +217,7 @@ def runTool(outLinesFC, SQLDbase, combine_corridors):
         arcpy.AddMessage("Your transit lines template feature class is:")
         arcpy.AddMessage("- " + outLinesFC)
 
-    except CustomError:
+    except BBB_SharedFunctions.CustomError:
         arcpy.AddError("Failed to generate transit lines.")
         pass
 

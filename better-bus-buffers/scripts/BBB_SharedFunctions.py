@@ -953,16 +953,45 @@ def DetermineArcVersion():
     ProductName = ArcVersionInfo['ProductName']
     ArcVersion = ArcVersionInfo['Version']
 
-def CheckProVersion(min_version):
+def CheckArcVersion(min_version_pro=None, min_version_10x=None):
     DetermineArcVersion()
-    pro_versions = ["1.0", "1.1", "1.1.1", "1.2"]
-    if min_version not in pro_versions:
-        return "Invalid ArcGIS Pro version number: %s" % str(min_version))
-    version_idx = pro_versions.index(min_version)
-    if ProductName == "ArcGISPro" and ArcVersion in pro_versions[:version_idx]:
-        return "The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to %s.\
-You have ArcGIS Pro version %s." % (min_version, ArcVersion)
-    return None
+    # Lists must stay in product release order
+    # They do not need to have new product numbers added unless a tool requires a higher version
+    versions_pro = ["1.0", "1.1", "1.1.1", "1.2"]
+    versions_10x = ["10.1", "10.2", "10.2.1", "10.2.2", "10.3", "10.3.1", "10.4"]
+
+    def check_version(min_version, all_versions):
+        if min_version not in all_versions:
+            arcpy.AddError("Invalid minimum software version number: %s" % str(min_version))
+            raise CustomError
+        version_idx = all_versions.index(min_version)
+        if ArcVersion in all_versions[:version_idx]:
+            # Fail out if the current software version is in the list somewhere earlier than the minimum version
+            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of %s prior to %s.\
+You have version %s.  Please check the user's guide for more information on software version compatibility." % (ProductName, min_version, ArcVersion))
+            raise CustomError
+
+    if ProductName == "ArcGISPro" and min_version_pro:
+        check_version(min_version_pro, versions_pro)
+    else:
+        if min_version_10x:
+            check_version(min_version_10x, versions_10x)
+
+def CheckArcInfoLicense():
+    ArcLicense = arcpy.ProductInfo()
+    if ArcLicense != "ArcInfo":
+        arcpy.AddError("To run this tool, you must have the Desktop \
+Advanced (ArcInfo) license.  Your license type is: %s." % ArcLicense)
+        raise CustomError
+
+
+def CheckOutNALicense():
+    if arcpy.CheckExtension("Network") == "Available":
+        arcpy.CheckOutExtension("Network")
+    else:
+        arcpy.AddError("You must have a Network Analyst license to use this tool.")
+        raise CustomError
+
 
 def CheckAndSetWorkspace(workspace):
     '''Set arcpy.env.workspace if it's not already set to a file geodatabase. This is essential for Pro when creating NA layers.'''

@@ -29,19 +29,13 @@ of Step 1 and counts the frequency of service during specific time windows.
 import arcpy
 import BBB_SharedFunctions
 
-class CustomError(Exception):
-    pass
-
 
 def runTool(step1LinesFC, SQLDbase, linesFC, day, start_time, end_time):
     try:
         # ------ Get input parameters and set things up. -----
         try:
 
-            version_error = BBB_SharedFunctions.CheckProVersion("1.2")
-            if version_error:
-                arcpy.AddError(version_error)
-                raise CustomError
+            BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
 
             try:
                 # If it was a feature layer, it will have a data source property
@@ -136,7 +130,7 @@ def runTool(step1LinesFC, SQLDbase, linesFC, day, start_time, end_time):
         arcpy.AddMessage("Finished!")
         arcpy.AddMessage("Your output is located at " + linesFC)
 
-    except CustomError:
+    except BBB_SharedFunctions.CustomError:
         arcpy.AddError("Failed to count trips on lines.")
         pass
 

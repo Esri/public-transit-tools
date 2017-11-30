@@ -49,10 +49,6 @@ import collections
 import sqlite3, os, datetime
 
 
-class CustomError(Exception):
-    pass
-
-
 def RetrieveFrequencyStatsForStop(stop_id, rtdirtuple, snap_to_nearest_5_minutes=False):
     '''For a given stop, query the stop_time_dictionaries {stop_id: [[trip_id, stop_time]]}
     and return the NumTrips, NumTripsPerHr, MaxWaitTime, and AvgHeadway given a
@@ -102,21 +98,14 @@ def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice, Frequ
         try:
             arcpy.env.overwriteOutput = True
 
-            # Figure out what version of ArcGIS they're running
-            BBB_SharedFunctions.DetermineArcVersion()
-            if (BBB_SharedFunctions.ProductName != "ArcGISPro") and (BBB_SharedFunctions.ArcVersion in ["10.1", "10.2", "10.2.1", "10.2.2", "10.3", "10.3.1"]):
-                arcpy.AddError("This tool requires ArcGIS version 10.4 or higher or ArcGIS Pro.")
-                raise CustomError
-            version_error = BBB_SharedFunctions.CheckProVersion("1.2")
-            if version_error:
-                arcpy.AddError(version_error)
-                raise CustomError
+            BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2", min_version_10x="10.4")
 
             try:
                 import pandas as pd
             except:
                 # Pandas is shipped with ArcGIS Pro and ArcGIS 10.4 and higher.  The previous logic should hopefully prevent users from ever hitting this error.
                 arcpy.AddError("This BetterBusBuffers tool requires the python library pandas, but the tool was unable to import the library.")
+                raise BBB_SharedFunctions.CustomError
 
             # GTFS SQL dbase - must be created ahead of time.
             conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
@@ -330,7 +319,7 @@ def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice, Frequ
         arcpy.AddMessage("Finished!")
         arcpy.AddMessage("Your output is located at " + outStops)
 
-    except CustomError:
+    except BBB_SharedFunctions.CustomError:
         arcpy.AddError("Failed to count high frequency routes at stops.")
         pass
 

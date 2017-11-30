@@ -46,10 +46,7 @@ def runTool(inStep1GDB, outFile, day, start_time, end_time, TravelFromTo):
 
         # ----- Set up the run -----
         try:
-            version_error = BBB_SharedFunctions.CheckProVersion("1.2")
-            if version_error:
-                arcpy.AddError(version_error)
-                raise CustomError
+            BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
             
             # Get the files from Step 1 to work with.
             # Step1_GTFS.sql and Step1_FlatPolys must exist in order for the tool to run.

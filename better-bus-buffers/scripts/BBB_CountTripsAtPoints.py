@@ -31,19 +31,13 @@ import os
 import arcpy
 import BBB_SharedFunctions
 
-class CustomError(Exception):
-    pass
-
 
 def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, end_time,
             inNetworkDataset, imp, BufferSize, restrictions, DepOrArrChoice):
     try:
-        version_error = BBB_SharedFunctions.CheckProVersion("1.2")
-        if version_error:
-            arcpy.AddError(version_error)
-            raise CustomError
-        ArcVersion = BBB_SharedFunctions.ArcVersion
+        BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
         ProductName = BBB_SharedFunctions.ProductName
+        BBB_SharedFunctions.CheckOutNALicense()
 
         #----- Get input parameters -----
         BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
@@ -91,27 +85,18 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         outDir = os.path.dirname(outFile)
         outFilename = os.path.basename(outFile)
 
-        #Check out the Network Analyst extension license
-        # (note that this does NOT check out the extension in ArcMap.
-        # It has to be done manually there.)
-        if arcpy.CheckExtension("Network") == "Available":
-            arcpy.CheckOutExtension("Network")
-        else:
-            arcpy.AddError("You must have a Network Analyst license to use this tool.")
-            raise CustomError
-
         # If running in Pro, make sure an fgdb workspace is set so NA layers can be created.
         if BBB_SharedFunctions.ProductName == "ArcGISPro":
             if not arcpy.env.workspace:
                 arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
                 print(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                raise CustomError
+                raise BBB_SharedFunctions.CustomError
             else:
                 workspacedesc = arcpy.Describe(arcpy.env.workspace)
                 if not workspacedesc.workspaceFactoryProgID.startswith('esriDataSourcesGDB.FileGDBWorkspaceFactory'):
                     arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
                     print(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                    raise CustomError
+                    raise BBB_SharedFunctions.CustomError
 
         # Extract impedance attribute and units from text string
         # The input is formatted as "[Impedance] (Units: [Units])"
@@ -170,10 +155,7 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
                                             hierarchy, "", PathShape).getOutput(0)
 
             # To refer to the OD sublayers, get the sublayer names.  This is essential for localization.
-            if ArcVersion == "10.0":
-                naSubLayerNames = dict((sublayer.datasetName, sublayer.name) for sublayer in  arcpy.mapping.ListLayers(ODLayer)[1:])
-            else:
-                naSubLayerNames = arcpy.na.GetNAClassNames(ODLayer)
+            naSubLayerNames = arcpy.na.GetNAClassNames(ODLayer)
             points = naSubLayerNames["Origins"]
             stops = naSubLayerNames["Destinations"]
 
@@ -181,12 +163,9 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
             arcpy.na.AddFieldToAnalysisLayer(outNALayer_OD, stops,
                                             "stop_id", "TEXT")
             # Specify the field mappings for the stop_id field.
-            if ArcVersion == "10.0":
-                fieldMappingStops = "Name stop_id #; stop_id stop_id #"
-            else:
-                fieldMappingStops = arcpy.na.NAClassFieldMappings(ODLayer, stops)
-                fieldMappingStops["Name"].mappedFieldName = "stop_id"
-                fieldMappingStops["stop_id"].mappedFieldName = "stop_id"
+            fieldMappingStops = arcpy.na.NAClassFieldMappings(ODLayer, stops)
+            fieldMappingStops["Name"].mappedFieldName = "stop_id"
+            fieldMappingStops["stop_id"].mappedFieldName = "stop_id"
             # Add the GTFS stops as locations for the analysis.
             arcpy.na.AddLocations(outNALayer_OD, stops, StopsLayer,
                                     fieldMappingStops, "500 meters", "", "", "", "", "", "",
@@ -198,12 +177,9 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
             arcpy.na.AddFieldToAnalysisLayer(outNALayer_OD, points,
                                             inLocUniqueID_qualified, "TEXT")
             # Specify the field mappings for the unique id field.
-            if ArcVersion == "10.0":
-                fieldMappingPoints = "Name " + inLocUniqueID + " #; " + inLocUniqueID_qualified + " " + inLocUniqueID + " #"
-            else:
-                fieldMappingPoints = arcpy.na.NAClassFieldMappings(ODLayer, points)
-                fieldMappingPoints["Name"].mappedFieldName = inLocUniqueID
-                fieldMappingPoints[inLocUniqueID_qualified].mappedFieldName = inLocUniqueID
+            fieldMappingPoints = arcpy.na.NAClassFieldMappings(ODLayer, points)
+            fieldMappingPoints["Name"].mappedFieldName = inLocUniqueID
+            fieldMappingPoints[inLocUniqueID_qualified].mappedFieldName = inLocUniqueID
             # Add the input points as locations for the analysis.
             arcpy.na.AddLocations(outNALayer_OD, points, inPointsLayer,
                                     fieldMappingPoints, "500 meters", "", "", "", "", "", "",
@@ -241,17 +217,9 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
             global PointsAndStops
             # PointsAndStops = {LocID: [stop_1, stop_2, ...]}
             PointsAndStops = {}
-            if ArcVersion == "10.0":
-                ODCursor = arcpy.SearchCursor(linesSubLayer, "", "",
-                                                inLocUniqueID_qualified + "; stop_id")
-                for row in ODCursor:
-                    UID = row.getValue(inLocUniqueID_qualified)
-                    SID = row.getValue("stop_id")
-                    PointsAndStops.setdefault(str(UID), []).append(str(SID))
-            else:
-                ODCursor = arcpy.da.SearchCursor(linesSubLayer, [inLocUniqueID_qualified, "stop_id"])
-                for row in ODCursor:
-                    PointsAndStops.setdefault(str(row[0]), []).append(str(row[1]))
+            ODCursor = arcpy.da.SearchCursor(linesSubLayer, [inLocUniqueID_qualified, "stop_id"])
+            for row in ODCursor:
+                PointsAndStops.setdefault(str(row[0]), []).append(str(row[1]))
             del ODCursor
 
         except:
@@ -288,77 +256,34 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
                 arcpy.management.AddField(outFile, "NumStopsInRange", "SHORT")
                 arcpy.management.AddField(outFile, "MaxWaitTime", "SHORT")
 
-            if ArcVersion == "10.0":
-                if ".shp" in outFilename:
-                    ucursor = arcpy.UpdateCursor(outFile, "", "",
-                                            inLocUniqueID[0:10] + "; NumTrips; TripsPerHr; NumStops; MaxWaitTm")
-                    for row in ucursor:
-                        try:
-                            ImportantStops = PointsAndStops[str(row.getValue(inLocUniqueID))]
-                        except KeyError:
-                            # This point had no stops in range
-                            ImportantStops = []
-                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                        ImportantStops, stoptimedict, CalcWaitTime,
-                                        start_sec, end_sec)
-                        row.NumTrips = NumTrips
-                        row.TripsPerHr = NumTripsPerHr
-                        row.NumStops = NumStopsInRange
-                        if MaxWaitTime == None:
-                            row.MaxWaitTm = -1
-                        else:
-                            row.MaxWaitTm = MaxWaitTime
-                        ucursor.updateRow(row)
-                else:
-                    ucursor = arcpy.UpdateCursor(outFile, "", "",
-                                            inLocUniqueID + "; NumTrips; NumTripsPerHr; NumStopsInRange; MaxWaitTime")
-                    for row in ucursor:
-                        try:
-                            ImportantStops = PointsAndStops[str(row.getValue(inLocUniqueID))]
-                        except KeyError:
-                            # This point had no stops in range
-                            ImportantStops = []
-                        NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime = \
-                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                        ImportantStops, stoptimedict, CalcWaitTime,
-                                        start_sec, end_sec)
-                        row.NumTrips = NumTrips
-                        row.NumTripsPerHr = NumTripsPerHr
-                        row.NumStopsInRange = NumStopsInRange
-                        row.MaxWaitTime = MaxWaitTime
-                        ucursor.updateRow(row)
-
+            if ".shp" in outFilename:
+                ucursor = arcpy.da.UpdateCursor(outFile,
+                                                [inLocUniqueID[0:10], "NumTrips",
+                                                "TripsPerHr", "NumStops",
+                                                "MaxWaitTm"])
             else:
-                # For everything 10.1 and forward
-                if ".shp" in outFilename:
-                    ucursor = arcpy.da.UpdateCursor(outFile,
-                                                    [inLocUniqueID[0:10], "NumTrips",
-                                                    "TripsPerHr", "NumStops",
-                                                    "MaxWaitTm"])
+                ucursor = arcpy.da.UpdateCursor(outFile,
+                                            [inLocUniqueID, "NumTrips",
+                                            "NumTripsPerHr", "NumStopsInRange",
+                                            "MaxWaitTime"])
+            for row in ucursor:
+                try:
+                    ImportantStops = PointsAndStops[str(row[0])]
+                except KeyError:
+                    # This point had no stops in range
+                    ImportantStops = []
+                NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime =\
+                                BBB_SharedFunctions.RetrieveStatsForSetOfStops(
+                                    ImportantStops, stoptimedict, CalcWaitTime,
+                                    start_sec, end_sec)
+                row[1] = NumTrips
+                row[2] = NumTripsPerHr
+                row[3] = NumStopsInRange
+                if ".shp" in outFilename and MaxWaitTime == None:
+                    row[4] = -1
                 else:
-                    ucursor = arcpy.da.UpdateCursor(outFile,
-                                                [inLocUniqueID, "NumTrips",
-                                                "NumTripsPerHr", "NumStopsInRange",
-                                                "MaxWaitTime"])
-                for row in ucursor:
-                    try:
-                        ImportantStops = PointsAndStops[str(row[0])]
-                    except KeyError:
-                        # This point had no stops in range
-                        ImportantStops = []
-                    NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime =\
-                                    BBB_SharedFunctions.RetrieveStatsForSetOfStops(
-                                        ImportantStops, stoptimedict, CalcWaitTime,
-                                        start_sec, end_sec)
-                    row[1] = NumTrips
-                    row[2] = NumTripsPerHr
-                    row[3] = NumStopsInRange
-                    if ".shp" in outFilename and MaxWaitTime == None:
-                        row[4] = -1
-                    else:
-                        row[4] = MaxWaitTime
-                    ucursor.updateRow(row)
+                    row[4] = MaxWaitTime
+                ucursor.updateRow(row)
 
         except:
             arcpy.AddError("Error writing output.")
@@ -368,7 +293,7 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         arcpy.AddMessage("Output files written:")
         arcpy.AddMessage("- " + outFile)
 
-    except CustomError:
+    except BBB_SharedFunctions.CustomError:
         arcpy.AddError("Error counting transit trips at input locations.")
         pass
 

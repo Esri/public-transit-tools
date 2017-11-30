@@ -42,12 +42,8 @@ class CustomError(Exception):
 
 def runTool(inGTFSdir, SQLDbase):
     try:
-        
-        # Figure out what version of ArcGIS they're running
-        version_error = BBB_SharedFunctions.CheckProVersion("1.2")
-        if version_error:
-            arcpy.AddError(version_error)
-            raise CustomError
+
+        BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
 
         #----- SQLize the GTFS data-----
         arcpy.AddMessage("SQLizing the GTFS data...")

@@ -37,9 +37,6 @@ import BBB_SharedFunctions
 
 OverwriteOutput = None
 
-class CustomError(Exception):
-    pass
-
 
 def RetrieveStatsForStop(stop_id, rtdirtuple):
     '''For a given stop, query the stoptimedict {stop_id: [[trip_id, stop_time]]}
@@ -78,10 +75,7 @@ def runTool(FCs, SQLDbase, dayString, start_time, end_time, DepOrArrChoice):
     try:
         # ------ Get input parameters and set things up. -----
         try:
-            version_error = BBB_SharedFunctions.CheckProVersion("1.2")
-            if version_error:
-                arcpy.AddError(version_error)
-                raise CustomError
+            BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
 
             # Stops and Polygons from Step 1 (any number and route combo)
             FCList = FCs.split(";")
@@ -101,7 +95,7 @@ def runTool(FCs, SQLDbase, dayString, start_time, end_time, DepOrArrChoice):
                     if not field in FieldNames[FC]:
                         arcpy.AddError("Feature class %s does not have the required \
     fields %s. Please choose a valid feature class." % (FC, str(RequiredFields)))
-                        raise CustomError
+                        raise BBB_SharedFunctions.CustomError
 
             # SQL database of preprocessed GTFS from Step 1
             conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
@@ -331,7 +325,7 @@ def runTool(FCs, SQLDbase, dayString, start_time, end_time, DepOrArrChoice):
         # Tell the tool that this is output. This will add the output to the map.
         arcpy.SetParameterAsText(6, FCs)
 
-    except CustomError:
+    except BBB_SharedFunctions.CustomError:
         arcpy.AddError("Failed to calculate transit statistics for this route and time window.")
         pass
 

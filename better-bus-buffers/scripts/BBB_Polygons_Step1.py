@@ -42,46 +42,28 @@ import arcpy
 import BBB_SharedFunctions
 
 
-class CustomError(Exception):
-    pass
-
-
 def runTool(outDir, outGDB, inSQLDbase, inNetworkDataset, imp, BufferSize, restrictions, TrimSettings):
     try:
 
     # ----- Set up the run -----
         try:
 
-            version_error = BBB_SharedFunctions.CheckProVersion("1.2")
-            if version_error:
-                arcpy.AddError(version_error)
-                raise CustomError
-
-            ArcLicense = arcpy.ProductInfo()
-            if ArcLicense != "ArcInfo":
-                arcpy.AddError("To run this tool, you must have the Desktop \
-    Advanced (ArcInfo) license.  Your license type is: %s." % ArcLicense)
-                raise CustomError
-
-            #Check out the Network Analyst extension license
-            if arcpy.CheckExtension("Network") == "Available":
-                arcpy.CheckOutExtension("Network")
-            else:
-                arcpy.AddError("You must have a Network Analyst license to use this tool.")
-                raise CustomError
+            BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
+            BBB_SharedFunctions.CheckArcInfoLicense()
+            BBB_SharedFunctions.CheckOutNALicense()
 
             # If running in Pro, make sure an fgdb workspace is set so NA layers can be created.
             if BBB_SharedFunctions.ProductName == "ArcGISPro":
                 if not arcpy.env.workspace:
                     arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
                     print(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                    raise CustomError
+                    raise BBB_SharedFunctions.CustomError
                 else:
                     workspacedesc = arcpy.Describe(arcpy.env.workspace)
                     if not workspacedesc.workspaceFactoryProgID.startswith('esriDataSourcesGDB.FileGDBWorkspaceFactory'):
                         arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
                         print(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                        raise CustomError
+                        raise BBB_SharedFunctions.CustomError
 
             # It's okay to overwrite in-memory stuff.
             OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
@@ -285,7 +267,7 @@ def runTool(outDir, outGDB, inSQLDbase, inNetworkDataset, imp, BufferSize, restr
         arcpy.SetParameterAsText(10, os.path.join(outGDBwPath, "Step1_GTFS.sql"))
 
 
-    except CustomError:
+    except BBB_SharedFunctions.CustomError:
         arcpy.AddError("Failed to create BetterBusBuffers polygons.")
         pass
     except:
