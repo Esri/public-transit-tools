@@ -37,6 +37,7 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
     try:
         BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
         ProductName = BBB_SharedFunctions.ProductName
+        BBB_SharedFunctions.CheckWorkspace()
         BBB_SharedFunctions.CheckOutNALicense()
 
         #----- Get input parameters -----
@@ -63,13 +64,8 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         # Convert to seconds
         end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
 
-        # Will we calculate the max wait time? This slows down the calculation, so leave it optional.
+        # Will we calculate the max wait time?
         CalcWaitTime = "true"
-
-        if DepOrArrChoice == "Arrivals":
-            DepOrArr = "arrival_time"
-        elif DepOrArrChoice == "Departures":
-            DepOrArr = "departure_time"
 
         # Hard-wired OD variables
         ExcludeRestricted = "EXCLUDE"
@@ -84,19 +80,6 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         # Output file designated by user
         outDir = os.path.dirname(outFile)
         outFilename = os.path.basename(outFile)
-
-        # If running in Pro, make sure an fgdb workspace is set so NA layers can be created.
-        if BBB_SharedFunctions.ProductName == "ArcGISPro":
-            if not arcpy.env.workspace:
-                arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                print(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                raise BBB_SharedFunctions.CustomError
-            else:
-                workspacedesc = arcpy.Describe(arcpy.env.workspace)
-                if not workspacedesc.workspaceFactoryProgID.startswith('esriDataSourcesGDB.FileGDBWorkspaceFactory'):
-                    arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                    print(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                    raise BBB_SharedFunctions.CustomError
 
         # Extract impedance attribute and units from text string
         # The input is formatted as "[Impedance] (Units: [Units])"
@@ -232,7 +215,7 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
             arcpy.AddMessage("Calculating the number of transit trips available during the time window...")
 
             # Get a dictionary of stop times in our time window {stop_id: [[trip_id, stop_time]]}
-            stoptimedict = BBB_SharedFunctions.CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific)
+            stoptimedict = BBB_SharedFunctions.CountTripsAtStops(day, start_sec, end_sec, BBB_SharedFunctions.CleanUpDepOrArr(DepOrArrChoice), Specific)
 
         except:
             arcpy.AddError("Error calculating the number of transit trips available during the time window.")

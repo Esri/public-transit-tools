@@ -993,13 +993,19 @@ def CheckOutNALicense():
         raise CustomError
 
 
-def CheckAndSetWorkspace(workspace):
-    '''Set arcpy.env.workspace if it's not already set to a file geodatabase. This is essential for Pro when creating NA layers.'''
-    currentworkspace = arcpy.env.workspace
-    if currentworkspace:
-        desc = arcpy.Describe(currentworkspace)
-        if desc.workspaceFactoryProgID != "esriDataSourcesGDB.FileGDBWorkspaceFactory.1": #File gdb
-            arcpy.env.workspace = workspace
+def CheckWorkspace():
+    '''Check if arcpy.env.workspace is set to a file geodatabase. This is essential for Pro when creating NA layers.'''
+    if ProductName == "ArcGISPro":
+        currentworkspace = arcpy.env.workspace
+        if not currentworkspace:
+            arcpy.AddError(CurrentGPWorkspaceError)
+            raise CustomError
+        else:
+            workspacedesc = arcpy.Describe(arcpy.env.workspace)
+            if not workspacedesc.workspaceFactoryProgID.startswith('esriDataSourcesGDB.FileGDBWorkspaceFactory'): # file gdb
+                arcpy.AddError(CurrentGPWorkspaceError)
+                raise CustomError
+
 
 def CleanUpTrimSettings(TrimSettings):
     if TrimSettings:

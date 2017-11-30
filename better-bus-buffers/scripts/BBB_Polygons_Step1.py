@@ -52,18 +52,7 @@ def runTool(outDir, outGDB, inSQLDbase, inNetworkDataset, imp, BufferSize, restr
             BBB_SharedFunctions.CheckArcInfoLicense()
             BBB_SharedFunctions.CheckOutNALicense()
 
-            # If running in Pro, make sure an fgdb workspace is set so NA layers can be created.
-            if BBB_SharedFunctions.ProductName == "ArcGISPro":
-                if not arcpy.env.workspace:
-                    arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                    print(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                    raise BBB_SharedFunctions.CustomError
-                else:
-                    workspacedesc = arcpy.Describe(arcpy.env.workspace)
-                    if not workspacedesc.workspaceFactoryProgID.startswith('esriDataSourcesGDB.FileGDBWorkspaceFactory'):
-                        arcpy.AddError(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                        print(BBB_SharedFunctions.CurrentGPWorkspaceError)
-                        raise BBB_SharedFunctions.CustomError
+            BBB_SharedFunctions.CheckWorkspace()
 
             # It's okay to overwrite in-memory stuff.
             OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
