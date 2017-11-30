@@ -1036,5 +1036,20 @@ def CheckSpecificDate(day):
     else: #Specific date
         return True, datetime.datetime.strptime(day, '%Y%m%d')
 
+def ConvertTimeWindowToSeconds(start_time, end_time):
+    # Lower end of time window (HH:MM in 24-hour time)
+    # Default start time is midnight if they leave it blank.
+    if start_time == "":
+        start_time = "00:00"
+    # Convert to seconds
+    start_sec = parse_time(start_time + ":00")
+    # Upper end of time window (HH:MM in 24-hour time)
+    # Default end time is 11:59pm if they leave it blank.
+    if end_time == "":
+        end_time = "23:59"
+    # Convert to seconds
+    end_sec = parse_time(end_time + ":00")
+    return start_sec, end_sec
+
 class CustomError(Exception):
     pass

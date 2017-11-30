@@ -44,19 +44,7 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         BBB_SharedFunctions.ConnectToSQLDatabase(SQLDbase)
 
         Specific, day = BBB_SharedFunctions.CheckSpecificDate(day)
-
-        # Lower end of time window (HH:MM in 24-hour time)
-        # Default start time is midnight if they leave it blank.
-        if start_time == "":
-            start_time = "00:00"
-        # Convert to seconds
-        start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
-        # Upper end of time window (HH:MM in 24-hour time)
-        # Default end time is 11:59pm if they leave it blank.
-        if end_time == "":
-            end_time = "23:59"
-        # Convert to seconds
-        end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
+        start_sec, end_sec = BBB_SharedFunctions.ConvertTimeWindowToSeconds(start_time, end_time)
 
         # Will we calculate the max wait time?
         CalcWaitTime = "true"

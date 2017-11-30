@@ -62,30 +62,10 @@ def runTool(inStep1GDB, outFile, day, start_time, end_time, TravelFromTo):
             outFilename = os.path.basename(outFile)
 
             Specific, day = BBB_SharedFunctions.CheckSpecificDate(day)
-            
-            # Lower end of time window (HH:MM in 24-hour time)
-            # Default start time is midnight if they leave it blank.
-            if start_time == "":
-                start_time = "00:00"
-            # Convert to seconds
-            start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
-            # Upper end of time window (HH:MM in 24-hour time)
-            # Default end time is 11:59pm if they leave it blank.
-            if end_time == "":
-                end_time = "23:59"
-            # Convert to seconds
-            end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
+            start_sec, end_sec = BBB_SharedFunctions.ConvertTimeWindowToSeconds(start_time, end_time)
 
             # Will we calculate the max wait time? This slows down the calculation, so leave it optional.
             CalcWaitTime = "true"
-
-            # Travel direction - to or from stops
-            # When we query the stop_times, which one we care about depends on the
-            # user's travel direction.
-            if TravelFromTo == "Departures":
-                DepOrArr = "departure_time"
-            elif TravelFromTo == "Arrivals":
-                DepOrArr = "arrival_time"
 
             # It's okay to overwrite stuff.
             OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
@@ -101,7 +81,7 @@ def runTool(inStep1GDB, outFile, day, start_time, end_time, TravelFromTo):
             arcpy.AddMessage("Counting transit trips during the time window...")
 
             # Get a dictionary of stop times in our time window {stop_id: [[trip_id, stop_time]]}
-            stoptimedict = BBB_SharedFunctions.CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific)
+            stoptimedict = BBB_SharedFunctions.CountTripsAtStops(day, start_sec, end_sec, BBB_SharedFunctions.CleanUpDepOrArr(DepOrArrChoice), Specific)
 
         except:
             arcpy.AddError("Failed to count transit trips during the time window.")

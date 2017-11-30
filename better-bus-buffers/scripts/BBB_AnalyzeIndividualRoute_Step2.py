@@ -108,21 +108,13 @@ def runTool(FCs, SQLDbase, dayString, start_time, end_time, DepOrArrChoice):
             else:
                 dayshort = dayString[0:3]
             
-            # Lower end of time window (HH:MM in 24-hour time)
-            # Default start time is midnight if they leave it blank.
             if start_time == "":
                 start_time = "00:00"
             start_time_pretty = start_time.replace(":", "") # For field names in the output file
-            # Convert to seconds
-            start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
-            # Upper end of time window (HH:MM in 24-hour time)
-            # Default end time is 11:59pm if they leave it blank.
             if end_time == "":
                 end_time = "23:59"
             end_time_pretty = end_time.replace(":", "") # For field names in the output file
-            # Convert to seconds
-            end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
-            # Length of time window in hours - used to calculate num trips / hour
+            start_sec, end_sec = BBB_SharedFunctions.ConvertTimeWindowToSeconds(start_time, end_time)
             TimeWindowLength = (end_sec - start_sec) / 3600
 
             # Does the user want to count arrivals or departures at the stops?
