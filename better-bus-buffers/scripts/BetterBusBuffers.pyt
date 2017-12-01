@@ -181,7 +181,7 @@ the number of transit trips available within a short walk during a time window.'
 
         param_max_impedance = arcpy.Parameter(
             displayName="Max travel time or distance between points and stops (in the units of your impedance attribute)",
-            name="max_impedanceance",
+            name="max_impedance",
             datatype="GPDouble",
             parameterType="Required",
             direction="Input")
