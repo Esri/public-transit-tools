@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 12 April 2017
+## Last updated: 1 December 2017
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Points
 
@@ -35,6 +35,12 @@ import BBB_SharedFunctions
 def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, end_time,
             inNetworkDataset, imp, BufferSize, restrictions, DepOrArrChoice):
     try:
+        # Source FC names are not prepended to field names.
+        arcpy.env.qualifiedFieldNames = False
+        # It's okay to overwrite in-memory stuff.
+        OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
+        arcpy.env.overwriteOutput = True
+
         BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
         ProductName = BBB_SharedFunctions.ProductName
         BBB_SharedFunctions.CheckWorkspace()
@@ -60,12 +66,6 @@ def runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, en
         # Output file designated by user
         outDir = os.path.dirname(outFile)
         outFilename = os.path.basename(outFile)
-
-        # Source FC names are not prepended to field names.
-        arcpy.env.qualifiedFieldNames = False
-        # It's okay to overwrite in-memory stuff.
-        OverwriteOutput = arcpy.env.overwriteOutput # Get the orignal value so we can reset it.
-        arcpy.env.overwriteOutput = True
 
         inLocUniqueID = BBB_SharedFunctions.HandleOIDUniqueID(inPointsLayer, inLocUniqueID)
         inLocUniqueID_qualified = inLocUniqueID + "_Input"
