@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 7 October 2017
+## Last updated: 1 December 2017
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -989,7 +989,7 @@ def HandleOIDUniqueID(inPointsLayer, inLocUniqueID):
     '''If ObjectID was selected as the unique ID, copy the values to a new field
     so they don't get messed up when copying the table.'''
     pointsOID = arcpy.Describe(inPointsLayer).OIDFieldName
-    if inLocUniqueID == pointsOID:
+    if inLocUniqueID.lower() == pointsOID.lower():
         try:
             inLocUniqueID = "BBBUID"
             arcpy.AddMessage("You have selected your input features' ObjectID field as the unique ID to use for this analysis. \
