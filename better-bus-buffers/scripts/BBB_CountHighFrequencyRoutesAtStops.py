@@ -209,6 +209,9 @@ the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
         # ----- Query the GTFS data to count the trips at each stop for this time period -----
         try:
             arcpy.AddMessage("Calculating the number of transit trips available during the time window of time period ID {0}...".format(str(time_period)))
+            
+            frequencies_dict = BBB_SharedFunctions.MakeFrequenciesDict()
+            
             stoptimedict_rtedirpair = {}  # #{rtdir tuple:stoptimedict}}
             stoptimedict_service_check_counter=0
             for rtdirpair in list(set([rt for rt in trip_route_dict.keys() + trip_route_dict_yest.keys() + trip_route_dict_tom.keys()])):
@@ -219,17 +222,17 @@ the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
                 stoptimedict_tom = {}
                 try:
                     triplist = trip_route_dict[rtdirpair]
-                    stoptimedict = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today")
+                    stoptimedict = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today", frequencies_dict)
                 except KeyError: # No trips
                     pass
                 try:
                     triplist_yest = trip_route_dict_yest[rtdirpair]
-                    stoptimedict_yest = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday")
+                    stoptimedict_yest = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday", frequencies_dict)
                 except KeyError: # No trips
                     pass
                 try:
                     triplist_tom = trip_route_dict_tom[rtdirpair]
-                    stoptimedict_tom = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow")
+                    stoptimedict_tom = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow", frequencies_dict)
                 except KeyError: # No trips
                     pass
 

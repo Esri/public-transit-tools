@@ -24,7 +24,7 @@ import re
 import sqlite3
 import datetime
 import arcpy
-import BBB_SharedFunctions
+from BBB_SharedFunctions import days
 
 ispy3 = sys.version_info >= (3, 0)
 
@@ -150,11 +150,11 @@ def allow_YYYYMMDD_day(param_day, SQLDbase):
     allows us to accept both a weekday an a YYYYMMDD date.'''
 
     # Define the filter list
-    param_day.filter.list = BBB_SharedFunctions.days
+    param_day.filter.list = days
     
     if param_day.altered:
         # Make sure if it's not a weekday that it's in YYYYMMDD date format
-        if param_day.valueAsText not in BBB_SharedFunctions.days:
+        if param_day.valueAsText not in days:
             # If it's not one of the weekday strings, it must be in YYYYMMDD format
             try:
                 datetime.datetime.strptime(param_day.valueAsText, '%Y%m%d')

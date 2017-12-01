@@ -30,17 +30,6 @@ conn = None
 ArcVersion = None
 ProductName = None
 
-# Whether or not to consider trips from yesterday or tomorrow
-ConsiderYesterday = None
-ConsiderTomorrow = None
-
-# If the dataset uses a frequencies table, store the info in a global dictionary
-frequencies_dict_initialized = False
-frequencies_dict = {}
-
-# Global dictionary of {trip_id: route_id}
-triproute_dict = {}
-
 # The GTFS spec uses WGS 1984 coordinates
 WGSCoords = "GEOGCS['GCS_WGS_1984',DATUM['D_WGS_1984', \
 SPHEROID['WGS_1984',6378137.0,298.257223563]], \
@@ -139,17 +128,17 @@ def MakeServiceIDList(day, Specific=False):
     return serviceidlist, nonoverlappingsids
 
 
-def GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific=False):
+def GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific=False, ConsiderYesterday=None, ConsiderTomorrow=None):
     ''' Get the lists of service ids for today, yesterday, and tomorrow, and
     combine non-overlapping date range list for all days'''
 
     # Determine if it's early enough in the day that we need to consider trips
-    # still running from yesterday - these set global variables
-    if not ConsiderYesterday:
-        ShouldConsiderYesterday(start_sec, DepOrArr)
+    # still running from yesterday
+    if ConsiderYesterday is None:
+        ConsiderYesterday = ShouldConsiderYesterday(start_sec, DepOrArr)
     # If our time window spans midnight, we need to check tomorrow's trips, too.
-    if not ConsiderTomorrow:
-        ShouldConsiderTomorrow(end_sec)
+    if ConsiderTomorrow is None:
+        ConsiderTomorrow = ShouldConsiderTomorrow(end_sec)
     # And what weekdays are yesterday and tomorrow?
     if Specific == False:
         Yesterday = days[(days.index(day) - 1)%7] # %7 wraps it around
@@ -228,8 +217,7 @@ def MakeTripList(serviceidlist):
 
 def MakeTripRouteDict():
     '''Make global dictionary of {trip_id: route_id}'''
-    
-    global triproute_dict
+
     triproute_dict = {}
     ctr = conn.cursor()
 
@@ -251,17 +239,17 @@ def MakeTripRouteDict():
     ctr.execute(tripsfetch)
     for trip in ctr:
         triproute_dict[trip[0]] = trip[1]
+    
+    return triproute_dict
 
 
 def MakeFrequenciesDict():
     '''Put the frequencies.txt information into a dictionary'''
-    global frequencies_dict_initialized, frequencies_dict
 
     # Check if the dataset uses frequency. If not, no need to do more.
     tblnamelist = GetGTFSTableNames()
     if not "frequencies" in tblnamelist:
-        frequencies_dict_initialized = True
-        return
+        return {}
 
     # Fill the dictionary
     frequencies_dict = {}
@@ -276,11 +264,11 @@ def MakeFrequenciesDict():
         trip_data = [freq[1], freq[2], freq[3]]
         # {trip_id: [start_time, end_time, headway_secs]}
         frequencies_dict.setdefault(trip_id, []).append(trip_data)
-    frequencies_dict_initialized = True
-    return
+
+    return frequencies_dict
 
 
-def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
+def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day, frequencies_dict):
     '''Return a dictionary of {stop_id: [[trip_id, stop_time]]} for trips and
     stop_times in the time window. Adjust the stop_time value to today's time of
     day if it is a trip from yesterday or tomorrow.'''
@@ -292,12 +280,6 @@ def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
     if day == "tomorrow":
         start = start - SecsInDay
         end = end - SecsInDay
-
-    # If we haven't already, initialize the frequencies dictionary so we can
-    # find trips that use the frequencies table instead of stop_times and
-    # treat them accordingly.
-    if not frequencies_dict_initialized:
-        MakeFrequenciesDict()
 
     stoptimedict = {} # {stop_id: [[trip_id, stop_time]]}
     cst = conn.cursor()
@@ -366,7 +348,7 @@ def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
     return stoptimedict
 
 
-def GetLineTimesInTimeWindow(start, end, DepOrArr, triplist, day):
+def GetLineTimesInTimeWindow(start, end, DepOrArr, triplist, day, frequencies_dict):
     '''Return a dictionary of {line_key: [[trip_id, start_time, end_time]]} for trips and
     stop_times in the time window. Adjust the stop_time value to today's time of
     day if it is a trip from yesterday or tomorrow.'''
@@ -378,12 +360,6 @@ def GetLineTimesInTimeWindow(start, end, DepOrArr, triplist, day):
     if day == "tomorrow":
         start = start - SecsInDay
         end = end - SecsInDay
-
-    # If we haven't already, initialize the frequencies dictionary so we can
-    # find trips that use the frequencies table instead of stop_times and
-    # treat them accordingly.
-    if not frequencies_dict_initialized:
-        MakeFrequenciesDict()
 
     linetimedict = {} # {line_key: [[trip_id, start_time, end_time]]}
     for trip in triplist:
@@ -466,8 +442,7 @@ def ShouldConsiderYesterday(start_sec, DepOrArr):
     '''Determine if it's early enough in the day that we need to consider trips
     still running from the day before. Do this by finding the largest stop_time
     in the GTFS file and comparing it to the user's start time.'''
-    global ConsiderYesterday
-    ConsiderYesterday = 0
+    ConsiderYesterday = False
     # Select the largest stop time
     MaxTimeFetch = '''
         SELECT MAX(%s) FROM stop_times
@@ -475,22 +450,28 @@ def ShouldConsiderYesterday(start_sec, DepOrArr):
     c.execute(MaxTimeFetch)
     MaxTime = c.fetchone()[0]
     if start_sec < MaxTime - SecsInDay:
-        ConsiderYesterday = 1
+        ConsiderYesterday = True
+    return ConsiderYesterday
 
 
 def ShouldConsiderTomorrow(end_sec):
     '''Return whether a time is greater than midnight.'''
-    global ConsiderTomorrow
-    ConsiderTomorrow = 0
+    ConsiderTomorrow = False
     if end_sec > SecsInDay:
-        ConsiderTomorrow = 1
+        ConsiderTomorrow = True
+    return ConsiderTomorrow
 
 def GetTripLists(day, start_sec, end_sec, DepOrArr, Specific=False):
     '''Returns separate lists of trips running today, yesterday, and tomorrow'''
 
+    # Determine if it's early enough in the day that we need to consider trips
+    # still running from yesterday
+    ConsiderYesterday = ShouldConsiderYesterday(start_sec, DepOrArr)
+    ConsiderTomorrow = ShouldConsiderTomorrow(end_sec)
+
     # Find the service_ids that serve the relevant day
     serviceidlist, serviceidlist_yest, serviceidlist_tom, = \
-        GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific)
+        GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific, ConsiderYesterday, ConsiderTomorrow)
 
     try:
         # Get the list of trips with these service ids.
@@ -534,10 +515,12 @@ def CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific=False):
     triplist, triplist_yest, triplist_tom = GetTripLists(day, start_sec, end_sec, DepOrArr, Specific)
 
     try:
+        frequencies_dict = MakeFrequenciesDict()
+
         # Get the stop_times that occur during this time window
-        stoptimedict = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today")
-        stoptimedict_yest = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday")
-        stoptimedict_tom = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow")
+        stoptimedict = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today", frequencies_dict)
+        stoptimedict_yest = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday", frequencies_dict)
+        stoptimedict_tom = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow", frequencies_dict)
 
         # Combine the three dictionaries into one master
         for stop in stoptimedict_yest:
@@ -558,10 +541,12 @@ def CountTripsOnLines(day, start_sec, end_sec, DepOrArr, Specific=False):
     triplist, triplist_yest, triplist_tom = GetTripLists(day, start_sec, end_sec, DepOrArr, Specific)
 
     try:
+        frequencies_dict = MakeFrequenciesDict()
+
         # Get the stop_times that occur during this time window
-        linetimedict = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today")
-        linetimedict_yest = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday")
-        linetimedict_tom = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow")
+        linetimedict = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today", frequencies_dict)
+        linetimedict_yest = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday", frequencies_dict)
+        linetimedict_tom = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow", frequencies_dict)
 
         # Combine the three dictionaries into one master
         for line in linetimedict_yest:
@@ -607,7 +592,7 @@ def RetrieveStatsForSetOfStops(stoplist, stoptimedict, CalcWaitTime, start_sec, 
     return NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime
 
 
-def RetrieveStatsForLines(linekey, linetimedict, start_sec, end_sec, combine_corridors):
+def RetrieveStatsForLines(linekey, linetimedict, start_sec, end_sec, combine_corridors, triproute_dict=None):
     '''For a set of lines, query the linetimedict {line_key: [[trip_id, start_time, end_time]]}
     and return the NumTrips, NumTripsPerHr, MaxWaitTime, and AvgHeadway for
     that set of lines.'''
@@ -620,8 +605,6 @@ def RetrieveStatsForLines(linekey, linetimedict, start_sec, end_sec, combine_cor
         linekeyparts = linekey.split(" , ")
         linekey = linekeyparts[0] + " , " + linekeyparts[1]
         route_id = linekeyparts[2]
-        if not triproute_dict:
-            MakeTripRouteDict()
     try:
         linetimelist = linetimedict[linekey]
         for linetime in linetimelist:

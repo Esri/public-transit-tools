@@ -58,7 +58,7 @@ def runTool(outLinesFC, SQLDbase, combine_corridors):
 
         conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
 
-        BBB_SharedFunctions.MakeTripRouteDict()
+        triproute_dict = BBB_SharedFunctions.MakeTripRouteDict()
 
 
     # ----- Initialize a dictionary of stop geometry -----
@@ -128,7 +128,7 @@ def runTool(outLinesFC, SQLDbase, combine_corridors):
                 linefeature_dict[SourceOIDkey] = True
             else:
                 # A separate line will be created for each separate route between the same two stops
-                linefeature_dict[SourceOIDkey + " , " + BBB_SharedFunctions.triproute_dict[trip_id]] = True
+                linefeature_dict[SourceOIDkey + " , " + triproute_dict[trip_id]] = True
             stmt = """INSERT INTO schedules (key, start_time, end_time, trip_id) VALUES ('%s', %s, %s, '%s');""" % (SourceOIDkey, start_time, end_time, trip_id)
             c2.execute(stmt)
             previous_stop = stop_id

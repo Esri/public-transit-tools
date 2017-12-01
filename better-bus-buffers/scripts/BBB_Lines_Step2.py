@@ -80,6 +80,10 @@ def runTool(step1LinesFC, SQLDbase, linesFC, day, start_time, end_time):
 
             combine_corridors = "route_id" not in [f.name for f in arcpy.ListFields(linesFC)]
 
+            triproute_dict = None
+            if not combine_corridors:
+                triproute_dict = BBB_SharedFunctions.MakeTripRouteDict()
+
             arcpy.management.AddField(linesFC, "NumTrips", "SHORT")
             arcpy.management.AddField(linesFC, "NumTripsPerHr", "DOUBLE")
             arcpy.management.AddField(linesFC, "MaxWaitTime", "SHORT")
@@ -92,7 +96,7 @@ def runTool(step1LinesFC, SQLDbase, linesFC, day, start_time, end_time):
                     NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway = \
                                 BBB_SharedFunctions.RetrieveStatsForLines(
                                     str(row[0]), linetimedict,
-                                    start_sec, end_sec, combine_corridors)
+                                    start_sec, end_sec, combine_corridors, triproute_dict)
                     row[1] = NumTrips
                     row[2] = NumTripsPerHr
                     row[3] = MaxWaitTime
