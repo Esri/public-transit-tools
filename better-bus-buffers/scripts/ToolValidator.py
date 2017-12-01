@@ -251,7 +251,7 @@ characters. Use only letters, numbers, periods, or the underscore.")
             outGDB = unicode(param_outGDB.value)
         if not outGDB.lower().endswith(".gdb"):
             outGDB += ".gdb"
-            outGDBwPath = os.path.join(outDir, outGDB)
+        outGDBwPath = os.path.join(outDir, outGDB)
         if os.path.exists(outGDBwPath):
             param_outGDB.setErrorMessage("Geodatabase already exists. Please do \
 not choose an existing geodatabase.")
