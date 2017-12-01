@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 4 February 2016
+## Last updated: 30 November 2017
 ############################################################################
 ''' BetterBusBuffers: Preprocess GTFS
 
@@ -21,7 +21,7 @@ used as input by all the BetterBusBuffers tools.
 
 ''' This tool uses code written by Luitien Pan for GTFS_NATools.'''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -69,11 +69,7 @@ def runTool(inGTFSdir, SQLDbase):
         # SQLize all the GTFS files, for each separate GTFS dataset.
         for gtfs_dir in inGTFSdirList:
             # handle_agency checks for blank values in arrival_time and departure_time
-            GTFSErrors = sqlize_csv.handle_agency(gtfs_dir)
-            if GTFSErrors:
-                for error in GTFSErrors:
-                    arcpy.AddError(error)
-                raise BBB_SharedFunctions.CustomError
+            sqlize_csv.handle_agency(gtfs_dir)
 
         # Create indices to make queries faster.
         sqlize_csv.create_indices()

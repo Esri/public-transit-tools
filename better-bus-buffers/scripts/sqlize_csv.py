@@ -1,8 +1,8 @@
 ################################################################################
 # sqlize_csv.py, originally written by Luitien Pan
-# Last updated 9 February 2016 by Melinda Morang, Esri
+# Last updated 30 November 2017 by Melinda Morang, Esri
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -36,13 +36,12 @@ import os
 import re
 import sqlite3
 import sys
+import arcpy
 
 import hms
 import BBB_SharedFunctions
 
 ispy3 = sys.version_info >= (3, 0)
-
-Errors_To_Return = []
 
 csv_fnames = ["stops.txt", "calendar.txt", "calendar_dates.txt", "stop_times.txt", "trips.txt", "routes.txt", "frequencies.txt"]
 
@@ -177,7 +176,7 @@ def make_remove_extra_fields(tablename, columns):
         # Check that row was the correct length in the first place.
         if len(out_row) != orig_num_fields:
             msg = "GTFS table %s contains at least one row with the wrong number of fields. Fields: %s; Row: %s" % (tablename, columns, str(in_row))
-            Errors_To_Return.append(msg)
+            arcpy.AddError(msg)
             raise BBB_SharedFunctions.CustomError
         # Remove the row entries for the extraneous columns
         for idx in cols:
@@ -192,7 +191,7 @@ def check_for_required_fields(tablename, columns, dataset):
         if sql_schema[tablename][col][1] == True:
             if not col in columns:
                 msg = "GTFS file " + tablename + ".txt in dataset " + dataset + " is missing required field '" + col + "'. Failed to SQLize GTFS data"
-                Errors_To_Return.append(msg)
+                arcpy.AddError(msg)
                 raise BBB_SharedFunctions.CustomError
 
 
@@ -213,14 +212,14 @@ values for arrival_time or departure_time in stop_times.txt.  Although the \
 GTFS spec allows empty values for these fields, this toolbox \
 requires exact time values for all stops.  You will not be able to use this \
 dataset for your analysis."
-                Errors_To_Return.append(msg)
+                arcpy.AddError(msg)
                 raise BBB_SharedFunctions.CustomError
             else:
                 try:
                     out_row[idx] = float (field)
                 except ValueError:
-                    msg = 'Column "' + col_names[idx] + '" in file ' + os.path.join(GTFSdir, fname) + ' has an invalid value:' + field + '.'
-                    Errors_To_Return.append(msg)
+                    msg = 'Column "' + col_names[idx] + '" in file ' + os.path.join(GTFSdir, fname) + ' has an invalid value: ' + field + '.'
+                    arcpy.AddError(msg)
                     raise BBB_SharedFunctions.CustomError
         return out_row
     if ispy3:
@@ -244,7 +243,7 @@ def check_date_fields(rows, col_names, tablename, fname):
             except ValueError:
                 msg ='Column "' + col_names[idx] + '" in file ' + fname + ' has an invalid value: ' + date + '. \
 Date fields must be in YYYYMMDD format. Please check the date field formatting in calendar.txt and calendar_dates.txt.'
-                Errors_To_Return.append(msg)
+                arcpy.AddError(msg)
                 raise BBB_SharedFunctions.CustomError
         return row
     if ispy3:
@@ -265,7 +264,7 @@ def check_latlon_fields(rows, col_names, fname):
             msg = 'stop_id "%s" in %s contains an invalid non-numerical value \
 for the stop_lat field: "%s". Please double-check all lat/lon values in your \
 stops.txt file.' % (stop_id, fname, stop_lat)
-            Errors_To_Return.append(msg)
+            arcpy.AddError(msg)
             raise BBB_SharedFunctions.CustomError
         try:
             stop_lon_float = float(stop_lon)
@@ -273,21 +272,21 @@ stops.txt file.' % (stop_id, fname, stop_lat)
             msg = 'stop_id "%s" in %s contains an invalid non-numerical value \
 for the stop_lon field: "%s". Please double-check all lat/lon values in your \
 stops.txt file.' % (stop_id, fname, stop_lon)
-            Errors_To_Return.append(msg)
+            arcpy.AddError(msg)
             raise BBB_SharedFunctions.CustomError
         if not (-90.0 <= stop_lat_float <= 90.0):
             msg = 'stop_id "%s" in %s contains an invalid value outside the \
 range (-90, 90) the stop_lat field: "%s". stop_lat values must be in valid WGS 84 \
 coordinates.  Please double-check all lat/lon values in your stops.txt file.\
 ' % (stop_id, fname, stop_lat)
-            Errors_To_Return.append(msg)
+            arcpy.AddError(msg)
             raise BBB_SharedFunctions.CustomError
         if not (-180.0 <= stop_lon_float <= 180.0):
             msg = 'stop_id "%s" in %s contains an invalid value outside the \
 range (-180, 180) the stop_lon field: "%s". stop_lon values must be in valid WGS 84 \
 coordinates.  Please double-check all lat/lon values in your stops.txt file.\
 ' % (stop_id, fname, stop_lon)
-            Errors_To_Return.append(msg)
+            arcpy.AddError(msg)
             raise BBB_SharedFunctions.CustomError
         return row
     if ispy3:
@@ -418,26 +417,19 @@ def handle_agency(gtfs_dir):
         if not has_a_calendar:
             missing_files.append("calendar.txt or calendar_dates.txt")
         if missing_files:
-            Errors_To_Return.append(u"GTFS dataset %s is missing files required for \
+            arcpy.AddError(u"GTFS dataset %s is missing files required for \
 this tool: %s" % (label, str(missing_files)))
-            return Errors_To_Return
+            raise BBB_SharedFunctions.CustomError
 
         # Sqlize each GTFS file
         for fname2 in csvs_withPaths:
             handle_file(fname2, label)
 
-        # Return any errors we collected, or an empty list if there were none.
-        return Errors_To_Return
-
     except UnicodeDecodeError:
-        Errors_To_Return.append(u"Unicode decoding of GTFS dataset %s failed. Please \
+        arcpy.AddError(u"Unicode decoding of GTFS dataset %s failed. Please \
 ensure that your GTFS files have the proper utf-8 encoding required by the GTFS \
 specification." % label)
-        return Errors_To_Return
-    except BBB_SharedFunctions.CustomError:
-        return Errors_To_Return
-    except:
-        raise
+        raise BBB_SharedFunctions.CustomError
 
 
 def create_indices():
@@ -517,21 +509,3 @@ assistance.  Date ranges do not overlap in the following pairs of service_ids: "
     c.close()
 
     return overlapwarning
-
-
-# Only used from standalone:
-def main(argv):
-    argv = argv[1:]  # make local copy
-    dbname = argv.pop(0)
-    connect(dbname)
-    for tblname in sql_schema:
-        create_table(tblname)
-    for gtfs_dir in argv:
-        handle_agency(gtfs_dir)
-    print >>sys.stderr, "Creating indices..."
-    create_indices()
-    metadata()
-    return 0
-
-if __name__ == '__main__':
-    sys.exit(main (sys.argv))
