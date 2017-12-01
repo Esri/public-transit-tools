@@ -43,6 +43,7 @@ class Toolbox(object):
                         CountHighFrequencyRoutesAtStops]
 
 
+#region PreprocessGTFS
 class PreprocessGTFS(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -100,8 +101,10 @@ operate in the same area.'''
         SQLDbase = parameters[1].valueAsText
         SQLizeGTFS.runTool(inGTFSdir, SQLDbase)
         return
+#endregion
 
 
+#region CountTripsAtStops
 class CountTripsAtStops(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -159,8 +162,10 @@ trips that visit those stops.'''
         DepOrArrChoice = parameters[5].valueAsText
         BBB_CountTripsAtStops.runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice)
         return
+#endregion
 
 
+#region CountTripsAtPoints
 class CountTripsAtPoints(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -248,8 +253,10 @@ the number of transit trips available within a short walk during a time window.'
         BBB_CountTripsAtPoints.runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, end_time,
             inNetworkDataset, imp, BufferSize, restrictions, DepOrArrChoice)
         return
+#endregion
 
 
+#region CountTripsAtPointsOnline
 class CountTripsAtPointsOnline(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -360,8 +367,10 @@ network datasets or a Network Analyst license'''
         BBB_CountTripsAtPoints_Online.runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, end_time, 
             BufferSize, BufferUnits, DepOrArrChoice, username, password)
         return
+#endregion
 
 
+#region BBBPolygons_PreprocessBuffers
 class BBBPolygons_PreprocessBuffers(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -469,8 +478,10 @@ save time by not having to re-run the Step 1 processes each time.'''
         TrimSettings = parameters[7].value
         BBB_Polygons_Step1.runTool(outDir, outGDB, inSQLDbase, inNetworkDataset, imp, BufferSize, restrictions, TrimSettings)
         return
+#endregion
 
 
+#region BBBPolygons_CountTripsInBuffers
 class BBBPolygons_CountTripsInBuffers(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -544,8 +555,10 @@ specific time window.'''
         DepOrArrChoice = parameters[5].valueAsText
         BBB_Polygons_Step2.runTool(inStep1GDB, outFile, day, start_time, end_time, DepOrArrChoice)
         return
+#endregion
 
 
+#region BBBIndividualRoute_PreprocessRouteBuffers
 class BBBIndividualRoute_PreprocessRouteBuffers(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -640,8 +653,10 @@ Step 1 creates the stops and service area feature classes.'''
         TrimSettings = parameters[7].value
         BBB_AnalyzeIndividualRoute_Step1.runTool(outGDB, SQLDbase, RouteText, inNetworkDataset, imp, BufferSize, restrictions, TrimSettings)
         return
+#endregion
 
 
+#region BBBIndividualRoute_CountTripsForRoute
 class BBBIndividualRoute_CountTripsForRoute(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -720,8 +735,10 @@ time window.'''
         DepOrArrChoice = parameters[5].valueAsText
         BBB_AnalyzeIndividualRoute_Step2.runTool(FCs, SQLDbase, day, start_time, end_time, DepOrArrChoice)
         return
+#endregion
 
 
+#region BBBLines_PreprocessLines
 class BBBLines_PreprocessLines(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -790,8 +807,10 @@ transit system.'''
         combine_corridors = parameters[2].value
         BBB_Lines_Step1.runTool(outLinesFC, SQLDbase, combine_corridors)
         return
+#endregion
 
 
+#region BBBLines_CountTripsOnLines
 class BBBLines_CountTripsOnLines(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -863,8 +882,10 @@ service during specific time windows.'''
         end_time = parameters[5].valueAsText
         BBB_Lines_Step2.runTool(step1LinesFC, SQLDbase, linesFC, day, start_time, end_time)
         return
+#endregion
 
 
+#region CountHighFrequencyRoutesAtStops
 class CountHighFrequencyRoutesAtStops(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -942,6 +963,8 @@ or shorter.'''
         SnapToNearest5MinuteBool = bool(parameters[7].value)
         BBB_CountHighFrequencyRoutesAtStops.runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice, FrequencyThreshold, SnapToNearest5MinuteBool)
         return
+#endregion
+
 
 
 class CommonParameter(object):
@@ -962,6 +985,8 @@ def make_parameter(common_param):
     if common_param.filter_list:
         param.filter.list = common_param.filter_list
     return param
+
+#region parameters
 
 param_output_feature_class = CommonParameter(
     "Output feature class",
@@ -1060,3 +1085,5 @@ param_polygon_trim = CommonParameter(
     "Optional",
     "Input",
     default_val=20)
+
+#endregion
