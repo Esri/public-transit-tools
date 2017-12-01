@@ -37,8 +37,6 @@ import arcpy
 import sqlize_csv
 import BBB_SharedFunctions
 
-class CustomError(Exception):
-    pass
 
 def runTool(inGTFSdir, SQLDbase):
     try:
@@ -75,7 +73,7 @@ def runTool(inGTFSdir, SQLDbase):
             if GTFSErrors:
                 for error in GTFSErrors:
                     arcpy.AddError(error)
-                raise CustomError
+                raise BBB_SharedFunctions.CustomError
 
         # Create indices to make queries faster.
         sqlize_csv.create_indices()
@@ -88,7 +86,7 @@ def runTool(inGTFSdir, SQLDbase):
         arcpy.AddMessage("Successfully created SQL database of GTFS data:")
         arcpy.AddMessage("- " + SQLDbase)
 
-    except CustomError:
+    except BBB_SharedFunctions.CustomError:
         arcpy.AddMessage("Failed to create SQL database of GTFS data.")
         pass
 

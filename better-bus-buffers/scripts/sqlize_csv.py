@@ -38,9 +38,7 @@ import sqlite3
 import sys
 
 import hms
-
-class CustomError(Exception):
-    pass
+import BBB_SharedFunctions
 
 ispy3 = sys.version_info >= (3, 0)
 
@@ -180,7 +178,7 @@ def make_remove_extra_fields(tablename, columns):
         if len(out_row) != orig_num_fields:
             msg = "GTFS table %s contains at least one row with the wrong number of fields. Fields: %s; Row: %s" % (tablename, columns, str(in_row))
             Errors_To_Return.append(msg)
-            raise CustomError
+            raise BBB_SharedFunctions.CustomError
         # Remove the row entries for the extraneous columns
         for idx in cols:
             out_row.pop(idx)
@@ -195,7 +193,7 @@ def check_for_required_fields(tablename, columns, dataset):
             if not col in columns:
                 msg = "GTFS file " + tablename + ".txt in dataset " + dataset + " is missing required field '" + col + "'. Failed to SQLize GTFS data"
                 Errors_To_Return.append(msg)
-                raise CustomError
+                raise BBB_SharedFunctions.CustomError
 
 
 def smarter_convert_times(rows, col_names, fname, GTFSdir, time_columns=('arrival_time', 'departure_time')):
@@ -216,14 +214,14 @@ GTFS spec allows empty values for these fields, this toolbox \
 requires exact time values for all stops.  You will not be able to use this \
 dataset for your analysis."
                 Errors_To_Return.append(msg)
-                raise CustomError
+                raise BBB_SharedFunctions.CustomError
             else:
                 try:
                     out_row[idx] = float (field)
                 except ValueError:
                     msg = 'Column "' + col_names[idx] + '" in file ' + os.path.join(GTFSdir, fname) + ' has an invalid value:' + field + '.'
                     Errors_To_Return.append(msg)
-                    raise CustomError
+                    raise BBB_SharedFunctions.CustomError
         return out_row
     if ispy3:
         return map(convert_time_columns, rows)
@@ -247,7 +245,7 @@ def check_date_fields(rows, col_names, tablename, fname):
                 msg ='Column "' + col_names[idx] + '" in file ' + fname + ' has an invalid value: ' + date + '. \
 Date fields must be in YYYYMMDD format. Please check the date field formatting in calendar.txt and calendar_dates.txt.'
                 Errors_To_Return.append(msg)
-                raise CustomError
+                raise BBB_SharedFunctions.CustomError
         return row
     if ispy3:
         return map(check_date_cols, rows)
@@ -268,7 +266,7 @@ def check_latlon_fields(rows, col_names, fname):
 for the stop_lat field: "%s". Please double-check all lat/lon values in your \
 stops.txt file.' % (stop_id, fname, stop_lat)
             Errors_To_Return.append(msg)
-            raise CustomError
+            raise BBB_SharedFunctions.CustomError
         try:
             stop_lon_float = float(stop_lon)
         except ValueError:
@@ -276,21 +274,21 @@ stops.txt file.' % (stop_id, fname, stop_lat)
 for the stop_lon field: "%s". Please double-check all lat/lon values in your \
 stops.txt file.' % (stop_id, fname, stop_lon)
             Errors_To_Return.append(msg)
-            raise CustomError
+            raise BBB_SharedFunctions.CustomError
         if not (-90.0 <= stop_lat_float <= 90.0):
             msg = 'stop_id "%s" in %s contains an invalid value outside the \
 range (-90, 90) the stop_lat field: "%s". stop_lat values must be in valid WGS 84 \
 coordinates.  Please double-check all lat/lon values in your stops.txt file.\
 ' % (stop_id, fname, stop_lat)
             Errors_To_Return.append(msg)
-            raise CustomError
+            raise BBB_SharedFunctions.CustomError
         if not (-180.0 <= stop_lon_float <= 180.0):
             msg = 'stop_id "%s" in %s contains an invalid value outside the \
 range (-180, 180) the stop_lon field: "%s". stop_lon values must be in valid WGS 84 \
 coordinates.  Please double-check all lat/lon values in your stops.txt file.\
 ' % (stop_id, fname, stop_lon)
             Errors_To_Return.append(msg)
-            raise CustomError
+            raise BBB_SharedFunctions.CustomError
         return row
     if ispy3:
         return map(check_latlon_cols, rows)
@@ -436,7 +434,7 @@ this tool: %s" % (label, str(missing_files)))
 ensure that your GTFS files have the proper utf-8 encoding required by the GTFS \
 specification." % label)
         return Errors_To_Return
-    except CustomError:
+    except BBB_SharedFunctions.CustomError:
         return Errors_To_Return
     except:
         raise
