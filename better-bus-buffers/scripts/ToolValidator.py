@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 29 November 2017
+## Last updated: 1 December 2017
 ############################################################################
 ''' GP tool validation code'''
 ################################################################################
@@ -174,7 +174,7 @@ date falls within the date range covered by your GTFS data.")
                 param_day.setErrorMessage("Please enter a date in YYYYMMDD format or a weekday.")
         else:
             # If it's a generic weekday, the SQL file must have a calendar file
-            if SQLDbase and not check_calendar_existence(SQLDbase):
+            if SQLDbase and os.path.exists(SQLDbase) and not check_calendar_existence(SQLDbase):
                 param_day.setErrorMessage(specificDatesRequiredMessage)
 
 
