@@ -1081,7 +1081,7 @@ param_buffer_size = CommonParameter(
     "Input")
 
 param_polygon_trim = CommonParameter(
-    "Polygon trim (in meters) (Leave blank for no trim.)",
+    "Polygon trim (in meters) (Use -1 for no trim.)",
     "polygon_trim",
     "GPDouble",
     "Optional",
