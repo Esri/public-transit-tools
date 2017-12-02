@@ -124,9 +124,9 @@ the Preprocess GTFS tool."
                     if param_day and param_day.value and param_day.value in param_day.filter.list:
                         if SQLDbase and not check_calendar_existence(SQLDbase):
                             param_day.setErrorMessage(specificDatesRequiredMessage)
-        except:
-            message = "Invalid SQL database.  Please choose a valid SQL database \
-of GTFS data generated using the Preprocess GTFS tool."
+        except Exception as ex:
+            message = "Could not validate SQL database.  Please choose a valid SQL database \
+of GTFS data generated using the Preprocess GTFS tool.  Validation error message: " + str(ex)
             param_forMessages.setErrorMessage(message)
 
 

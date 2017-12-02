@@ -463,7 +463,7 @@ save time by not having to re-run the Step 1 processes each time.'''
         param_SQLDbase = parameters[2]
 
         ToolValidator.check_out_gdb(param_outGDB, param_outDir)
-        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"])
 
         return
 
