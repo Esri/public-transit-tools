@@ -799,7 +799,7 @@ transit system.'''
         param_SQLDbase = parameters[1]
 
         ToolValidator.forbid_shapefile(param_linesFC)
-        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"])
 
         return
 
