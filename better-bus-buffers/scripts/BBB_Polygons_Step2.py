@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips in Polygon Buffers Around Stops
 ## Step 2: Count Trips in Buffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 September 2017
+## Last updated: 2 December 2017
 ####################################################
 '''BetterBusBuffers - Count Trips in Polygon Buffers Around Stops - Step 2: Count Trips in Buffers
 
@@ -41,7 +41,7 @@ class CustomError(Exception):
 OverwriteOutput = None
 
 
-def runTool(inStep1GDB, outFile, day, start_time, end_time, TravelFromTo):
+def runTool(inStep1GDB, outFile, day, start_time, end_time, DepOrArrChoice):
     try:
 
         # ----- Set up the run -----

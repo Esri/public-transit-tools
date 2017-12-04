@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 1 December 2017
+## Last updated: 3 December 2017
 ############################################################################
 ''' Python toolbox that defines all the tools in the BetterBusBuffers tool
 suite.'''
@@ -636,9 +636,11 @@ Step 1 creates the stops and service area feature classes.'''
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
         
+        param_outGDB = parameters[0]
         param_SQLDbase = parameters[1]
 
-        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "routes" "stop_times"], ["calendar", "calendar_dates"])
+        ToolValidator.check_out_gdb_type_and_existence(param_outGDB)
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "routes", "stop_times"], ["calendar", "calendar_dates"])
 
         return
 
@@ -1081,7 +1083,7 @@ param_buffer_size = CommonParameter(
     "Input")
 
 param_polygon_trim = CommonParameter(
-    "Polygon trim (in meters) (Use -1 for no trim.)",
+    "Polygon trim (in meters) (Leave blank for no trim.)",
     "polygon_trim",
     "GPDouble",
     "Optional",

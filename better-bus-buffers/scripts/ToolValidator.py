@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 1 December 2017
+## Last updated: 3 December 2017
 ############################################################################
 ''' GP tool validation code'''
 ################################################################################
@@ -78,10 +78,7 @@ calendar_dates.txt, or both."
             param_GTFSDirs.setErrorMessage(message)
 
 
-def check_SQLDBase(param_forMessages, SQLDbase, required_tables, one_required=[], param_day=None):
-    '''Make sure the SQLDbase exists and has the correct tables'''
-
-    def checkSQLtables(SQLDbase):
+def checkSQLtables(SQLDbase, required_tables, one_required=[]):
         # Connect to SQL file.
         conn = sqlite3.connect(SQLDbase)
         c = conn.cursor()
@@ -101,33 +98,41 @@ def check_SQLDBase(param_forMessages, SQLDbase, required_tables, one_required=[]
                 tablesgood = False
         return tablesgood
 
-    # --- Make sure the input SQL table is valid and has the appropriate tables. ---
-    if param_forMessages.altered:
+
+def check_SQLDBase(param_SQLDbase, SQLDbase, required_tables, one_required=[], param_day=None):
+    '''Make sure the SQLDbase exists and has the correct tables'''
+
+    if param_SQLDbase.altered:
         try:
             if ispy3:
                 SQLDbase = str(SQLDbase)
             else:
                 SQLDbase = unicode(SQLDbase)
             if not os.path.exists(SQLDbase):
-                param_forMessages.setErrorMessage("The SQL database does not exist. \
+                param_SQLDbase.setErrorMessage("The SQL database does not exist. \
 Please choose a valid SQL database of GTFS data generated using the Preprocess \
 GTFS tool.")
             else:
                 # Make sure the required tables are there
-                if not checkSQLtables(SQLDbase):
+                if not checkSQLtables(SQLDbase, required_tables, one_required):
                     message = "The SQL database you have selected does not have the \
 correct tables.  Please choose a valid SQL database of GTFS data generated using \
 the Preprocess GTFS tool."
-                    param_forMessages.setErrorMessage(message)
+                    param_SQLDbase.setErrorMessage(message)
                 else:
-                    # If it's a generic weekday, the SQL file must have a calendar file
-                    if param_day and param_day.value and param_day.value in param_day.filter.list:
-                        if SQLDbase and not check_calendar_existence(SQLDbase):
-                            param_day.setErrorMessage(specificDatesRequiredMessage)
+                    if param_day:
+                        check_SQL_for_generic_weekday(param_day, SQLDbase)
         except Exception as ex:
             message = "Could not validate SQL database.  Please choose a valid SQL database \
 of GTFS data generated using the Preprocess GTFS tool.  Validation error message: " + str(ex)
-            param_forMessages.setErrorMessage(message)
+            param_SQLDbase.setErrorMessage(message)
+
+
+def check_SQL_for_generic_weekday(param_day, SQLDbase):
+    '''If it's a generic weekday, the SQL file must have a calendar file'''
+    if param_day.value and param_day.value in param_day.filter.list:
+        if SQLDbase and not check_calendar_existence(SQLDbase):
+            param_day.setErrorMessage(specificDatesRequiredMessage)
 
 
 def check_calendar_existence(SQLDbase):
@@ -257,6 +262,22 @@ characters. Use only letters, numbers, periods, or the underscore.")
 not choose an existing geodatabase.")
 
 
+def check_out_gdb_type_and_existence(param_outGDB):
+    '''Make sure the selected output gdb already exists and is a file gdb'''
+    if param_outGDB.altered:
+        if ispy3:
+            outGDB = str(param_outGDB.value)
+        else:
+            outGDB = unicode(param_outGDB.value)
+        if not os.path.exists(outGDB):
+            param_outGDB.setErrorMessage("Output geodatabase does not exist.")
+        else:
+            desc = arcpy.Describe(outGDB)
+            if not desc.workspaceFactoryProgID.startswith("esriDataSourcesGDB.FileGDBWorkspaceFactory"):
+                param_outGDB.setErrorMessage("Output geodatabase must be a file geodatabase \
+(not a personal geodatabase or folder).")
+
+
 def check_Step1_gdb(param_inGDB, param_day):
     '''Check that the input gbb from Step 1 contains required Step 1 output.'''
 
@@ -278,7 +299,14 @@ Step 1.  Required files: Step1_GTFS.sql; Step1_FlatPolys"
             param_inGDB.setErrorMessage(InputErrorMessage)
         else:
             # Check the SQL database has the required tables in it
-            check_SQLDBase(param_inGDB, SQLDbase, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+            if not checkSQLtables(SQLDbase, ["stops", "trips", "stop_times", "StackedPoints"], ["calendar", "calendar_dates"]):
+                message = "The SQL database in your input geodatabase from Step 1 does not have the \
+correct tables.  Please choose a valid geodatabase generated using Step 1 of the Count Trips in Polygon Buffers \
+around Stops tool."
+                param_inGDB.setErrorMessage(message)
+            else:
+                if param_day:
+                    check_SQL_for_generic_weekday(param_day, SQLDbase)
 
 
 def populate_restrictions_and_impedances(param_ND, param_restrictions, param_impedances):
