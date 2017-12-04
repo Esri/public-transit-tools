@@ -901,7 +901,7 @@ def CheckArcVersion(min_version_pro=None, min_version_10x=None):
         version_idx = all_versions.index(min_version)
         if ArcVersion in all_versions[:version_idx]:
             # Fail out if the current software version is in the list somewhere earlier than the minimum version
-            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of %s prior to %s.\
+            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of %s prior to %s.  \
 You have version %s.  Please check the user's guide for more information on software version compatibility." % (ProductName, min_version, ArcVersion))
             raise CustomError
 
