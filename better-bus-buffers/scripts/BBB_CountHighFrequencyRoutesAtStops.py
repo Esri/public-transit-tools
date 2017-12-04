@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count High Frequency Routes At Stops
 ## Created by: David Wasserman, david.wasserman.plan@gmail.com
 ## Based on work by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 September 2017
+## Last updated: 4 December 2017
 ############################################################################
 ''' BetterBusBuffers - Count High Frequency Routes At Stops
 
@@ -49,42 +49,6 @@ import collections
 import sqlite3, os, datetime
 
 
-def RetrieveFrequencyStatsForStop(stop_id, rtdirtuple, snap_to_nearest_5_minutes=False):
-    '''For a given stop, query the stop_time_dictionaries {stop_id: [[trip_id, stop_time]]}
-    and return the NumTrips, NumTripsPerHr, MaxWaitTime, and AvgHeadway given a
-    specific route_id and direction. If snap to nearest five minutes is true, then
-    this function will return headways snapped to the closest 5 minute interval.'''
-    try:
-        stop_time_dictionaries = stoptimedict_rtedirpair[rtdirtuple]
-    except KeyError:
-        # We will get a KeyError if there were no trips found for the route/direction
-        # pair, which usually happens if the wrong SQL database was selected.
-        stop_time_dictionaries = {}
-
-    # Make a list of stop_times
-    StopTimesAtThisPoint = []
-    try:
-        for trip in stop_time_dictionaries[stop_id]:
-            StopTimesAtThisPoint.append(trip[1])
-    except KeyError:
-        pass
-    StopTimesAtThisPoint.sort()
-
-    # Calculate the number of trips
-    NumTrips = len(StopTimesAtThisPoint)
-    NumTripsPerHr = float(NumTrips) / TimeWindowLength
-    # Get the max wait time and the average headway
-    MaxWaitTime = BBB_SharedFunctions.CalculateMaxWaitTime(StopTimesAtThisPoint, start_sec, end_sec)
-    AvgHeadway = None
-    if NumTrips > 1:
-        AvgHeadway = max(1, int(round(float(
-            sum(abs(x - y) for (x, y) in zip(StopTimesAtThisPoint[1:], StopTimesAtThisPoint[:-1])) / (
-                len(StopTimesAtThisPoint) - 1)) / 60, 0)))  # minutes
-        if snap_to_nearest_5_minutes:
-            AvgHeadway = round(AvgHeadway / 5.0) * 5
-    return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
-
-
 def post_process_headways(avg_headway,number_of_trips_per_hour,trip_per_hr_threshold=.5,reset_headway_if_low_trip_count=180):
     """Used to adjust headways if there are low trips per hour observed in the GTFS dataset.
     If the number of trips per hour is below the trip frequency interval, headways are changed to
@@ -95,6 +59,42 @@ def post_process_headways(avg_headway,number_of_trips_per_hour,trip_per_hr_thres
 
 
 def runTool(outStops, SQLDbase, day, start_time, end_time, DepOrArrChoice, FrequencyThreshold, SnapToNearest5MinuteBool):
+
+    def RetrieveFrequencyStatsForStop(stop_id, rtdirtuple, snap_to_nearest_5_minutes=False):
+        '''For a given stop, query the stop_time_dictionaries {stop_id: [[trip_id, stop_time]]}
+        and return the NumTrips, NumTripsPerHr, MaxWaitTime, and AvgHeadway given a
+        specific route_id and direction. If snap to nearest five minutes is true, then
+        this function will return headways snapped to the closest 5 minute interval.'''
+        try:
+            stop_time_dictionaries = stoptimedict_rtedirpair[rtdirtuple]
+        except KeyError:
+            # We will get a KeyError if there were no trips found for the route/direction
+            # pair, which usually happens if the wrong SQL database was selected.
+            stop_time_dictionaries = {}
+
+        # Make a list of stop_times
+        StopTimesAtThisPoint = []
+        try:
+            for trip in stop_time_dictionaries[stop_id]:
+                StopTimesAtThisPoint.append(trip[1])
+        except KeyError:
+            pass
+        StopTimesAtThisPoint.sort()
+
+        # Calculate the number of trips
+        NumTrips = len(StopTimesAtThisPoint)
+        NumTripsPerHr = float(NumTrips) / TimeWindowLength
+        # Get the max wait time and the average headway
+        MaxWaitTime = BBB_SharedFunctions.CalculateMaxWaitTime(StopTimesAtThisPoint, start_sec, end_sec)
+        AvgHeadway = None
+        if NumTrips > 1:
+            AvgHeadway = max(1, int(round(float(
+                sum(abs(x - y) for (x, y) in zip(StopTimesAtThisPoint[1:], StopTimesAtThisPoint[:-1])) / (
+                    len(StopTimesAtThisPoint) - 1)) / 60, 0)))  # minutes
+            if snap_to_nearest_5_minutes:
+                AvgHeadway = round(AvgHeadway / 5.0) * 5
+        return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
+
     try:
         # ------ Get input parameters and set things up. -----
         try:
@@ -214,7 +214,7 @@ the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
             
             stoptimedict_rtedirpair = {}  # #{rtdir tuple:stoptimedict}}
             stoptimedict_service_check_counter=0
-            for rtdirpair in list(set([rt for rt in trip_route_dict.keys() + trip_route_dict_yest.keys() + trip_route_dict_tom.keys()])):
+            for rtdirpair in list(set([rt for rt in list(trip_route_dict.keys()) + list(trip_route_dict_yest.keys()) + list(trip_route_dict_tom.keys())])):
                 
                 # Get the stop_times that occur during this time window
                 stoptimedict = {}
