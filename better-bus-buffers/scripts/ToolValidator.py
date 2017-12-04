@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 December 2017
+## Last updated: 4 December 2017
 ############################################################################
 ''' GP tool validation code'''
 ################################################################################
@@ -31,6 +31,15 @@ ispy3 = sys.version_info >= (3, 0)
 specificDatesRequiredMessage = "Your GTFS dataset does not have a \
 calendar.txt file, so you cannot use a generic weekday for this analysis. Please use \
 a specific date in YYYYMMDD format that falls within the date range in your calendar_dates.txt file."
+
+sql_nonexist_msg = "The SQL database does not exist. \
+Please choose a valid SQL database of GTFS data generated using the Preprocess \
+GTFS tool."
+
+sql_missing_tables_msg = "The SQL database you have selected does not have the \
+correct tables.  Please choose a valid SQL database of GTFS data generated using \
+the Preprocess GTFS tool."
+
 
 def check_input_gtfs(param_GTFSDirs):
 
@@ -99,8 +108,13 @@ def checkSQLtables(SQLDbase, required_tables, one_required=[]):
         return tablesgood
 
 
-def check_SQLDBase(param_SQLDbase, SQLDbase, required_tables, one_required=[], param_day=None):
+def check_SQLDBase(param_SQLDbase, SQLDbase, required_tables, one_required=[], param_day=None, nonexist_msg=None, missing_tables_msg=None):
     '''Make sure the SQLDbase exists and has the correct tables'''
+
+    if missing_tables_msg is None:
+        missing_tables_msg = sql_missing_tables_msg
+    if nonexist_msg is None:
+        nonexist_msg = sql_nonexist_msg
 
     if param_SQLDbase.altered:
         try:
@@ -109,16 +123,11 @@ def check_SQLDBase(param_SQLDbase, SQLDbase, required_tables, one_required=[], p
             else:
                 SQLDbase = unicode(SQLDbase)
             if not os.path.exists(SQLDbase):
-                param_SQLDbase.setErrorMessage("The SQL database does not exist. \
-Please choose a valid SQL database of GTFS data generated using the Preprocess \
-GTFS tool.")
+                param_SQLDbase.setErrorMessage(nonexist_msg)
             else:
                 # Make sure the required tables are there
                 if not checkSQLtables(SQLDbase, required_tables, one_required):
-                    message = "The SQL database you have selected does not have the \
-correct tables.  Please choose a valid SQL database of GTFS data generated using \
-the Preprocess GTFS tool."
-                    param_SQLDbase.setErrorMessage(message)
+                    param_SQLDbase.setErrorMessage(missing_tables_msg)
                 else:
                     if param_day:
                         check_SQL_for_generic_weekday(param_day, SQLDbase)

@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 December 2017
+## Last updated: 4 December 2017
 ############################################################################
 ''' Python toolbox that defines all the tools in the BetterBusBuffers tool
 suite.'''
@@ -868,7 +868,12 @@ service during specific time windows.'''
         start_time = parameters[4]
         end_time = parameters[5]
 
-        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"], param_day)
+        msg = " Additionally, make sure you have run Step 1 of the %s tool." % self.category
+        nonexist_msg = ToolValidator.sql_nonexist_msg + msg
+        missing_tables_msg = ToolValidator.sql_missing_tables_msg + msg
+
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times", "schedules"], 
+                                    ["calendar", "calendar_dates"], param_day, nonexist_msg, missing_tables_msg)
         ToolValidator.forbid_shapefile(param_linesFC)
         ToolValidator.allow_YYYYMMDD_day(param_day, param_SQLDbase.valueAsText)
         ToolValidator.check_time_window(start_time, end_time)
