@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers - Count Trips on Lines
 ## Step 1 - Preprocess Lines
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 7 October 2017
+## Last updated: 4 December 2017
 ############################################################################
 ''' BetterBusBuffers - Count Trips on Lines
 
@@ -29,7 +29,10 @@ Step 1 need only be run once for a given transit system.
    limitations under the License.'''
 ################################################################################
 
-import sqlite3, os, uuid
+import sqlite3
+import os
+import sys
+import uuid
 import arcpy
 import BBB_SharedFunctions
 
@@ -40,6 +43,8 @@ def runTool(outLinesFC, SQLDbase, combine_corridors):
     try:
 
         BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
+
+        ispy3 = sys.version_info >= (3, 0)
 
         # Derived inputs
         outGDB = os.path.dirname(outLinesFC) # Must be in fgdb. Validated in tool validation.
@@ -173,9 +178,13 @@ def runTool(outLinesFC, SQLDbase, combine_corridors):
 
         if badStops:
             badStops = list(set(badStops))
+            if ispy3:
+                badStops_str = str(badStops)
+            else:
+                badStops_str = unicode(badStops)
             arcpy.AddWarning("Your stop_times.txt lists times for the following \
 stops which are not included in your stops.txt file. Schedule information for \
-these stops will be ignored. " + unicode(badStops))
+these stops will be ignored. " + badStops_str)
 
         # Remove these entries from the linefeatures dictionary so it doesn't cause false records later
         if badkeys:
