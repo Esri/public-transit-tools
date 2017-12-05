@@ -359,10 +359,9 @@ network datasets or a Network Analyst license'''
         end_time = parameters[6].valueAsText
         BufferSize = parameters[7].value
         BufferUnits = parameters[8].valueAsText
-        restrictions = parameters[9].valueAsText
-        DepOrArrChoice = parameters[10].valueAsText
-        username = parameters[11].valueAsText
-        password = parameters[12].valueAsText
+        DepOrArrChoice = parameters[9].valueAsText
+        username = parameters[10].valueAsText
+        password = parameters[11].valueAsText
         BBB_CountTripsAtPoints_Online.runTool(outFile, SQLDbase, inPointsLayer, inLocUniqueID, day, start_time, end_time, 
             BufferSize, BufferUnits, DepOrArrChoice, username, password)
         return
