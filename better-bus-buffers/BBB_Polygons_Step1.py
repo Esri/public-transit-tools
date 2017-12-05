@@ -1,7 +1,7 @@
 ####################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 4 February 2016
+## Last updated: 5 December 2017
 ####################################################
 ''' BetterBusBuffers Polygon Tool: Step 1 - Preprocess Buffers
 
@@ -24,7 +24,7 @@ You should only have to run Step 1 once for the geography and buffer size you
 are analyzing.  Step 1 will take a while to run for larger transit systems.
 '''
 ################################################################################
-'''Copyright 2016 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
