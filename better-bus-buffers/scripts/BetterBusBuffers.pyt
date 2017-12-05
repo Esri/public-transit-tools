@@ -310,7 +310,6 @@ network datasets or a Network Analyst license'''
                     make_parameter(param_time_window_end),
                     param_max_dist,
                     param_max_dist_units,
-                    make_parameter(param_restrictions),
                     make_parameter(param_depOrArr),
                     param_username,
                     param_password]
