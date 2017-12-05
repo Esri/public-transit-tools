@@ -881,7 +881,7 @@ service during specific time windows.'''
     def execute(self, parameters, messages):
         """The source code of the tool."""
         import BBB_Lines_Step2
-        step1LinesFC = parameters[0].valueAsText
+        step1LinesFC = parameters[0].value
         SQLDbase = parameters[1].valueAsText
         linesFC = parameters[2].valueAsText
         day = parameters[3].valueAsText
