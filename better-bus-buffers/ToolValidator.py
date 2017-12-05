@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 4 December 2017
+## Last updated: 5 December 2017
 ############################################################################
 ''' GP tool validation code'''
 ################################################################################
@@ -347,10 +347,11 @@ def populate_UniqueID(param_points, param_UniqueID):
     if param_points.altered:
         # param_points is the user-entered locations dataset
         inLocs = param_points.value
-        desc = arcpy.Describe(inLocs)
-        fieldnames = [f.name for f in desc.fields if f.type in acceptable_field_types]
-        # Put the value list of field names into the GUI field.
-        param_UniqueID.filter.list = fieldnames
+        if arcpy.Exists(inLocs):
+            desc = arcpy.Describe(inLocs)
+            fieldnames = [f.name for f in desc.fields if f.type in acceptable_field_types]
+            # Put the value list of field names into the GUI field.
+            param_UniqueID.filter.list = fieldnames
 
 
 def populate_GTFS_routes(param_SQLDbase, param_routes):
