@@ -318,25 +318,41 @@ around Stops tool."
                     check_SQL_for_generic_weekday(param_day, SQLDbase)
 
 
+def check_ND_not_from_AddGTFS(param_ND):
+    '''Throw a warning if the network dataset appears to have been created using the Add GTFS to a Network Dataset toolbox'''
+    if param_ND.altered:
+        inNADataset = param_ND.value
+        if arcpy.Exists(inNADataset):
+            desc = arcpy.Describe(inNADataset)
+            sources = set([src.name for src in desc.sources])
+            # Source feature class names typical of a network created with the Add GTFS to a Network Dataset toolbox
+            AddGTFSSources = set(["Stops", "TransitLines", "Connectors_Stops2Streets", "Stops_Snapped2Streets", "Streets_UseThisOne"])
+            if AddGTFSSources.issubset(sources):
+                param_ND.setWarningMessage("This network dataset appears to have been created using the Add GTFS to a Network Dataset tool. \
+You should not use a network dataset created with that tool because BetterBusBuffers will handle the GTFS data separately. Please choose a \
+network dataset appropriate for modeling pedestrians walking along streets and paths.")
+
+
 def populate_restrictions_and_impedances(param_ND, param_restrictions, param_impedances):
     '''Populate the restrictions and impdance attribute parameters with filter lists
     based on the chosen network dataset'''
     if param_ND.altered:
-      inNADataset = param_ND.value
-      desc = arcpy.Describe(inNADataset)
-      atts = desc.attributes
-      restrictions = []
-      impedances = []
-      # Cycle through the attributes, find the restrictions and impedances,
-      # and add the names to the arrays.
-      for att in atts:
-          if att.usageType == "Restriction":
-             restrictions.append(att.name)
-          elif att.usageType == "Cost":
-            impedances.append(att.name + " (Units: " + att.units + ")")
-      # Put the value list of restrictions into the GUI field.
-      param_restrictions.filter.list = sorted(restrictions)
-      param_impedances.filter.list = sorted(impedances)
+        inNADataset = param_ND.value
+        if arcpy.Exists(inNADataset):
+            desc = arcpy.Describe(inNADataset)
+            atts = desc.attributes
+            restrictions = []
+            impedances = []
+            # Cycle through the attributes, find the restrictions and impedances,
+            # and add the names to the arrays.
+            for att in atts:
+                if att.usageType == "Restriction":
+                    restrictions.append(att.name)
+                elif att.usageType == "Cost":
+                    impedances.append(att.name + " (Units: " + att.units + ")")
+            # Put the value list of restrictions into the GUI field.
+            param_restrictions.filter.list = sorted(restrictions)
+            param_impedances.filter.list = sorted(impedances)
 
 
 def populate_UniqueID(param_points, param_UniqueID):
