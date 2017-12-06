@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 5 December 2017
+## Last updated: 6 December 2017
 ############################################################################
 ''' GP tool validation code'''
 ################################################################################
