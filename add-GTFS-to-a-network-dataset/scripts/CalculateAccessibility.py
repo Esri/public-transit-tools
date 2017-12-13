@@ -118,9 +118,15 @@ try:
     fieldMappings_destinations = arcpy.na.NAClassFieldMappings(input_network_analyst_layer, destinations_sublayer_name)
     fieldMappings_destinations["InputOID"].mappedFieldName = destinations_objectID
 
+    # If using a weight field, filter out destinations with 0 or Null weight since they will not contribute to the final output
+    destinations_layer = destinations_feature_class
+    if destinations_weight_field:
+        expression = "%s IS NOT NULL AND %s <> 0" % (destinations_weight_field, destinations_weight_field)
+        destinations_layer = arcpy.management.MakeFeatureLayer(destinations_feature_class, "Dests", expression)
+
     # Add origins and destinations
     arcpy.na.AddLocations(input_network_analyst_layer, origins_sublayer_name, origins_feature_class, fieldMappings_origins, "", append="CLEAR")
-    arcpy.na.AddLocations(input_network_analyst_layer, destinations_sublayer_name, destinations_feature_class, fieldMappings_destinations, "", append="CLEAR")
+    arcpy.na.AddLocations(input_network_analyst_layer, destinations_sublayer_name, destinations_layer, fieldMappings_destinations, "", append="CLEAR")
 
     # Create dictionary linking the ObjectID fields of the input feature classes and the NA sublayers
     # We need to do this because, particularly when the NA layer already had data in it, the ObjectID
@@ -185,7 +191,7 @@ try:
     destination_weight_dict = {} # {Input Destinations feature class ObjectID: Weight}
     num_dests = 0
     if destinations_weight_field:
-        with arcpy.da.SearchCursor(destinations_feature_class, ["OID@", destinations_weight_field]) as cur:
+        with arcpy.da.SearchCursor(destinations_layer, ["OID@", destinations_weight_field]) as cur:
             for row in cur:
                 destination_weight_dict[row[0]] = row[1]
                 num_dests += row[1]
