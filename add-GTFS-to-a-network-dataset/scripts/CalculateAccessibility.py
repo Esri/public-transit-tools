@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset / Transit Analysis Tools
 ## Tool name: Calculate Accessibility Matrix
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 21 November 2017
+## Last updated: 14 December 2017
 ################################################################################
 '''Count the number of destinations reachable from each origin by transit and 
 walking. The tool calculates an Origin-Destination Cost Matrix for each start 
@@ -75,19 +75,6 @@ try:
         arcpy.AddError(empty_error % "Destinations")
         raise CustomError
 
-    # Get Origins and Destionations Describe objects for later use
-    origins_desc = arcpy.Describe(origins_feature_class)
-    destinations_desc = arcpy.Describe(destinations_feature_class)
-
-    # Make sure Origins and Destinations are points and not some other shape type
-    shape_error = "Your %s feature class is not a Point feature class.  %s must be points."
-    if origins_desc.shapeType != "Point":
-        arcpy.AddError(shape_error % ("Origins", "Origins"))
-        raise CustomError
-    if destinations_desc.shapeType != "Point":
-        arcpy.AddError(shape_error % ("Destinations", "Destinations"))
-        raise CustomError
-
     # Make list of times of day to run the analysis
     try:
         timelist = AnalysisHelpers.make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input)
@@ -98,6 +85,10 @@ try:
     # ----- Add Origins and Destinations to the OD layer -----
 
     arcpy.AddMessage("Adding Origins and Destinations to OD Cost Matrix Layer...")
+
+    # Get Origins and Destionations Describe objects for later use
+    origins_desc = arcpy.Describe(origins_feature_class)
+    destinations_desc = arcpy.Describe(destinations_feature_class)
 
     # Get the sublayer names and objects for use later
     sublayer_names = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
