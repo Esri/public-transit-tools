@@ -67,7 +67,7 @@ try:
     increment_input = arcpy.GetParameter(8)
 
     # Make sure origins and destinations aren't empty
-    empty_error = "Your %s feature class is empty.  Please choose a feature class containing points you wish to analyze."
+    empty_error = u"Your %s feature class is empty.  Please choose a feature class containing points you wish to analyze."
     if int(arcpy.management.GetCount(origins_feature_class).getOutput(0)) == 0:
         arcpy.AddError(empty_error % "Origins")
         raise CustomError
@@ -112,8 +112,11 @@ try:
     # If using a weight field, filter out destinations with 0 or Null weight since they will not contribute to the final output
     destinations_layer = destinations_feature_class
     if destinations_weight_field:
-        expression = "%s IS NOT NULL AND %s <> 0" % (destinations_weight_field, destinations_weight_field)
+        expression = u"%s IS NOT NULL AND %s <> 0" % (destinations_weight_field, destinations_weight_field)
         destinations_layer = arcpy.management.MakeFeatureLayer(destinations_feature_class, "Dests", expression)
+        if int(arcpy.management.GetCount(destinations_layer).getOutput(0)) == 0:
+            arcpy.AddError(u"The weight field %s of your input Destinations table has values of 0 or Null for all rows." % destinations_weight_field)
+            raise CustomError
 
     # Add origins and destinations
     arcpy.na.AddLocations(input_network_analyst_layer, origins_sublayer_name, origins_feature_class, fieldMappings_origins, "", append="CLEAR")
