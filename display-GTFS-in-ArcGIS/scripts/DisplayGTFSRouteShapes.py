@@ -218,7 +218,7 @@ def main(inGTFSdir, OutShapesFC):
         # If the output location is a feature dataset, we have to match the coordinate system
         global output_coords
         desc_outgdb = arcpy.Describe(outGDB)
-        if  desc_outgdb.dataType == "Dataset" and desc_outgdb.datasetType == "FeatureDataset":
+        if hasattr(desc_outgdb, "spatialReference"):
             output_coords = desc_outgdb.spatialReference
         else:
             output_coords = WGSCoords
