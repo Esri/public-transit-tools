@@ -2,7 +2,7 @@
 ## Toolbox: Display GTFS in ArcGIS
 ## Tool name: Display GTFS Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 28 April 2017
+## Last updated: 14 December 2017
 ################################################################################
 ''' This tool generates feature classes of transit stops from the GTFS stop.txt
 file for display and analysis in ArcGIS for Desktop.'''
@@ -57,6 +57,13 @@ try:
     outfc = arcpy.GetParameterAsText(1)
     outGDB = os.path.dirname(outfc)
     outfilename = os.path.basename(outfc)
+
+    # If the output location is a feature dataset, we have to match the coordinate system
+    desc_outgdb = arcpy.Describe(outGDB)
+    if hasattr(desc_outgdb, "spatialReference"):
+        output_coords = desc_outgdb.spatialReference
+    else:
+        output_coords = WGSCoords
 
     # ----- Read in the stops.txt csv file -----
     arcpy.AddMessage("Reading input stops.txt file...")
@@ -114,7 +121,7 @@ try:
     arcpy.AddMessage("Initializing stops feature class...")
     try:
         # Create the output feature class
-        arcpy.management.CreateFeatureclass(outGDB, outfilename, "POINT", spatial_reference=WGSCoords)
+        arcpy.management.CreateFeatureclass(outGDB, outfilename, "POINT", spatial_reference=output_coords)
 
         # Add the appropriate fields to the feature class
         for col in columns:
@@ -128,7 +135,7 @@ try:
     # ----- Write the stops.txt data to the new feature class -----
     arcpy.AddMessage("Writing stops feature class...")
     try:
-        fields = ["SHAPE@XY"] + columns
+        fields = ["SHAPE@"] + columns
         with arcpy.da.InsertCursor(outfc, fields) as cur:
             for row in reader:
                 stop_id = row[stop_id_idx]
@@ -169,9 +176,16 @@ coordinates.  Please double-check all lat/lon values in your stops.txt file.\
                     if row[stop_desc_idx]:
                         # Some agencies are wordy. Truncate stop_desc so it fits in the field length.
                         row[stop_desc_idx] = row[stop_desc_idx][:max_stop_desc_length] 
-                shape = ((stop_lon, stop_lat,),)
-                toInsert = shape + tuple(row)
-                cur.insertRow(toInsert)
+                
+                pt = arcpy.Point()
+                pt.X = float(stop_lon)
+                pt.Y = float(stop_lat)
+                # GTFS stop lat/lon is written in WGS1984
+                ptGeometry = arcpy.PointGeometry(pt, WGSCoords)
+                if output_coords != WGSCoords:
+                    ptGeometry = ptGeometry.projectAs(output_coords)
+
+                cur.insertRow((ptGeometry,) + tuple(row))
 
         arcpy.AddMessage("Done!")
 
