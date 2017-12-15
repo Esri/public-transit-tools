@@ -137,50 +137,11 @@ def make_GTFS_lines_from_Shapes(shape, route=None):
         polyline = polyline.projectAs(output_coords)
 
     # Add the polyline feature to the output feature class
-    if ArcVersion == "10.0":
-        if ".shp" in OutShapesFCname:
-            row = StopsCursor.newRow()
-            row.shape = polyline
-            row.setValue("RtShpName", ShapeRoute)
-            row.setValue("shape_id", shape)
-            row.setValue("route_id", route)
-            row.setValue("agency_id", agency_id)
-            row.setValue("rt_shrt_nm", route_short_name)
-            row.setValue("rt_long_nm", route_long_name)
-            row.setValue("route_desc", route_desc)
-            row.setValue("route_type", route_type)
-            row.setValue("rt_typ_txt", route_type_text)
-            row.setValue("route_url", route_url)
-            row.setValue("rt_color", route_color)
-            row.setValue("rt_col_fmt", route_color_formatted)
-            row.setValue("rt_txt_col", route_text_color)
-            row.setValue("rt_txt_fmt", route_text_color_formatted)
-            StopsCursor.insertRow(row)
-        else:
-            row = StopsCursor.newRow()
-            row.shape = polyline
-            row.setValue("RouteShapeName", ShapeRoute)
-            row.setValue("shape_id", shape)
-            row.setValue("route_id", route)
-            row.setValue("agency_id", agency_id)
-            row.setValue("route_short_name", route_short_name)
-            row.setValue("route_long_name", route_long_name)
-            row.setValue("route_desc", route_desc)
-            row.setValue("route_type", route_type)
-            row.setValue("route_type_text", route_type_text)
-            row.setValue("route_url", route_url)
-            row.setValue("route_color", route_color)
-            row.setValue("route_color_formatted", route_color_formatted)
-            row.setValue("route_text_color", route_text_color)
-            row.setValue("route_text_color_formatted", route_text_color_formatted)
-            StopsCursor.insertRow(row)
-    else:
-        # For everything 10.1 and forward
-        StopsCursor.insertRow((polyline, ShapeRoute, shape, route, agency_id,
-                                route_short_name, route_long_name, route_desc,
-                                route_type, route_type_text, route_url,
-                                route_color, route_color_formatted, route_text_color,
-                                route_text_color_formatted))
+    StopsCursor.insertRow((polyline, ShapeRoute, shape, route, agency_id,
+                            route_short_name, route_long_name, route_desc,
+                            route_type, route_type_text, route_url,
+                            route_color, route_color_formatted, route_text_color,
+                            route_text_color_formatted))
 
 
 def rgb(triplet):
@@ -342,23 +303,19 @@ the output feature class's attribute table with route information.")
 
         # Create the InsertCursors
         global StopsCursor
-        if ArcVersion == "10.0":
-            StopsCursor = arcpy.InsertCursor(OutShapesFC)
+        if ".shp" in OutShapesFCname:
+            StopsCursor = arcpy.da.InsertCursor(OutShapesFC, ["SHAPE@",
+                    "RtShpName", "shape_id", "route_id", "agency_id",
+                    "rt_shrt_nm", "rt_long_nm", "route_desc",
+                    "route_type", "rt_typ_txt", "route_url",
+                    "rt_color", "rt_col_fmt", "rt_txt_col", "rt_txt_fmt"])
         else:
-            # For everything 10.1 and forward
-            if ".shp" in OutShapesFCname:
-                StopsCursor = arcpy.da.InsertCursor(OutShapesFC, ["SHAPE@",
-                        "RtShpName", "shape_id", "route_id", "agency_id",
-                        "rt_shrt_nm", "rt_long_nm", "route_desc",
-                        "route_type", "rt_typ_txt", "route_url",
-                        "rt_color", "rt_col_fmt", "rt_txt_col", "rt_txt_fmt"])
-            else:
-                StopsCursor = arcpy.da.InsertCursor(OutShapesFC, ["SHAPE@",
-                        "RouteShapeName", "shape_id", "route_id", "agency_id",
-                        "route_short_name", "route_long_name", "route_desc",
-                        "route_type", "route_type_text", "route_url",
-                        "route_color", "route_color_formatted", "route_text_color",
-                        "route_text_color_formatted"])
+            StopsCursor = arcpy.da.InsertCursor(OutShapesFC, ["SHAPE@",
+                    "RouteShapeName", "shape_id", "route_id", "agency_id",
+                    "route_short_name", "route_long_name", "route_desc",
+                    "route_type", "route_type_text", "route_url",
+                    "route_color", "route_color_formatted", "route_text_color",
+                    "route_text_color_formatted"])
 
 
     # ----- Add the shapes to the feature class -----

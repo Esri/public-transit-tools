@@ -58,6 +58,13 @@ try:
     outGDB = os.path.dirname(outfc)
     outfilename = os.path.basename(outfc)
 
+    # If the output location is a feature dataset, we have to match the coordinate system
+    desc_outgdb = arcpy.Describe(outGDB)
+    if hasattr(desc_outgdb, "spatialReference"):
+        output_coords = desc_outgdb.spatialReference
+    else:
+        output_coords = WGSCoords
+
     # ----- Read in the stops.txt csv file -----
     arcpy.AddMessage("Reading input stops.txt file...")
     try:
@@ -114,7 +121,7 @@ try:
     arcpy.AddMessage("Initializing stops feature class...")
     try:
         # Create the output feature class
-        arcpy.management.CreateFeatureclass(outGDB, outfilename, "POINT", spatial_reference=WGSCoords)
+        arcpy.management.CreateFeatureclass(outGDB, outfilename, "POINT", spatial_reference=output_coords)
 
         # Add the appropriate fields to the feature class
         for col in columns:
