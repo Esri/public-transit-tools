@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Display GTFS in ArcGIS
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 April 2017
+## Last updated: 14 December 2017 2017
 ############################################################################
 ''' Display GTFS Route Shapes
 Display GTFS Route Shapes converts GTFS route and shape data into an ArcGIS
@@ -46,6 +46,7 @@ WGSCoords = "GEOGCS['GCS_WGS_1984',DATUM['D_WGS_1984', \
     PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]]; \
     -400 -400 1000000000;-100000 10000;-100000 10000; \
     8.98315284119522E-09;0.001;0.001;IsHighPrecision"
+output_coords = None
 
 # Explicitly set max allowed length for route_desc. Some agencies are wordy.
 max_route_desc_length = 250
@@ -177,7 +178,9 @@ def make_GTFS_lines_from_Shapes(shape, shapesdf, ShapesCursor, route="", routesd
         pt.X = float(lons[idx])
         pt.Y = float(lats[idx])
         array.add(pt)
-    polyline = arcpy.Polyline(array)
+    polyline = arcpy.Polyline(array, WGSCoords)
+    if output_coords != WGSCoords:
+        polyline = polyline.projectAs(output_coords)
 
     # Add the information to the feature class
     ShapesCursor.insertRow((polyline, shape, route, route_data_dict["agency_id"],
@@ -212,6 +215,13 @@ def main(inGTFSdir, OutShapesFC):
 
         outGDB = os.path.dirname(OutShapesFC)
         OutShapesFCname = os.path.basename(OutShapesFC)
+        # If the output location is a feature dataset, we have to match the coordinate system
+        global output_coords
+        desc_outgdb = arcpy.Describe(outGDB)
+        if  desc_outgdb.dataType == "Dataset" and desc_outgdb.datasetType == "FeatureDataset":
+            output_coords = desc_outgdb.spatialReference
+        else:
+            output_coords = WGSCoords
         
 
         # ----- Read in the GTFS data and perform some checks -----
@@ -316,7 +326,7 @@ specification.")
         arcpy.AddMessage("Creating output feature class...")
 
         # Create the output feature class and add the right fields
-        arcpy.management.CreateFeatureclass(outGDB, OutShapesFCname, "POLYLINE", "", "", "", WGSCoords)
+        arcpy.management.CreateFeatureclass(outGDB, OutShapesFCname, "POLYLINE", "", "", "", output_coords)
         # Shapefiles can't have field names longer than 10 characters
         if ".shp" in OutShapesFCname:
             arcpy.management.AddField(OutShapesFC, "shape_id", "TEXT")
