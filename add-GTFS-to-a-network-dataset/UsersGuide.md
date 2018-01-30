@@ -27,13 +27,13 @@ Network Analyst is a powerful and complex ArcGIS extension.  The procedure descr
 
 In order to use GTFS routes, stops, and schedules in a network dataset, you must do the following steps, which are explained in further detail in this document:
 
-1. [Download and install the tools] (#Step1)
-2. [Acquire your data and prepare your feature dataset] (#Step2)
-3. [Generate feature classes for transit lines and stops and a SQL database of the schedules] (#Step3)
-4. [Create connector features between the transit lines/stops and your other data] (#Step4)
-5. [Create your network dataset using correct connectivity groups and configure your network attributes] (#Step5)
-6. [Finalize your transit network using the Get Network EIDs tool] (#Step6)
-7. [Choose the correct analysis settings] (#Step7)
+1. [Download and install the tools](#Step1)
+2. [Acquire your data and prepare your feature dataset](#Step2)
+3. [Generate feature classes for transit lines and stops and a SQL database of the schedules](#Step3)
+4. [Create connector features between the transit lines/stops and your other data](#Step4)
+5. [Create your network dataset using correct connectivity groups and configure your network attributes](#Step5)
+6. [Finalize your transit network using the Get Network EIDs tool](#Step6)
+7. [Choose the correct analysis settings](#Step7)
 
 
 ## <a name="Step1"></a>1) Download and install the tools
@@ -61,7 +61,7 @@ First, acquire the GTFS data you plan to use.
 
 GTFS datasets that use calendar.txt, calendar_dates.txt, and/or frequencies.txt for their schedules are supported.
 
-Note: Some GTFS datasets give specific arrival_times and departure_times only for designated time points in the network, leaving the times for intermediate stops blank.  Although this is a valid way to write a GTFS dataset, *Add GTFS to a Network Dataset* requires an explicit stop time for every stop visit.  If your GTFS dataset has blank stop times, you will not be able to use it in your network dataset.  The *1) Generate Transit Lines and Stops* tool will check your data and give you an error message if it has blank stop times.  You can download and use the [Interpolate Blank Stop Times] (http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate stop time values for your dataset if you still want to use it.
+Note: Some GTFS datasets give specific arrival_times and departure_times only for designated time points in the network, leaving the times for intermediate stops blank.  Although this is a valid way to write a GTFS dataset, *Add GTFS to a Network Dataset* requires an explicit stop time for every stop visit.  If your GTFS dataset has blank stop times, you will not be able to use it in your network dataset.  The *1) Generate Transit Lines and Stops* tool will check your data and give you an error message if it has blank stop times.  You can download and use the [Interpolate Blank Stop Times](http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate stop time values for your dataset if you still want to use it.
 
 Once you have obtained GTFS data, acquire a streets or sidewalks feature class for your area of interest and any other data you wish to include in your network.  You should, at minimum, have a streets feature class.  If you try to create a network dataset using only transit lines, the pedestrians will have no way to walk between transit stops and their origins or destinations or to walk between nearby stops for transfers.
 
@@ -110,7 +110,7 @@ This is what the *Generate Stop-Street Connectors* tool does:
 * Next, the tool [generates a line feature](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/points-to-line.htm) connecting the true location of each stop and its snapped counterpart.
 * If your GTFS data uses parent stations, the parent stations are snapped to the streets using the method described above.  Child stops of the parent station are not snapped to the streets.  Instead, a connector line is created between the child stop and the parent station.  Consequently, the child stop is connected to the streets only through the parent station.
 * If your GTFS stops.txt file includes station entrances designated by location_type=2, the station entrances will be snapped to the streets, and a line will be generated between the parent station and each station entrance.  It is assumed that the station entrances are the only places where pedestrians can enter their respective parent stations.
-* Next, the tool creates a "wheelchair_boarding" field to indicate whether or not the stop is wheelchair accessible.  The values used in this field are derived from the wheelchair_boarding field in the [GTFS stops.txt file] (https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#stopstxt).  If the stop has a parent station and has a wheelchair_boarding value of 0, the tool populates the field based on the wheelchair_boarding value for the parent station.
+* Next, the tool creates a "wheelchair_boarding" field to indicate whether or not the stop is wheelchair accessible.  The values used in this field are derived from the wheelchair_boarding field in the [GTFS stops.txt file](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#stopstxt).  If the stop has a parent station and has a wheelchair_boarding value of 0, the tool populates the field based on the wheelchair_boarding value for the parent station.
 * Finally, the tool [creates vertices](http://desktop.arcgis.com/en/desktop/latest/tools/data-management-toolbox/integrate.htm) in the street features at the locations of the snapped stops.  These vertices are necessary for establishing connectivity when you create your network dataset.
 
 ![Diagram showing desired connectivity of streets and transit lines](./images/ConnectivityDiagram.png)
@@ -196,7 +196,7 @@ When you're finished with your travel time attribute, review your other network 
 
 Before continuing, you may also set up any network restriction attributes you like. The TransitLines feature class contains fields indicating the GTFS route_type, or mode, such as bus, subway/metro, tram, etc.  You can create restriction attributes to prohibit riders from traveling on particular modes.
 
-For example, to prohibit riders from traveling on buses, create a new restriction attribute.  In the Evaluators dialog for that restriction attribute, use a Field evaluator for TransitLines in the From-To direction and click the button on the right showing a finger pointing at a piece of paper.  The image on the right shows how you can set up your restriction to prohibit travel on buses.  The "route_type" field uses numerical codes from the GTFS data.  An explanation of the codes is in the [GTFS specification document] (https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#routestxt).
+For example, to prohibit riders from traveling on buses, create a new restriction attribute.  In the Evaluators dialog for that restriction attribute, use a Field evaluator for TransitLines in the From-To direction and click the button on the right showing a finger pointing at a piece of paper.  The image on the right shows how you can set up your restriction to prohibit travel on buses.  The "route_type" field uses numerical codes from the GTFS data.  An explanation of the codes is in the [GTFS specification document](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#routestxt).
 
 ![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_RestrictionFieldEvaluator.png)
 
@@ -259,7 +259,7 @@ If, on the other hand, you want to run your analysis for a specific date, click 
 
 ![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_SpecificDatesParameter.png)
 
-A note on GTFS data containing non-overlapping date ranges: The GTFS calendar.txt file contains date ranges indicating the range of dates when service runs.  Some GTFS datasets have entries in this table with date ranges that do not overlap one another.  For example, one service_id in the table might be used for trips occurring in the spring, and a different one might be for trips occurring during the summer.  Additionally, if you use multiple GTFS datasets in your network, the date ranges might be different between the two datasets. You can get more information about service_ids and date ranges in the [GTFS specification document] (https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#calendartxt).  If your data contains non-overlapping date ranges, you will have received a warning message when you ran the *1) Generate Transit Lines and Stops* tool.  *If you try to run analyses for generic weekdays using this data, you could get inaccurate results.*  When you choose not to use specific dates, the date ranges will be ignored, which could cause the GTFS transit evaluator to over-count the number of trips available.  If you have non-overlapping date ranges in your data, make sure you understand how your data is constructed and how it might affect your analysis.
+A note on GTFS data containing non-overlapping date ranges: The GTFS calendar.txt file contains date ranges indicating the range of dates when service runs.  Some GTFS datasets have entries in this table with date ranges that do not overlap one another.  For example, one service_id in the table might be used for trips occurring in the spring, and a different one might be for trips occurring during the summer.  Additionally, if you use multiple GTFS datasets in your network, the date ranges might be different between the two datasets. You can get more information about service_ids and date ranges in the [GTFS specification document](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#calendartxt).  If your data contains non-overlapping date ranges, you will have received a warning message when you ran the *1) Generate Transit Lines and Stops* tool.  *If you try to run analyses for generic weekdays using this data, you could get inaccurate results.*  When you choose not to use specific dates, the date ranges will be ignored, which could cause the GTFS transit evaluator to over-count the number of trips available.  If you have non-overlapping date ranges in your data, make sure you understand how your data is constructed and how it might affect your analysis.
 
 ### Excluding sources in service area polygon generation
 

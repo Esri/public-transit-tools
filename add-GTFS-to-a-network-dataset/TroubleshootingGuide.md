@@ -84,7 +84,7 @@ You could also manually edit the Stops_Snapped2Streets and Connectors_Stops2Stre
 
 Another less common cause of build errors like these is that the stop was already directly on top of a street, and so the snapped stop did not move.  Manual editing is the only way to fix this.
 
-If you got build errors other than the ones listed above, refer to the [ArcGIS documentation] (http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/editing-network-datasets-ways-to-edit-the-network-dataset.htm) for ways to edit your network dataset.
+If you got build errors other than the ones listed above, refer to the [ArcGIS documentation](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/editing-network-datasets-ways-to-edit-the-network-dataset.htm) for ways to edit your network dataset.
 
 
 ## <a name="HRESULT"></a>The Get Network EIDs tool failed with a message saying "Error obtaining network EIDs. Exception from HRESULT: 0x80040216".

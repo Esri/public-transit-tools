@@ -36,7 +36,7 @@ Detailed instructions for each of these tools is given later in this document.
 * For the *Count Trips at Points Online* tool, an ArcGIS Online account with routing privileges and sufficient credits for your analysis.
 
 ## Data requirements
-* A valid GTFS dataset.  If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.  You can download and use the [Interpolate Blank Stop Times] (http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate blank arrival_time and departure_time values for your dataset if you still want to use it in BetterBusBuffers.
+* A valid GTFS dataset.  If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.  You can download and use the [Interpolate Blank Stop Times](http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate blank arrival_time and departure_time values for your dataset if you still want to use it in BetterBusBuffers.
 * For some functionality, a network dataset with street data for your area of interest.  You should *not* use a network dataset created with the Add GTFS to a Network Dataset toolset.  BetterBusBuffers will handle the GTFS data separately, so it should not be included within the network dataset itself.
 * For the *Count Trips at Points* and *Count Trips at Points Online* tools, a feature class of your points of interest.
 
@@ -304,7 +304,7 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
 
 ArcGIS Online's origin-destination cost matrix service is available for most parts of the world. If you are uncertain whether the service covers the geographic location served by your transit system, check the [ArcGIS Online Network Dataset Coverage map](http://www.arcgis.com/home/webmap/viewer.html?webmap=b7a893e8e1e04311bd925ea25cb8d7c7).
 
-To use this tool, you must be [signed in to an ArcGIS Online account] (http://desktop.arcgis.com/en/arcmap/latest/map/web-maps-and-services/signing-into-arcgis-online-in-arcgis-for-desktop.htm), or you must enter your ArcGIS Online username and password into the tool dialog.  Your ArcGIS Online account must have network service privileges and sufficient credits.  Talk to your organization's ArcGIS Online administrator if you need help checking or setting up your account.
+To use this tool, you must be [signed in to an ArcGIS Online account](http://desktop.arcgis.com/en/arcmap/latest/map/web-maps-and-services/signing-into-arcgis-online-in-arcgis-for-desktop.htm), or you must enter your ArcGIS Online username and password into the tool dialog.  Your ArcGIS Online account must have network service privileges and sufficient credits.  Talk to your organization's ArcGIS Online administrator if you need help checking or setting up your account.
 
 This tool will calculate at maximum one route per origin-destination pair.  So, if you have 100 points of interest and 100 transit stops, the travel time or distance will be calculated between, at maximum, 100\*100=10000 origin-destination pairs.  However, the *Count Trips at Points Online* tool attempts to minimize the number of origin-destination calculations made by spatially chunking the problem, so the actual number of origin-destination pairs will probably be far less.
 
@@ -360,7 +360,7 @@ The *Count Trips at Stops* tool counts the number of transit trips that visit th
 ### Understanding the output
 This tool produces a points feature class containing the fields described below.  *Note: The field names are shortened for shapefile output.*
 * **stop_id**:  The unique stop_id from the GTFS stops.txt file.  The original stop_id now has the GTFS folder name prepended to it, in order to prevent problems when combining multiple GTFS datasets in the same analysis.
-* **stop_code, stop_name, stop_desc, zone_id, stop_url, location_type, parent_station**:  Fields from the GTFS stops.txt file.  For an explanation of these fields, please review the [GTFS reference guide] (https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#stopstxt).
+* **stop_code, stop_name, stop_desc, zone_id, stop_url, location_type, parent_station**:  Fields from the GTFS stops.txt file.  For an explanation of these fields, please review the [GTFS reference guide](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#stopstxt).
 * **NumTrips**:  The total number of transit trips that visit this stop during the time window.
 * **NumTripsPerHr**: The average number of transit trips that visit this stop per hour during the time window.  This number is calculated by dividing NumTrips by the length of the time window.
 * **MaxWaitTime**: The maximum time, in minutes, between consecutive transit trip arrivals or departures during your time window.  This is the maximum amount of time during which no trips visit this stop.
@@ -402,7 +402,7 @@ The *Count High Frequency Routes at Stops* tool counts the number of routes at e
 ### Understanding the output
 This tool produces a points feature class containing the fields described below.  Note: The field names are shortened for shapefile output.
 * **stop_id**:  The unique stop_id from the GTFS stops.txt file.  The original stop_id now has the GTFS folder name prepended to it, in order to prevent problems when combining multiple GTFS datasets in the same analysis.
-* **stop_code, stop_name, stop_desc, zone_id, stop_url, location_type, parent_station**:  Fields from the GTFS stops.txt file.  For an explanation of these fields, please review the [GTFS reference guide] (https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#stopstxt).
+* **stop_code, stop_name, stop_desc, zone_id, stop_url, location_type, parent_station**:  Fields from the GTFS stops.txt file.  For an explanation of these fields, please review the [GTFS reference guide](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#stopstxt).
 * **NumTrips**:  The total number of transit trips that visit this stop during the time window.
 * **NumTripsPerHr**: The average number of transit trips that visit this stop per hour during the time window.  This number is calculated by dividing NumTrips by the length of the time window.
 * **MaxWaitTime**: The maximum time, in minutes, between consecutive transit trip arrivals or departures during your time window.  This is the maximum amount of time during which no trips visit this stop.
