@@ -133,7 +133,7 @@ Note: In order to run the *2) Generate Stop-Street Connectors* tool, you must ha
 * **Streets_UseThisOne**: A copy of the streets feature class you selected as input, modified to have vertices at the locations of your snapped GTFS stops.  This is the streets feature class you should use in your network dataset instead of your original streets feature class.
 
 
-## <a name="Step5"></a>5) Create your network dataset using correct connectivity groups and configure your network attributes
+## <a name="Step5"></a>5) Create and configure your network dataset
 
 Now you are ready to create your network dataset.
 
@@ -152,11 +152,11 @@ Note that the following steps are rather complicated.  You can always go back an
 2. Give your network dataset a name, and click Next.
 
 3. Choose the feature classes from your feature dataset that should be included in your network dataset.  You should check, at minimum, all of the following:
-  - Connectors_Stops2Streets
-  - Streets_UseThisOne
-  - TransitLines
-  - Stops
-  - Stops_Snapped2Streets
+    - Connectors_Stops2Streets
+    - Streets_UseThisOne
+    - TransitLines
+    - Stops
+    - Stops_Snapped2Streets
 
     ![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_SourceFCs.png)
 
@@ -165,14 +165,14 @@ Note that the following steps are rather complicated.  You can always go back an
 4. On the next page, choose whether or not you want to model turns.  The transit network does not use turns, but you can choose to do so if you have turn feature classes or want to use global turns in your street data.
 
 5. <a name="connectivity"></a>On the next page, click the Connectivity button.  You need to set up your connectivity groups to tell the network how pedestrians are allowed to travel between the different source features (streets, transit lines, etc.).  If you are unfamiliar with network connectivity concepts, please review the [Understanding connectivity](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/understanding-connectivity.htm) page in the ArcGIS documentation.  You should tailor your connectivity groups to your own data, but you can use the following instructions as a guide for how to do it.
-  1. Create three connectivity group columns. Group 1 is for your streets, Group 2 is for your stop-street connectors, and Group 3 is for your transit lines.  It is essential that the transit lines and streets reside in different connectivity groups because pedestrians can only change between the transit system and the streets network at stops.
-  2. Check and uncheck boxes as necessary so that your street features are only checked for Group 1, your connector features are only checked for Group 2, and your transit features are only checked for Group 3.
-  3. Check and uncheck boxes so that Stops_Snapped2Streets resides in two groups: Group 1 and Group 2.  This makes the snapped stop points junctions between the street features and the connector lines.
-  4. Check and uncheck boxes so that Stops resides in two groups: Group 2 and Group 3.  This makes the stop points junctions between the transit lines and the connector lines.
-  5. Leave the Connectivity Policy for TransitLines and Connectors_Stops2Streets as "End Point" because these features should not connect to each other anywhere except endpoints.
-  6. Choose either "End Point" or "Any Vertex" for Streets_UseThisOne, depending on what is [most appropriate for your particular street data](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/understanding-connectivity.htm).  In general, if your streets have endpoints at every intersection, you should use "End Point" connectivity.  If your streets are long and are not split at every intersection (for example, OpenStreetMap data), you need "Any Vertex" connectivity.  You are less likely to encounter connectivity problems if you use "Any Vertex" connectivity, but you are more likely to run into problems with inappropriately connecting underpasses and overpasses.
-  7. Leave the Connectivity Policy for Stops as "Honor" because Stops should only connect to transit lines and connectors at endpoints.
-  8. If you used the *Generate Stop-Street Connectors* tool or some other method that created vertices in your street features at the locations of snapped stops, change the Connectivity Policy for Stops_Snapped2Streets to "Override".  This allows the snapped stops to connect to the street feature vertices even if the street feature connectivity is set to End Point.
+    1. Create three connectivity group columns. Group 1 is for your streets, Group 2 is for your stop-street connectors, and Group 3 is for your transit lines.  It is essential that the transit lines and streets reside in different connectivity groups because pedestrians can only change between the transit system and the streets network at stops.
+    2. Check and uncheck boxes as necessary so that your street features are only checked for Group 1, your connector features are only checked for Group 2, and your transit features are only checked for Group 3.
+    3. Check and uncheck boxes so that Stops_Snapped2Streets resides in two groups: Group 1 and Group 2.  This makes the snapped stop points junctions between the street features and the connector lines.
+    4. Check and uncheck boxes so that Stops resides in two groups: Group 2 and Group 3.  This makes the stop points junctions between the transit lines and the connector lines.
+    5. Leave the Connectivity Policy for TransitLines and Connectors_Stops2Streets as "End Point" because these features should not connect to each other anywhere except endpoints.
+    6. Choose either "End Point" or "Any Vertex" for Streets_UseThisOne, depending on what is [most appropriate for your particular street data](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/understanding-connectivity.htm).  In general, if your streets have endpoints at every intersection, you should use "End Point" connectivity.  If your streets are long and are not split at every intersection (for example, OpenStreetMap data), you need "Any Vertex" connectivity.  You are less likely to encounter connectivity problems if you use "Any Vertex" connectivity, but you are more likely to run into problems with inappropriately connecting underpasses and overpasses.
+    7. Leave the Connectivity Policy for Stops as "Honor" because Stops should only connect to transit lines and connectors at endpoints.
+    8. If you used the *Generate Stop-Street Connectors* tool or some other method that created vertices in your street features at the locations of snapped stops, change the Connectivity Policy for Stops_Snapped2Streets to "Override".  This allows the snapped stops to connect to the street feature vertices even if the street feature connectivity is set to End Point.
 
     ![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_ConnectivityGroups.png)
 
@@ -182,22 +182,22 @@ Note that the following steps are rather complicated.  You can always go back an
 
     To create a travel time cost attribute that uses the GTFS transit evaluator, do the following:
 
-  1. Click Add to create a new attribute, and set the properties as follows:
-     - Set a name.
-     - Set the Usage Type to Cost.
-     - Set the Units to Minutes.
-     - Set the Data Type to Double.
-     - You will probably want this to be the default cost attribute, so check the box that says Use by Default.
+    1. Click Add to create a new attribute, and set the properties as follows:
+        - Set a name.
+        - Set the Usage Type to Cost.
+        - Set the Units to Minutes.
+        - Set the Data Type to Double.
+        - You will probably want this to be the default cost attribute, so check the box that says Use by Default.
 
         ![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_NewAttribute.png)
 
-  2. Tell the network dataset how to determine the travel time for each different source feature class, in each direction, by configuring the "evaluators" of your cost attribute.  If you are uncertain of what an evaluator is or how they work, please review the [Types of evaluators used by a network](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/types-of-evaluators-used-by-a-network.htm) page before proceeding.  Set up the evaluators as follows:
-     * **Streets**: It's up to you how to determine travel time.  If your data already contains a field for pedestrian walk time, you can use that field.  Otherwise, you will probably want to reference the length of the feature and convert to time by assuming a walk speed (as I have done in the example shown in the image: 80.4672 is 3 miles per hour converted to meters per minute to match my data's coordinate system).  Be sure to use the correct units for your input data.  You could also define an attribute parameter for walk speed so the user can change it without rebuilding the network.  If you decide to add a walk speed parameter, please review the [Using parameters with network attributes](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/using-parameters-with-network-attributes.htm) page.
+    2. Tell the network dataset how to determine the travel time for each different source feature class, in each direction, by configuring the "evaluators" of your cost attribute.  If you are uncertain of what an evaluator is or how they work, please review the [Types of evaluators used by a network](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/types-of-evaluators-used-by-a-network.htm) page before proceeding.  Set up the evaluators as follows:
+        * **Streets**: It's up to you how to determine travel time.  If your data already contains a field for pedestrian walk time, you can use that field.  Otherwise, you will probably want to reference the length of the feature and convert to time by assuming a walk speed (as I have done in the example shown in the image: 80.4672 is 3 miles per hour converted to meters per minute to match my data's coordinate system).  Be sure to use the correct units for your input data.  You could also define an attribute parameter for walk speed so the user can change it without rebuilding the network.  If you decide to add a walk speed parameter, please review the [Using parameters with network attributes](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/using-parameters-with-network-attributes.htm) page.
 ![Screenshot of network dataset creation dialog](./images/Screenshot_NDCreation_Evaluators.png)
         * **Connectors_Stops2Streets**: You can set these equal to a constant of 0 if you do not want traveling between streets and transit lines to invoke any time penalty.  However, you can use these features to simulate a time delay for boarding or exiting a vehicle.  For example, if you want it to take 30 seconds to board a vehicle, you could set the To-From direction equal to a constant of 0.5.  You could leave the From-To direction at 0 if you don't want to invoke a delay for exiting a vehicle.  Note that From-To indicates the direction traveling from the stops to the streets, and vice-versa for the To-From direction.  Note that if you have stops connected to parent stations, and you use a simple constant to model boarding or exiting time, this constant will be applied twice for these stops because the stop is connected to the parent station, and the parent station is connected to the street.  If you additionally have street entrance data, the constant may be applied three times.  If this is your situation, you might want to consider a more refined way of estimating the boarding and exiting time.
         * **TransitLines**: You need to use the special GTFS transit evaluator you installed earlier.  This evaluator queries the GTFS transit schedules to figure out how long it takes to travel on your transit lines at the time of day of your analysis.  In the Type field for TransitLines From-To, click to get a drop-down.  There should be an entry in the drop-down list that says "Transit Evaluator".  Select this value.  Because transit trips occur in only one direction along each transit line in this network, you should set the TransitLines To-From direction entry equal to a constant of -1.  This tells the network that traversal is not allowed in the backwards direction.
 
-  3. Now that you have created your travel time attribute, you have the option to add parameters to it to enhance your analysis.  If you are unfamiliar with parameters or need a refresher, please review the [Using parameters with network attributes](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/using-parameters-with-network-attributes.htm) page.
+    3. Now that you have created your travel time attribute, you have the option to add parameters to it to enhance your analysis.  If you are unfamiliar with parameters or need a refresher, please review the [Using parameters with network attributes](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/using-parameters-with-network-attributes.htm) page.
   
       To create a parameter, return to the window where you can create new attributes, select your travel time attribute from the list and click the Parameters button on the right.  Click Add to add a new parameter.
   
