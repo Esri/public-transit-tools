@@ -235,7 +235,7 @@ Note that the following steps are rather complicated.  You can always go back an
 If you have ArcMap 10.6 or higher, you can create your network dataset easily using the [Create Network Dataset From Template](https://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/create-network-dataset-from-template.htm) tool and the provided network dataset template.  A template for a well-configured transit network has been provided to you, so you do not have to manually configure all the network dataset options.  The template file is called TransitNetworkTemplate.xml, and it is located in the AddGTFStoaNetworkDataset folder in the folder where you ran the installer.
 
 Before running the Create Network Dataset from Template tool, add your Streets_UseThisOne feature class to the map and examine it.  A field called "pedestrians_allowed" has been added.  If you are interested in preventing pedestrians from walking on highways or other locations where they are not allowed, you can use [Calculate Field](https://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/calculate-field.htm) or any other method to populate this field with values as follows:
-- 1 or <Null>: Pedestrians are allowed to walk on this feature
+- 1 or Null: Pedestrians are allowed to walk on this feature
 - 0: Pedestrians are not allowed to walk on this feature
 
 When you create the network dataset from the template, the network will read the values of this field to determine whether or not each street should be restricted to pedestrians walking.  The field values are <Null> by default, so if you aren't interested in this restriction or don't have any information about where pedestrians are and are not allowed, you can leave the field as is.  The network dataset will just assume that pedestrians are allowed to travel anywhere. 
@@ -362,10 +362,6 @@ Each time you solve a network analysis for the first time with this network data
 
 If you are performing a complex analysis in which you want to modify your transit data between solves (for example, you are testing the effects of adding an extra trip and are directly modifying the SQL database of GTFS data), you might need the transit evaluator to re-cache the schedules prior to each solve.  Otherwise, it will not read in the changes you made to your transit schedules.  You can override the normal caching behavior by adding a parameter called "Cache on every solve", as described [above](#CacheParameter).
 
-### If you forgot to run Get Network EIDs
-
-Note: If you forgot to run to tool *3) Get Network EIDs*, you will receive an error message when the evaluator caches saying "FAILURE: All EIDs were null in the transit schedule table.  Please run the tool to generate EIDs".  Just go back and run *3) Get Network EIDs*.
-
 
 ## <a name="Server"></a>Using your network dataset with ArcGIS Server
 
@@ -384,7 +380,7 @@ If you are hosting a service using your transit-enabled network dataset, and you
 If you have ArcGIS Desktop and the 64-bit background geoprocessing extension, you must go through a special registration procedure to make TransitEvaluator.dll work with the 64-bit background geoprocessing.  Follow the procedure [outlined in this article](http://support.esri.com/en/knowledgebase/techarticles/detail/40735).
 
 
-### Limitations and weaknesses
+## Limitations and weaknesses
 
 Although these tools represent a significant step forward in transit analysis capabilities in ArcGIS, there are several limitations you should be aware of:
 * There is currently no way to separate walking portions and riding portions of the pedestrian's trip through the network.  Travelers might be willing to travel for one hour, but they might not be willing to walk more than a quarter of a mile.  This behavior cannot currently be modeled.
@@ -393,7 +389,7 @@ Although these tools represent a significant step forward in transit analysis ca
 * Sometimes information about fares is included in the GTFS data.  We do not currently use this data and consequently cannot calculate the fare for a route in this network.
 
 
-### Disclaimer
+## Disclaimer
 
 These tools are exploratory prototypes designed to help Esri further its development of useful and high-quality public transit analysis tools.  If you encounter bugs or other problems or you simply have ideas or suggestions, please contact us and let us know!
 
