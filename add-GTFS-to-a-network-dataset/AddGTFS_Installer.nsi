@@ -113,12 +113,13 @@ WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAM
 WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "NoRepair" 1
 WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "EstimatedSize" ${INSTALLSIZE}
 
-# install the documentation
+# install the documentation and template
 DetailPrint "Installing documentation..."
 SetOutPath "$INSTDIR"
 File "TroubleshootingGuide.html"
 File "TransitAnalysisTools_UsersGuide.html"
 File "AddGTFStoND_UsersGuide.html"
+File "TransitNetworkTemplate.xml"
 SetOutpath "$INSTDIR\images"
 File "images\ConnectivityDiagram.png"
 File "images\Screenshot_AnalysisSettings_ExcludedSources.png"
@@ -222,6 +223,7 @@ DetailPrint "Un-registration of TransitEvaluator.dll  with ArcMap was not succes
 Delete "$INSTDIR\AddGTFStoND_UsersGuide.html"
 Delete "$INSTDIR\TransitAnalysisTools_UsersGuide.html"
 Delete "$INSTDIR\TroubleshootingGuide.html"
+Delete "$INSTDIR\TransitNetworkTemplate.xml"
 Delete "$INSTDIR\images\ConnectivityDiagram.png"
 Delete "$INSTDIR\images\Screenshot_AnalysisSettings_ExcludedSources.png"
 Delete "$INSTDIR\images\Screenshot_AnalysisSettings_ExcludeRoutes.png"
