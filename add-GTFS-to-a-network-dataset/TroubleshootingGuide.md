@@ -22,6 +22,7 @@ This document describes some common problems encountered by users of *Add GTFS t
 + Doing analysis / using the network
   - [I got an FDO error when I tried to open my network dataset or add it to the map](#FDO)
   - [During schedule caching, I got an error that said "unable to open database file"](#noDatabase)
+  - [During schedule caching, I got an error that said "All EIDs were null in the transit schedule table. Please run Get Network EIDs."](#noEIDs)
   - [My analysis never uses the transit lines. It only uses the streets.](#NoTransitLines)
   - [My Service Areas have ugly spikes around the transit lines](#Exclude)
 + Other
@@ -70,7 +71,12 @@ If ArcMap is open when you register the transit evaluator, you will need to clos
 
 
 ## <a name="BuildErrors"></a>When I built my network, I got build errors.
-When you build your network dataset, you may see build errors like this:
+
+When you build your network dataset, you may get build errors.  Some you can safely ignore, but others you must address in order for your network to work successfully.
+
+### Stop and connector geometry errors
+
+The following build errors are associated with the geometry of your stops and connector features:
 - SourceName: Connectors_Stops2Streets, ObjectID: 241, Geometry is empty.
 - SourceName: Connectors_Stops2Streets, ObjectID: 4644, The edge feature is too small to participate in snapping and may not be connected to other features.
 - SourceName: Stops_Snapped2Streets, ObjectID: 9202, Standalone user-defined junction is detected.
@@ -83,6 +89,17 @@ The Step 2 tool (*Generate Stop-Street Connectors*) makes a copy of your transit
 You could also manually edit the Stops_Snapped2Streets and Connectors_Stops2Streets features, moving the snapped stop to the exact location where you want it to connect to the streets.  If you do this, you MUST add a vertex on the street feature in the location where you snap the stop or else the network still will not connect at that location.
 
 Another less common cause of build errors like these is that the stop was already directly on top of a street, and so the snapped stop did not move.  Manual editing is the only way to fix this.
+
+### <a name="Hierarchy"></a>"Invalid hierarchical value" errors
+
+If your network dataset has a Hierarchy attribute, you might get a large number of build errors like this:
+- SourceName: Connectors_Stops2Streets, ObjectID: 1, Invalid hierarchical value.
+
+Your network dataset will not work properly if you don't resolve these issues.  At the time of schedule caching, you'll get a message saying that EID values were missing, even if you successfully ran the Get EIDs tool.
+
+Hierarchy is a network property meant to speed up calculations of nationwide, large-scale analysis problems.  Hierarchy is not helpful for pedestrian analysis.  If you get build errors like this, you should go to the Attributes tab in the network dataset properties and delete the Hierarchy attribute.  Then, re-build your network dataset and re-run the Get EIDs tool.
+
+### Other build errors
 
 If you got build errors other than the ones listed above, refer to the [ArcGIS documentation](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/editing-network-datasets-ways-to-edit-the-network-dataset.htm) for ways to edit your network dataset.
 
@@ -104,6 +121,11 @@ The error message might also include "Error: Transit schedule caching failure fo
 
 You might see this error if the network dataset is stored on a shared network drive instead of the local machine.  The solution is to move your network to a local drive.
 
+
+## <a name="noEIDs"></a>During schedule caching, I got an error that said "All EIDs were null in the transit schedule table. Please run Get Network EIDs."
+The most straightforward cause of this error is that you simply forgot to run the [Get Network EIDs tool](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step7) after building (or re-building) your network dataset.  If this is the case, just run that tool and try again.
+
+If you still see this error after successfully running the Get Network EIDs tool, it's possible that your network dataset was never successfully built, probably due to unresolved [build errors](#BuildErrors).  A likely culprit is that you have a [Hierarchy attribute](#Hierarchy) that is generating a large number of errors.
 
 ## <a name="NoTransitLines"></a>My analysis never uses the transit lines. It only uses the streets.
 There are many reasons why the results of your analysis might fail to use the transit lines and only use the streets.
