@@ -379,6 +379,8 @@ If you are hosting a service using your transit-enabled network dataset, and you
 
 If you have ArcGIS Desktop and the 64-bit background geoprocessing extension, you must go through a special registration procedure to make TransitEvaluator.dll work with the 64-bit background geoprocessing.  Follow the procedure [outlined in this article](http://support.esri.com/en/knowledgebase/techarticles/detail/40735).
 
+Note that after installing Add GTFS to a Network Dataset, TransitEvaluator.dll is located in 'C:\Program Files (x86)\ArcGIS\Desktop10.#\ArcToolbox\Toolboxes\EvaluatorFiles' (replace the '#' with your ArcGIS version number).  If you installed ArcMap to a non-default location, this path may be different.
+
 
 ## Limitations and weaknesses
 
