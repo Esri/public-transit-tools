@@ -1406,13 +1406,7 @@ def append_existing_shape_to_fc(shape, StopsCursor, route=None):
     cp.execute(pointsinshapefetch)
     
     # Create the polyline feature from the sequence of points
-    array = arcpy.Array()
-    pt = arcpy.Point()
-    for point in cp:
-        pt.X = float(point[1])
-        pt.Y = float(point[0])
-        array.add(pt)
-    polyline = arcpy.Polyline(array)
+    polyline = [(float(point[1]), float(point[0])) for point in cp]
 
     # Add the polyline feature to the output feature class
     StopsCursor.insertRow((polyline, shape, route,
