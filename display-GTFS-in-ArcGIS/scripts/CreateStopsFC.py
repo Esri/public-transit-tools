@@ -50,7 +50,7 @@ try:
     max_stop_desc_length = 250
 
     # Fields other than stop_lat and stop_lon required by the GTFS spec.
-    other_required_fields = ["stop_id", "stop_name"]
+    other_required_fields = ["stop_name"]
 
     # User input
     inStopstxt = arcpy.GetParameterAsText(0)
@@ -70,7 +70,7 @@ try:
     try:
         # Open the stops.txt csv for reading
         if ProductName == 'ArcGISPro':
-            f = open(inStopstxt, encoding="utf-8")
+            f = open(inStopstxt, encoding="utf-8-sig")
         else:
             f = open(inStopstxt)
         reader = csv.reader(f)
@@ -92,17 +92,21 @@ try:
     # ----- Check the stops.txt file for the correct fields -----
     try:
         # Make sure lat/lon values are present
-        if not "stop_lat" in columns:
+        if "stop_lat" not in columns:
             arcpy.AddError("Your stops.txt file does not contain a 'stop_lat' field. Please choose a valid stops.txt file.")
             raise CustomError
-        if not "stop_lon" in columns:
+        if "stop_lon" not in columns:
             arcpy.AddError("Your stops.txt file does not contain a 'stop_lon' field. Please choose a valid stops.txt file.")
+            raise CustomError
+        if "stop_id" not in columns:
+            arcpy.AddError("Your stops.txt file does not contain a 'stop_id' field. Please choose a valid stops.txt file.")
             raise CustomError
 
         # Add a warning if other required fields aren't present
         for field in other_required_fields:
-            if not field in columns:
-                arcpy.AddWarning("Warning! Your stops.txt file does not contain the required %s field. This tool will run correctly anyway, but your GTFS file is invalid.")
+            if field not in columns:
+                arcpy.AddWarning("Warning! Your stops.txt file does not contain the required %s field. This tool will \
+run correctly anyway, but your GTFS file is invalid." % field)
 
         # Find incides of stop_lat and stop_lon columns
         stop_lat_idx = columns.index("stop_lat")
