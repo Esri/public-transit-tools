@@ -2,12 +2,12 @@
 ## Toolbox: Display GTFS in ArcGIS
 ## Tool name: Display GTFS Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 14 December 2017
+## Last updated: 12 March 2018
 ################################################################################
 ''' This tool generates feature classes of transit stops from the GTFS stop.txt
 file for display and analysis in ArcGIS for Desktop.'''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2018 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
