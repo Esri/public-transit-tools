@@ -1,9 +1,8 @@
 # Edit GTFS Stop Locations User's Guide
 
 Created by Melinda Morang, Esri  
-Contact: <mmorang@esri.com>
 
-Copyright 2015 Esri  
+Copyright 2018 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ## What this tool does
@@ -71,3 +70,6 @@ For detailed information on editing in ArcGIS Pro, read about editing in the [Ar
 
 ### Outputs
 - **[Your designated output stops.txt file]**: The new stops.txt file that incorporates the edits you made to the stop locations and attributes.  The stop_lon and stop_lat fields will be automatically updated with the new stop locations. *Note: If you used a shapefile for your stops feature class and you had field names longer than 10 characters that aren't part of the standard GTFS specification, these field names will be truncated to 10 characters in the resulting stops.txt file, and you will have to manually correct them.*
+
+## Questions or problems?
+Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).

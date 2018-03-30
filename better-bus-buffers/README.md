@@ -30,7 +30,7 @@ BetterBusBuffers is a toolset to help you quantitatively measure access to publi
 
 ## Issues
 
-Find a bug or want to request a new feature?  Please let us know by submitting an issue.
+Find a bug or want to request a new feature?  Please let us know by submitting an issue, or post a question in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
 
 ## Contributing
 

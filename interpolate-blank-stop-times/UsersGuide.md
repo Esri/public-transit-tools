@@ -1,9 +1,8 @@
 # Interpolate Blank Stop Times User's Guide
 
 Created by Melinda Morang, Esri  
-Contact: <mmorang@esri.com>
 
-Copyright 2017 Esri  
+Copyright 2018 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ## What this tool does
@@ -74,3 +73,6 @@ This method is fairly simplistic, but it should provide a reasonable estimate fo
 
 ### Troubleshooting & potential pitfalls
 * The tool takes forever to run: For small stop_times.txt files and for files with only a small number of blank stop times, this tool will run fairly quickly.  However, this tool will take a considerable time to run for very large datasets with a large number of blank times.  It may take many hours to complete.  Progress is reported in  increments of 10%.
+
+## Questions or problems?
+Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
