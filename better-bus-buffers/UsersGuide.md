@@ -1,9 +1,8 @@
 # Better Bus Buffers User's Guide
 
 Created by Melinda Morang, Esri  
-Contact: <mmorang@esri.com>
 
-Copyright 2017 Esri  
+Copyright 2018 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ## What this tool does
@@ -76,6 +75,8 @@ The *Preprocess GTFS* tool converts your GTFS dataset(s) into a SQL database.  T
   * If you determine that your non-overlapping date ranges will cause problems, trying running your analysis for a specific date instead of a generic weekday.  Select a date that falls within one of the date ranges listed in calendar.txt.  You might also want to check your calendar_dates.txt file to see if there are any service exceptions present for the date you have chosen.
   * Alternatively, if you do not wish to use a specific date for your analysis, you can make a copy of your calendar.txt file and modify the data in the file to remove the non-overlapping date ranges.  For example, if your file has a set of service_ids for the summer months and a set for the winter months, and you're interested in analyzing the summer months, delete all the rows with date ranges for the winter months.  Make sure your cleaned up file is still called calendar.txt so the tool recognizes it.
   * If you are analyzing multiple GTFS datasets at a time, and the datasets have non-overlapping date ranges, you will get the same error as you will if service_ids in one dataset have non-overlapping date ranges.  The date range problem is less of an issue (or not an issue at all) if it occurs in different datasets, but you should double-check anyway to make sure you understand your data.
+
+Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
 
 
 ## <a name="CountTripsForIndividualRoute"></a>Running *Count Trips for Individual Route*
@@ -198,6 +199,7 @@ A MaxWaitTime of \<Null\> (-1 for shapefile output) indicates that the MaxWaitTi
 * **"Maximum sample size reached" when changing symbology in the output feature class**:  If you have a very large output feature class, you might run into some problems changing the symbology.  On the symbology tab, if you set the symbology to "Quantities" and use NumTrips or NumTripsPerHr as the Value field, you might get a warning message that says "Maximum sample size reached.  Not all records are being used.  Use this sample or change maximum sample size."  This simply means that your output file is large and that the classification and color ramp aren't looking at all the values in your table, only a certain sample of them.  It's possible that it won't find the minimum or maximum value in your table and that the color ramp will not include those values.  This problem is easy to fix.  First open your attributes table and figure out how many rows are in your table.  Then, in the symbology window, click the "Classify..." button.  Click "Sampling..." Change the Maximum Sample Size to something larger than the number of entries in your table.
 * **Polygon outlines are obscuring your color-coded polygons**:  On the Symbology tab, select one of the entries in your symbol menu.  Right click, and choose "Properties for All Symbols".  Under Outline Color, choose No Color.
 
+Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
 
 ## <a name="CountTripsOnLines"></a>Running *Count Trips on Lines*
 
@@ -296,6 +298,8 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
   - The tool will run slower if you are writing to and from a network drive.
 * **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
 
+Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+
 
 ## <a name="CountTripsAtPointsOnline"></a>Running *Count Trips at Points Online*
 
@@ -338,6 +342,7 @@ Please see the "Understanding the Output" section for the *[Count Trips at Point
 * **The tool takes forever to run**: This tool may take a significant amount of time to run for a large number of points.  The origin-destination cost matrix service limits the number of origins and destinations that may be used, so for large datasets, the input points and transit stops will be broken into chunks and passed as multiple calls to the service.  The tool will print regular progress reports.
 * **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
 
+Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
 
 ## <a name="CountTripsAtStops"></a>Running *Count Trips at Stops*
 
@@ -376,6 +381,8 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
   - Very large transit datasets will take longer to process.
   - The tool will run slower if you are writing to and from a network drive.
 * **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
+
+Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
 
 ## <a name="CountHighFrequencyRoutesAtStops"></a>Running *Count High Frequency Routes at Stops*
 
@@ -423,3 +430,8 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
   - The tool will run slower if you are writing to and from a network drive.
 * This tool requires the python pandas package to be installed.  Pandas is included with the python installation for ArcGIS 10.4 and above and ArcGIS Pro.  It is not recommended to manually install pandas for older versions of ArcGIS because it will require an upgrade of the numpy package, which in turn could cause problems for tools and other dependencies within ArcGIS. 
 * **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
+
+Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+
+## Questions or problems?
+Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
