@@ -1,7 +1,6 @@
 # Add GTFS to a Network Dataset Troubleshooting Guide
 
 Created by Melinda Morang, Esri  
-Contact: <mmorang@esri.com>
 
 Copyright 2018 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
@@ -28,6 +27,8 @@ This document describes some common problems encountered by users of *Add GTFS t
 + Other
   - [I upgraded ArcMap to a new version, and now Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx are no longer in ArcToolbox](#ArcMapUpgrade)
   - [The Network Identify tool always shows a cost of -1 for TransitLines edges in my network](#NetworkIdentify)
+
+If you haven't found your answer here, search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
 
 
 ## <a name="Registration"></a>I can't register/install the transit evaluator
