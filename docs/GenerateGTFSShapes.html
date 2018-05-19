@@ -1,0 +1,134 @@
+<!doctype html>
+<!--[if lt IE 9]>  <html lang="en" class="ie lt-ie9 ie8"> <![endif]-->
+<!--[if IE 9]>     <html lang="en" class="ie ie9"> <![endif]-->
+<!--[if !IE]><!--> <html lang="en"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <title>Generate GTFS Shapes | GTFS in ArcGIS</title>
+    <link rel="shortcut icon" href="/img/favicon.ico">
+    <!-- get calcite-web css from the cdn (use latest version) -->
+    <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/css/calcite-web.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <!--[if lt IE 9]>
+      <script src="/assets/javascripts/libs/selectivizr.js"></script>
+      <script src="/assets/javascripts/libs/html5shiv.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper trailer-1"><header class="top-nav" id="topnav">
+  <div class="grid-container">
+    <div class="column-24">
+      <a class="skip-to-content" href="#skip-to-content">Skip To Content</a>
+      <a href="./index.html" class="top-nav-title">Using GTFS Data in ArcGIS</a>
+      <nav class="top-nav-list" aria-labelledby="topnav">
+                <a class="top-nav-link" href="./index.html">Home</a>
+        <a class="top-nav-link is-active" href="./AddGTFStoaNetworkDataset.html">Tools</a>
+        <a class="top-nav-link" href="./resources.html">Resources</a>
+        <a class="top-nav-link" href="https://github.com/Esri/public-transit-tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<header class="sub-nav"  id="subnav">
+  <div class="grid-container">
+    <div class="column-24">
+      <h1 class="sub-nav-title text-white"><span class="banner-title">Tools</span></h1>
+      <select class="phone-show select-full trailer-half js-select-nav">
+<option value="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</option>
+<option value="./BetterBusBuffers.html">BetterBusBuffers</option>
+<option value="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</option>
+<option value="./GenerateGTFSShapes.html" selected>Generate GTFS Shapes</option>
+<option value="./EditGTFSStopLocations.html">Edit GTFS Stop Locations</option>
+<option value="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</option>
+<option value="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</option>
+</select>
+<nav class="sub-nav-list phone-hide" aria-labelledby="subnav">
+<a class="sub-nav-link" href="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</a>
+<a class="sub-nav-link" href="./BetterBusBuffers.html">BetterBusBuffers</a>
+<a class="sub-nav-link" href="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</a>
+<a class="sub-nav-link is-active" href="./GenerateGTFSShapes.html">Generate GTFS Shapes</a>
+<a class="sub-nav-link" href="./EditGTFSStopLocations.html">Edit GTFS Stop Locations</a>
+<a class="sub-nav-link" href="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</a>
+<a class="sub-nav-link" href="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</a>
+</nav>
+    </div>
+  </div>
+</header><div class="grid-container leader-2">
+
+  <!-- side bar with image and links -->
+  <div class="column-7">
+    <img src="./images/GenerateGTFSShapes.png" alt="Generate GTFS Shapes screenshot">
+    <a href="http://arcg.is/1rK1n5" rel="noopener" target="_blank" class="btn btn-fill leader-half trailer-half">Download</a>
+    <aside class="side-nav" id="sidenav">
+      <nav aria-labelledby="sidenav">
+        <a href="https://github.com/Esri/public-transit-tools/tree/master/generate-GTFS-shapes/UsersGuide.md" rel="noopener" target="_blank" class="side-nav-link">User's guide</a>
+        <a href="https://github.com/Esri/public-transit-tools/tree/master/generate-GTFS-shapes" rel="noopener" target="_blank" class="side-nav-link">GitHub</a>
+      </nav>
+    </aside>
+  </div>
+
+  <!-- main content -->
+  <div class="column-16 pre-1">
+
+    <h2 class="leader-1">Generate GTFS Shapes</h2>
+
+    <p><strong>The Generate GTFS Shapes toolbox produces a new shapes.txt file for your GTFS dataset or allows you to edit an existing one.</strong></p>
+
+    <p>The optional GTFS shapes.txt file contains the actual on-street paths taken by transit vehicles in your system.  A good shapes.txt file is important in order for GTFS-based routing apps to display transit routes correctly on the map.  This <a href="https://blogs.esri.com/esri/arcgis/2017/07/19/how-to-make-a-shapes-txt-file-for-your-gtfs-dataset-with-arcgis/" rel="noopener" target="_blank">blog post</a> explains more about why you should have a shapes.txt file and how you can use this tool to create one.  Also check out the technical details of the shapes.txt file in the <a href="http://github.com/google/transit/blob/master/gtfs/spec/en/reference.md" rel="noopener" target="_blank">GTFS reference page</a>.</p>
+
+    <p>Generate GTFS Shapes is targeted primarily toward transit agencies seeking to improve their GTFS datasets.</p>
+
+    <p>To create an entirely new shapes.txt file from scratch, you give the tool a valid, existing GTFS dataset, and the tool creates a new shape.txt file and updates the shape_id field in trips.txt and the shape_dist_traveled field in stop_times.txt.  Step 1 of the tool creates a feature class with good estimates for the on-street paths used in your transit system.  You can edit this feature class using your own knowledge in order to ensure that the correct paths are truly represented.  Then, you can use Step 2 to of the tool to export your new shapes to a valid shapes.txt file and updated trips.txt and stop_times.txt files.</p>
+
+    <p>To edit one or more existing shapes, you give the tool a valid, existing GTFS with a shapes.txt file and choose the shape(s) you want to edit.  The chosen shape(s) will be drawn in the map, where you can edit them.  Then, you can use Step 2 to of the tool to export and updated shapes.txt file and stop_times.txt.</p>
+
+    <p>The tools will not overwrite any existing GTFS files.  You can choose the output location for the new files, and you can compare them with the old ones before manually replacing the old ones with the updated ones.</p>
+
+  </div>
+
+</div>    </div> <!-- close main section wrapper -->
+
+        <footer class="footer">
+          <div class="grid-container">
+            <div class="column-24">
+              <!-- AddToAny BEGIN -->
+              <div class="a2a_kit a2a_default_style">
+                <a class="a2a_dd" href="https://www.addtoany.com/share"></a>
+                <a class="a2a_button_twitter"></a>
+                <a class="a2a_button_facebook"></a>
+                <a class="a2a_button_email"></a>
+                <a class="a2a_button_whatsapp"></a>
+                <a class="a2a_button_sms"></a>
+                <a class="a2a_button_copy_link"></a>
+              </div>
+              <!-- AddToAny END -->
+              <p class="leader-1"><small>We appreciate your questions, comments, and suggestions.<br />
+              Please post them to our <a href="https://community.esri.com/community/arcgis-for-public-transit" rel="noopener" target="_blank">GeoNet group.<a></small></p>
+              <div class="esri-logo"></div>
+              <p><small>Copyright © 2018 Esri. All rights reserved. | <a href="http://www.esri.com/legal/privacy">Privacy</a> | <a href="http://www.esri.com/legal">Legal</a></small></p>
+            </div>
+          </div>
+        </footer>
+
+    <!-- get calcite-web js from the cdn (use latest version) -->
+    <script src="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/js/calcite-web.min.js"></script>
+
+    <!-- interactive patterns need to be initialized -->
+    <script>
+       calcite.init()
+    </script>
+
+    <!-- AddToAny script -->
+    <script>
+var a2a_config = a2a_config || {};
+a2a_config.icon_color = "#497671";
+a2a_config.color_link_text = "#497671";
+a2a_config.color_link_text_hover = "#497671";
+    </script>
+    <script async src="https://static.addtoany.com/menu/page.js"></script>
+    
+  </body>
+</html>

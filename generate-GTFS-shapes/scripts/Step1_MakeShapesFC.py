@@ -2,7 +2,7 @@
 ## Tool name: Generate GTFS Route Shapes
 ## Step 1: Generate Shapes on Map
 ## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 September 2017
+## Last updated: 11 January 2018
 ###############################################################################
 ''' This tool generates a feature class of route shapes for GTFS data.
 The route shapes show the geographic paths taken by the transit vehicles along
@@ -13,7 +13,7 @@ feature class shapes as desired.  Then, the user should use this feature class
 and the other associated files in the output GDB as input to Step 2 in order
 to create updated .txt files for use in the GTFS dataset.'''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2018 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -578,7 +578,7 @@ def SQLize_GTFS(files_to_sqlize):
         # Open the file for reading
         fname = os.path.join(inGTFSdir, GTFSfile) + ".txt"
         if ProductName == "ArcGISPro":
-            f = open(fname, encoding="utf-8")
+            f = open(fname, encoding="utf-8-sig")
         else:
             f = open(fname)
         reader = csv.reader(f)
@@ -1406,13 +1406,7 @@ def append_existing_shape_to_fc(shape, StopsCursor, route=None):
     cp.execute(pointsinshapefetch)
     
     # Create the polyline feature from the sequence of points
-    array = arcpy.Array()
-    pt = arcpy.Point()
-    for point in cp:
-        pt.X = float(point[1])
-        pt.Y = float(point[0])
-        array.add(pt)
-    polyline = arcpy.Polyline(array)
+    polyline = [(float(point[1]), float(point[0])) for point in cp]
 
     # Add the polyline feature to the output feature class
     StopsCursor.insertRow((polyline, shape, route,

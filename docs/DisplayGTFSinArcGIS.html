@@ -1,0 +1,128 @@
+<!doctype html>
+<!--[if lt IE 9]>  <html lang="en" class="ie lt-ie9 ie8"> <![endif]-->
+<!--[if IE 9]>     <html lang="en" class="ie ie9"> <![endif]-->
+<!--[if !IE]><!--> <html lang="en"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <title>Display GTFS in ArcGIS | GTFS in ArcGIS</title>
+    <link rel="shortcut icon" href="/img/favicon.ico">
+    <!-- get calcite-web css from the cdn (use latest version) -->
+    <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/css/calcite-web.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <!--[if lt IE 9]>
+      <script src="/assets/javascripts/libs/selectivizr.js"></script>
+      <script src="/assets/javascripts/libs/html5shiv.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper trailer-1"><header class="top-nav" id="topnav">
+  <div class="grid-container">
+    <div class="column-24">
+      <a class="skip-to-content" href="#skip-to-content">Skip To Content</a>
+      <a href="./index.html" class="top-nav-title">Using GTFS Data in ArcGIS</a>
+      <nav class="top-nav-list" aria-labelledby="topnav">
+                <a class="top-nav-link" href="./index.html">Home</a>
+        <a class="top-nav-link is-active" href="./AddGTFStoaNetworkDataset.html">Tools</a>
+        <a class="top-nav-link" href="./resources.html">Resources</a>
+        <a class="top-nav-link" href="https://github.com/Esri/public-transit-tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<header class="sub-nav"  id="subnav">
+  <div class="grid-container">
+    <div class="column-24">
+      <h1 class="sub-nav-title text-white"><span class="banner-title">Tools</span></h1>
+      <select class="phone-show select-full trailer-half js-select-nav">
+<option value="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</option>
+<option value="./BetterBusBuffers.html">BetterBusBuffers</option>
+<option value="./DisplayGTFSinArcGIS.html" selected>Display GTFS in ArcGIS</option>
+<option value="./GenerateGTFSShapes.html">Generate GTFS Shapes</option>
+<option value="./EditGTFSStopLocations.html">Edit GTFS Stop Locations</option>
+<option value="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</option>
+<option value="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</option>
+</select>
+<nav class="sub-nav-list phone-hide" aria-labelledby="subnav">
+<a class="sub-nav-link" href="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</a>
+<a class="sub-nav-link" href="./BetterBusBuffers.html">BetterBusBuffers</a>
+<a class="sub-nav-link is-active" href="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</a>
+<a class="sub-nav-link" href="./GenerateGTFSShapes.html">Generate GTFS Shapes</a>
+<a class="sub-nav-link" href="./EditGTFSStopLocations.html">Edit GTFS Stop Locations</a>
+<a class="sub-nav-link" href="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</a>
+<a class="sub-nav-link" href="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</a>
+</nav>
+    </div>
+  </div>
+</header><div class="grid-container leader-2">
+
+  <!-- side bar with image and links -->
+  <div class="column-7">
+    <img src="./images/DisplayGTFSinArcGIS.png" alt="Display GTFS in ArcGIS screenshot">
+    <a href="http://arcg.is/1iuez8" rel="noopener" target="_blank" class="btn btn-fill leader-half trailer-half">Download</a>
+    <aside class="side-nav" id="sidenav">
+      <nav aria-labelledby="sidenav">
+        <a href="https://github.com/Esri/public-transit-tools/tree/master/display-GTFS-in-ArcGIS/UsersGuide.md" rel="noopener" target="_blank" class="side-nav-link">User's guide</a>
+        <a href="https://github.com/Esri/public-transit-tools/tree/master/display-GTFS-in-ArcGIS" rel="noopener" target="_blank" class="side-nav-link">GitHub</a>
+      </nav>
+    </aside>
+  </div>
+
+  <!-- main content -->
+  <div class="column-16 pre-1">
+
+    <h2 class="leader-1">Display GTFS in ArcGIS</h2>
+
+    <p><strong>Use Display GTFS in ArcGIS to visualize your GTFS stops and route shapes in ArcMap or ArcGIS Pro.</strong></p>
+
+    <p>The <em>Display GTFS Stops</em> tool makes a feature class of stops using information from the GTFS stops.txt file.</p>
+
+    <p>The <em>Display GTFS Route Shapes</em> tool converts the information from the GTFS routes.txt and shapes.txt files into an ArcGIS feature class, allowing you to view your transit lines on a map.  The output will contain one line feature for each unique shape in your GTFS data.  The attributes for each line contain all the information about the routes represented by the shape.  Lines can be displayed in the color designated in the routes.txt file.</p>
+
+  </div>
+
+</div>    </div> <!-- close main section wrapper -->
+
+        <footer class="footer">
+          <div class="grid-container">
+            <div class="column-24">
+              <!-- AddToAny BEGIN -->
+              <div class="a2a_kit a2a_default_style">
+                <a class="a2a_dd" href="https://www.addtoany.com/share"></a>
+                <a class="a2a_button_twitter"></a>
+                <a class="a2a_button_facebook"></a>
+                <a class="a2a_button_email"></a>
+                <a class="a2a_button_whatsapp"></a>
+                <a class="a2a_button_sms"></a>
+                <a class="a2a_button_copy_link"></a>
+              </div>
+              <!-- AddToAny END -->
+              <p class="leader-1"><small>We appreciate your questions, comments, and suggestions.<br />
+              Please post them to our <a href="https://community.esri.com/community/arcgis-for-public-transit" rel="noopener" target="_blank">GeoNet group.<a></small></p>
+              <div class="esri-logo"></div>
+              <p><small>Copyright © 2018 Esri. All rights reserved. | <a href="http://www.esri.com/legal/privacy">Privacy</a> | <a href="http://www.esri.com/legal">Legal</a></small></p>
+            </div>
+          </div>
+        </footer>
+
+    <!-- get calcite-web js from the cdn (use latest version) -->
+    <script src="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/js/calcite-web.min.js"></script>
+
+    <!-- interactive patterns need to be initialized -->
+    <script>
+       calcite.init()
+    </script>
+
+    <!-- AddToAny script -->
+    <script>
+var a2a_config = a2a_config || {};
+a2a_config.icon_color = "#497671";
+a2a_config.color_link_text = "#497671";
+a2a_config.color_link_text_hover = "#497671";
+    </script>
+    <script async src="https://static.addtoany.com/menu/page.js"></script>
+    
+  </body>
+</html>

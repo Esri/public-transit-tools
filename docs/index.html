@@ -1,0 +1,167 @@
+<!doctype html>
+<!--[if lt IE 9]>  <html lang="en" class="ie lt-ie9 ie8"> <![endif]-->
+<!--[if IE 9]>     <html lang="en" class="ie ie9"> <![endif]-->
+<!--[if !IE]><!--> <html lang="en"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <title>Home | GTFS in ArcGIS</title>
+    <link rel="shortcut icon" href="/img/favicon.ico">
+    <!-- get calcite-web css from the cdn (use latest version) -->
+    <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/css/calcite-web.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <!--[if lt IE 9]>
+      <script src="/assets/javascripts/libs/selectivizr.js"></script>
+      <script src="/assets/javascripts/libs/html5shiv.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper trailer-1"><header class="top-nav" id="topnav">
+  <div class="grid-container">
+    <div class="column-24">
+      <a class="skip-to-content" href="#skip-to-content">Skip To Content</a>
+      <a href="./index.html" class="top-nav-title">Using GTFS Data in ArcGIS</a>
+      <nav class="top-nav-list" aria-labelledby="topnav">
+                <a class="top-nav-link is-active" href="./index.html">Home</a>
+        <a class="top-nav-link" href="./AddGTFStoaNetworkDataset.html">Tools</a>
+        <a class="top-nav-link" href="./resources.html">Resources</a>
+        <a class="top-nav-link" href="https://github.com/Esri/public-transit-tools" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<header class="sub-nav">
+  <div class="grid-container">
+    <div class="column-24 padding-leader-3 padding-trailer-2">
+      <h1 class="text-center text-white"><span class="banner-title">Using GTFS Data in ArcGIS</span></h1>
+    </div>
+  </div>
+</header>
+
+<div class="grid-container leader-2">
+
+  <!-- main content -->
+  <div class="column-18 pre-3 trailer-2">
+    <p>The General Transit Feed Specification (GTFS) is a standardized data format for storing public transit routes, stops, and schedules.  GTFS data can be used for transit trip planning and public transit system analysis. Thousands of public transit agencies worldwide have made up-to-date GTFS data for their systems publically available for download.</p>
+
+    <p><strong>The tools and techniques here allow you to use GTFS data in ArcGIS.</strong></p>
+  
+
+    <div class="grid-container leader-2">
+    <div class="column-4 post-1">
+       <a href="./AddGTFStoaNetworkDataset.html"><img src="./images/AddGTFStoaNetworkDataset.png" alt="Add GTFS to a Network Dataset screenshot" title="Add GTFS to a Network Dataset" width="200" height="200"></a>
+    </div>
+    <div class="column-13">
+      <h3>Add GTFS to a Network Dataset</h3>
+      <p>Use Add GTFS to a Network Dataset to incorporate transit data into a network dataset so you can perform schedule-aware analyses using the Network Analyst tools in ArcMap.</p>
+      <a class="btn" href="./AddGTFStoaNetworkDataset.html">Details</a>
+    </div>
+  </div>
+  <div class="grid-container leader-2">
+    <div class="column-4 post-1">
+       <a href="./BetterBusBuffers.html"><img src="./images/BetterBusBuffers.png" alt="BetterBusBuffers screenshot" title="BetterBusBuffers" width="200" height="200"></a>
+    </div>
+    <div class="column-13">
+      <h3>BetterBusBuffers</h3>
+      <p>Use BetterBusBuffers to map the frequency of public transit service available across your city.</p>
+      <a class="btn" href="./BetterBusBuffers.html">Details</a>
+    </div>
+  </div>
+  <div class="grid-container leader-2">
+    <div class="column-4 post-1">
+       <a href="./DisplayGTFSinArcGIS.html"><img src="./images/DisplayGTFSinArcGIS.png" alt="Display GTFS in ArcGIS screenshot" title="Display GTFS in ArcGIS" width="200" height="200"></a>
+    </div>
+    <div class="column-13">
+      <h3>Display GTFS in ArcGIS</h3>
+      <p>Use Display GTFS in ArcGIS to visualize your GTFS stops and route shapes in ArcMap or ArcGIS Pro.</p>
+      <a class="btn" href="./DisplayGTFSinArcGIS.html">Details</a>
+    </div>
+  </div>
+  <div class="grid-container leader-2">
+    <div class="column-4 post-1">
+       <a href="./GenerateGTFSShapes.html"><img src="./images/GenerateGTFSShapes.png" alt="Generate GTFS Shapes screenshot" title="Generate GTFS Shapes" width="200" height="200"></a>
+    </div>
+    <div class="column-13">
+      <h3>Generate GTFS Shapes</h3>
+      <p>The Generate GTFS Shapes toolbox produces a new shapes.txt file for your GTFS dataset or allows you to edit an existing one.</p>
+      <a class="btn" href="./GenerateGTFSShapes.html">Details</a>
+    </div>
+  </div>
+  <div class="grid-container leader-2">
+    <div class="column-4 post-1">
+       <a href="./EditGTFSStopLocations.html"><img src="./images/EditGTFSStopLocations.png" alt="Edit GTFS Stop Locations screenshot" title="Edit GTFS Stop Locations" width="200" height="200"></a>
+    </div>
+    <div class="column-13">
+      <h3>Edit GTFS Stop Locations</h3>
+      <p>Use Edit GTFS Stop Locations to update your GTFS stops.txt file using ArcMap or ArcGIS Pro.</p>
+      <a class="btn" href="./EditGTFSStopLocations.html">Details</a>
+    </div>
+  </div>
+  <div class="grid-container leader-2">
+    <div class="column-4 post-1">
+       <a href="./InterpolateBlankStopTimes.html"><img src="./images/InterpolateBlankStopTimes.png" alt="Interpolate Blank Stop Times screenshot" title="Interpolate Blank Stop Times" width="200" height="200"></a>
+    </div>
+    <div class="column-13">
+      <h3>Interpolate Blank Stop Times</h3>
+      <p>Use Interpolate Blank Stop Times to fill in blank arrival_time and departure_time values in your stop_times.txt file with reasonable estimates.</p>
+      <a class="btn" href="./InterpolateBlankStopTimes.html">Details</a>
+    </div>
+  </div>
+  <div class="grid-container leader-2">
+    <div class="column-4 post-1">
+       <a href="./GTFSRTConnector.html"><img src="./images/GTFSRTConnector.png" alt="GTFS Realtime Connector for GeoEvent screenshot" title="GTFS Realtime Connector for GeoEvent" width="200" height="200"></a>
+    </div>
+    <div class="column-13">
+      <h3>GTFS Realtime Connector for GeoEvent</h3>
+      <p>Use the GTFS Realtime Connector for GeoEvent to view GTFS Realtime trip updates, service alerts, and vehicle positions in a map.</p>
+      <a class="btn" href="./GTFSRTConnector.html">Details</a>
+    </div>
+  </div>
+
+  </div>
+
+</div>    </div> <!-- close main section wrapper -->
+
+        <footer class="footer">
+          <div class="grid-container">
+            <div class="column-24">
+              <!-- AddToAny BEGIN -->
+              <div class="a2a_kit a2a_default_style">
+                <a class="a2a_dd" href="https://www.addtoany.com/share"></a>
+                <a class="a2a_button_twitter"></a>
+                <a class="a2a_button_facebook"></a>
+                <a class="a2a_button_email"></a>
+                <a class="a2a_button_whatsapp"></a>
+                <a class="a2a_button_sms"></a>
+                <a class="a2a_button_copy_link"></a>
+              </div>
+              <!-- AddToAny END -->
+              <p class="leader-1"><small>We appreciate your questions, comments, and suggestions.<br />
+              Please post them to our <a href="https://community.esri.com/community/arcgis-for-public-transit" rel="noopener" target="_blank">GeoNet group.<a></small></p>
+              <div class="esri-logo"></div>
+              <p><small>Copyright © 2018 Esri. All rights reserved. | <a href="http://www.esri.com/legal/privacy">Privacy</a> | <a href="http://www.esri.com/legal">Legal</a></small></p>
+            </div>
+          </div>
+        </footer>
+
+    <!-- get calcite-web js from the cdn (use latest version) -->
+    <script src="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/js/calcite-web.min.js"></script>
+
+    <!-- interactive patterns need to be initialized -->
+    <script>
+       calcite.init()
+    </script>
+
+    <!-- AddToAny script -->
+    <script>
+var a2a_config = a2a_config || {};
+a2a_config.icon_color = "#497671";
+a2a_config.color_link_text = "#497671";
+a2a_config.color_link_text_hover = "#497671";
+    </script>
+    <script async src="https://static.addtoany.com/menu/page.js"></script>
+    
+  </body>
+</html>

@@ -2,7 +2,7 @@
 ## Tool name: BetterBusBuffers
 ## Shared Functions
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 September 2017
+## Last updated: 14 December 2017
 ############################################################################
 ''' This file contains shared functions used by various BetterBusBuffers tools.'''
 ################################################################################
@@ -24,18 +24,11 @@ import arcpy
 # sqlite cursor - must be set from the script calling the functions explicitly
 # or using the ConnectToSQLDatabase() function
 c = None
+conn = None
 
 # Version of ArcGIS they are running
 ArcVersion = None
 ProductName = None
-
-# Whether or not to consider trips from yesterday or tomorrow
-ConsiderYesterday = None
-ConsiderTomorrow = None
-
-# If the dataset uses a frequencies table, store the info in a global dictionary
-frequencies_dict_initialized = False
-frequencies_dict = {}
 
 # The GTFS spec uses WGS 1984 coordinates
 WGSCoords = "GEOGCS['GCS_WGS_1984',DATUM['D_WGS_1984', \
@@ -86,14 +79,14 @@ def MakeServiceIDList(day, Specific=False):
     tables = GetGTFSTableNames()
     
     # Find added and subtracted service_ids from calendar_dates.
+    cs = conn.cursor()
     if Specific == True and "calendar_dates" in tables:
         serviceidfetch = '''
             SELECT service_id, exception_type FROM calendar_dates
             WHERE date == "%s"
             ;''' % datetime.datetime.strftime(day, '%Y%m%d')
-        c.execute(serviceidfetch)
-        ids = c.fetchall()
-        for id in ids:
+        cs.execute(serviceidfetch)
+        for id in cs:
             # If service is added that day, add it to the list of valid service_ids
             if id[1] == 1:
                 serviceidlist.append(id[0])
@@ -107,9 +100,8 @@ def MakeServiceIDList(day, Specific=False):
             SELECT service_id, start_date, end_date FROM calendar
             WHERE %s == "1"
             ;''' % dayString.lower()
-        c.execute(serviceidfetch)
-        ids = c.fetchall()
-        for id in ids:
+        cs.execute(serviceidfetch)
+        for id in cs:
             if Specific == False:
                 startdatedict[id[0]] = id[1]
                 enddatedict[id[0]] = id[2]
@@ -136,17 +128,17 @@ def MakeServiceIDList(day, Specific=False):
     return serviceidlist, nonoverlappingsids
 
 
-def GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific=False):
+def GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific=False, ConsiderYesterday=None, ConsiderTomorrow=None):
     ''' Get the lists of service ids for today, yesterday, and tomorrow, and
     combine non-overlapping date range list for all days'''
 
     # Determine if it's early enough in the day that we need to consider trips
-    # still running from yesterday - these set global variables
-    if not ConsiderYesterday:
-        ShouldConsiderYesterday(start_sec, DepOrArr)
+    # still running from yesterday
+    if ConsiderYesterday is None:
+        ConsiderYesterday = ShouldConsiderYesterday(start_sec, DepOrArr)
     # If our time window spans midnight, we need to check tomorrow's trips, too.
-    if not ConsiderTomorrow:
-        ShouldConsiderTomorrow(end_sec)
+    if ConsiderTomorrow is None:
+        ConsiderTomorrow = ShouldConsiderTomorrow(end_sec)
     # And what weekdays are yesterday and tomorrow?
     if Specific == False:
         Yesterday = days[(days.index(day) - 1)%7] # %7 wraps it around
@@ -173,7 +165,7 @@ def GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific=
             serviceidlist_tom, nonoverlappingsids_tom = MakeServiceIDList(Tomorrow, Specific)
     except:
         arcpy.AddError("Error getting list of service_ids for time window.")
-        raise
+        raise CustomError
 
     # Make sure there is service on the day we're analyzing.
     if not serviceidlist and not serviceidlist_yest and not serviceidlist_tom:
@@ -208,14 +200,14 @@ def MakeTripList(serviceidlist):
     '''Select the trips with the service_ids of interest'''
 
     triplist = []
+    ct = conn.cursor()
     for service_id in serviceidlist:
         tripsfetch = '''
             SELECT DISTINCT trip_id FROM trips
             WHERE service_id == ?
             ;'''
-        c.execute(tripsfetch, (service_id,))
-        selectedtrips = c.fetchall()
-        for tr in selectedtrips:
+        ct.execute(tripsfetch, (service_id,))
+        for tr in ct:
             triplist.append(tr[0])
     # There shouldn't be any duplicates, but check anyway.
     triplist = list(set(triplist))
@@ -223,34 +215,60 @@ def MakeTripList(serviceidlist):
     return triplist
 
 
+def MakeTripRouteDict():
+    '''Make global dictionary of {trip_id: route_id}'''
+
+    triproute_dict = {}
+    ctr = conn.cursor()
+
+    # First, make sure there are no duplicate trip_id values, as this will mess things up later.
+    tripDuplicateFetch = "SELECT trip_id, count(*) from trips group by trip_id having count(*) > 1"
+    ctr.execute(tripDuplicateFetch)
+    tripdups = ctr.fetchall()
+    tripdupslist = [tripdup for tripdup in tripdups]
+    if tripdupslist:
+        arcpy.AddError("Your GTFS trips table is invalid.  It contains multiple trips with the same trip_id.")
+        for tripdup in tripdupslist:
+            arcpy.AddError("There are %s instances of the trip_id value '%s'." % (str(tripdup[1]), unicode(tripdup[0])))
+        raise CustomError
+ 
+    tripsfetch = '''
+        SELECT trip_id, route_id
+        FROM trips
+        ;'''
+    ctr.execute(tripsfetch)
+    for trip in ctr:
+        triproute_dict[trip[0]] = trip[1]
+    
+    return triproute_dict
+
+
 def MakeFrequenciesDict():
     '''Put the frequencies.txt information into a dictionary'''
-    global frequencies_dict_initialized, frequencies_dict
 
     # Check if the dataset uses frequency. If not, no need to do more.
     tblnamelist = GetGTFSTableNames()
     if not "frequencies" in tblnamelist:
-        frequencies_dict_initialized = True
-        return
+        return {}
 
     # Fill the dictionary
     frequencies_dict = {}
+    cf = conn.cursor()
     freqfetch = '''
         SELECT trip_id, start_time, end_time, headway_secs
         FROM frequencies
         ;'''
-    c.execute(freqfetch)
-    freqlist = c.fetchall()
-    for freq in freqlist:
+    cf.execute(freqfetch)
+    for freq in cf:
         trip_id = freq[0]
         trip_data = [freq[1], freq[2], freq[3]]
         # {trip_id: [start_time, end_time, headway_secs]}
         frequencies_dict.setdefault(trip_id, []).append(trip_data)
-    frequencies_dict_initialized = True
-    return
+
+    return frequencies_dict
 
 
-def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
+def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day, frequencies_dict):
     '''Return a dictionary of {stop_id: [[trip_id, stop_time]]} for trips and
     stop_times in the time window. Adjust the stop_time value to today's time of
     day if it is a trip from yesterday or tomorrow.'''
@@ -263,13 +281,8 @@ def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
         start = start - SecsInDay
         end = end - SecsInDay
 
-    # If we haven't already, initialize the frequencies dictionary so we can
-    # find trips that use the frequencies table instead of stop_times and
-    # treat them accordingly.
-    if not frequencies_dict_initialized:
-        MakeFrequenciesDict()
-
     stoptimedict = {} # {stop_id: [[trip_id, stop_time]]}
+    cst = conn.cursor()
     for trip in triplist:
 
         # If the trip uses the frequencies.txt file, extrapolate the stop_times
@@ -282,8 +295,8 @@ def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
                 SELECT stop_id, %s FROM stop_times
                 WHERE trip_id == ?
                 ;''' % DepOrArr
-            c.execute(stopsfetch, (trip,))
-            StopTimes = c.fetchall()
+            cst.execute(stopsfetch, (trip,))
+            StopTimes = cst.fetchall()
             # Sort by time
             StopTimes.sort(key=operator.itemgetter(1))
             # time 0 for this trip
@@ -322,10 +335,8 @@ def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
                 WHERE trip_id == ?
                 AND %s BETWEEN ? AND ?
                 ;''' % (DepOrArr, DepOrArr)
-            c.execute(stopsfetch, (trip, start, end,))
-            StopTimes = c.fetchall()
-
-            for stoptime in StopTimes:
+            cst.execute(stopsfetch, (trip, start, end,))
+            for stoptime in cst:
                 stop_id = stoptime[0]
                 stop_time = int(stoptime[1])
                 if day == "yesterday":
@@ -337,12 +348,101 @@ def GetStopTimesForStopsInTimeWindow(start, end, DepOrArr, triplist, day):
     return stoptimedict
 
 
+def GetLineTimesInTimeWindow(start, end, DepOrArr, triplist, day, frequencies_dict):
+    '''Return a dictionary of {line_key: [[trip_id, start_time, end_time]]} for trips and
+    stop_times in the time window. Adjust the stop_time value to today's time of
+    day if it is a trip from yesterday or tomorrow.'''
+
+    # Adjust times for trips from yesterday or tomorrow
+    if day == "yesterday":
+        start += SecsInDay
+        end += SecsInDay
+    if day == "tomorrow":
+        start = start - SecsInDay
+        end = end - SecsInDay
+
+    linetimedict = {} # {line_key: [[trip_id, start_time, end_time]]}
+    for trip in triplist:
+
+        # If the trip uses the frequencies.txt file, extrapolate the stop_times
+        # throughout the day using the relative time between the stops given in
+        # stop_times and the headways listed in frequencies.
+        if trip in frequencies_dict:
+
+            # Grab the stops stop_times for this trip
+            linesfetch = '''
+                SELECT key, start_time, end_time FROM schedules
+                WHERE trip_id == ?
+                ;'''
+            c.execute(linesfetch, (trip,))
+            LineTimes = c.fetchall()
+            # Sort by time
+            LineTimes.sort(key=operator.itemgetter(1))
+            # time 0 for this trip
+            initial_stop_time1 = int(LineTimes[0][1]) # Beginning stop of segment
+            initial_stop_time2 = int(LineTimes[0][2]) # Ending stop of segment
+
+            # Extrapolate using the headway and time windows from frequencies to
+            # find the times lines are traveled on. Add them to the dictionary if they fall within
+            # our analysis time window.
+            for window in frequencies_dict[trip]:
+                start_timeofday = window[0]
+                end_timeofday = window[1]
+                headway = window[2]
+                # Increment by by headway to create new stop visits
+                for i in range(int(round(start_timeofday, 0)), int(round(end_timeofday, 0)), headway):
+                    for line in LineTimes:
+                        time_along_trip1 = int(line[1]) - initial_stop_time1 # Time into trip when it reaches first stop of line segment
+                        time_along_trip2 = int(line[2]) - initial_stop_time2 # Time into trip when it reaches second stop of line segment
+                        stop_time1 = i + time_along_trip1
+                        stop_time2 = i + time_along_trip2
+                        if start < stop_time1 < stop_time2 < end: # Segment is fully within time window
+                            if day == "yesterday":
+                                stop_time1 = stop_time1 - SecsInDay
+                                stop_time2 = stop_time2 - SecsInDay
+                            elif day == "tomorrow":
+                                stop_time1 += SecsInDay
+                                stop_time2 += SecsInDay
+                            # To distinguish between stop visits, since all frequency-based
+                            # trips have the same id, create a special id based on the day
+                            # and time of day: trip_id_DayStartTime. This ensures that the
+                            # number of trips will be counted correctly later and not eliminated
+                            # as being the same trip
+                            special_trip_name = trip + "_%s%s" % (day, str(i))
+                            linetimedict.setdefault(line[0], []).append([special_trip_name, stop_time1, stop_time2])
+
+        # If the trip doesn't use frequencies, get the stop times directly
+        else:
+            # Grab the line schedules fully within the time window
+            linesfetch = '''
+                SELECT key, start_time, end_time FROM schedules
+                WHERE trip_id == ?
+                AND start_time BETWEEN ? AND ?
+                AND end_time BETWEEN ? AND ?
+                ;'''
+            c.execute(linesfetch, (trip, start, end, start, end,))
+            LineTimes = c.fetchall()
+
+            for linetime in LineTimes:
+                line_id = linetime[0]
+                start_time = int(linetime[1])
+                end_time = int(linetime[2])
+                if day == "yesterday":
+                    start_time = start_time - SecsInDay
+                    end_time = end_time - SecsInDay
+                elif day == "tomorrow":
+                    start_time += SecsInDay
+                    end_time += SecsInDay
+                linetimedict.setdefault(line_id, []).append([trip, start_time, end_time])
+
+    return linetimedict
+
+
 def ShouldConsiderYesterday(start_sec, DepOrArr):
     '''Determine if it's early enough in the day that we need to consider trips
     still running from the day before. Do this by finding the largest stop_time
     in the GTFS file and comparing it to the user's start time.'''
-    global ConsiderYesterday
-    ConsiderYesterday = 0
+    ConsiderYesterday = False
     # Select the largest stop time
     MaxTimeFetch = '''
         SELECT MAX(%s) FROM stop_times
@@ -350,23 +450,28 @@ def ShouldConsiderYesterday(start_sec, DepOrArr):
     c.execute(MaxTimeFetch)
     MaxTime = c.fetchone()[0]
     if start_sec < MaxTime - SecsInDay:
-        ConsiderYesterday = 1
+        ConsiderYesterday = True
+    return ConsiderYesterday
 
 
 def ShouldConsiderTomorrow(end_sec):
     '''Return whether a time is greater than midnight.'''
-    global ConsiderTomorrow
-    ConsiderTomorrow = 0
+    ConsiderTomorrow = False
     if end_sec > SecsInDay:
-        ConsiderTomorrow = 1
+        ConsiderTomorrow = True
+    return ConsiderTomorrow
 
+def GetTripLists(day, start_sec, end_sec, DepOrArr, Specific=False):
+    '''Returns separate lists of trips running today, yesterday, and tomorrow'''
 
-def CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific=False):
-    '''Given a time window, return a dictionary of
-    {stop_id: [[trip_id, stop_time]]}'''
+    # Determine if it's early enough in the day that we need to consider trips
+    # still running from yesterday
+    ConsiderYesterday = ShouldConsiderYesterday(start_sec, DepOrArr)
+    ConsiderTomorrow = ShouldConsiderTomorrow(end_sec)
 
+    # Find the service_ids that serve the relevant day
     serviceidlist, serviceidlist_yest, serviceidlist_tom, = \
-        GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific)
+        GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific, ConsiderYesterday, ConsiderTomorrow)
 
     try:
         # Get the list of trips with these service ids.
@@ -393,18 +498,29 @@ def CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific=False):
                 triplist_tom = MakeTripList(serviceidlist_tom)
     except:
         arcpy.AddError("Error creating list of trips for time window.")
-        raise
+        raise CustomError
 
     # Make sure there is service on the day we're analyzing.
     if not triplist and not triplist_yest and not triplist_tom:
         arcpy.AddWarning("There is no transit service during this time window. \
 No trips are running.")
 
+    return triplist, triplist_yest, triplist_tom
+
+
+def CountTripsAtStops(day, start_sec, end_sec, DepOrArr, Specific=False):
+    '''Given a time window, return a dictionary of
+    {stop_id: [[trip_id, stop_time]]}'''
+
+    triplist, triplist_yest, triplist_tom = GetTripLists(day, start_sec, end_sec, DepOrArr, Specific)
+
     try:
+        frequencies_dict = MakeFrequenciesDict()
+
         # Get the stop_times that occur during this time window
-        stoptimedict = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today")
-        stoptimedict_yest = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday")
-        stoptimedict_tom = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow")
+        stoptimedict = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today", frequencies_dict)
+        stoptimedict_yest = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday", frequencies_dict)
+        stoptimedict_tom = GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow", frequencies_dict)
 
         # Combine the three dictionaries into one master
         for stop in stoptimedict_yest:
@@ -414,9 +530,35 @@ No trips are running.")
 
     except:
         arcpy.AddError("Error creating dictionary of stops and trips in time window.")
-        raise
+        raise CustomError
 
     return stoptimedict
+
+
+def CountTripsOnLines(day, start_sec, end_sec, DepOrArr, Specific=False):
+    '''Given a time window, return a dictionary of {line_key: [[trip_id, start_time, end_time]]}'''
+
+    triplist, triplist_yest, triplist_tom = GetTripLists(day, start_sec, end_sec, DepOrArr, Specific)
+
+    try:
+        frequencies_dict = MakeFrequenciesDict()
+
+        # Get the stop_times that occur during this time window
+        linetimedict = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist, "today", frequencies_dict)
+        linetimedict_yest = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist_yest, "yesterday", frequencies_dict)
+        linetimedict_tom = GetLineTimesInTimeWindow(start_sec, end_sec, DepOrArr, triplist_tom, "tomorrow", frequencies_dict)
+
+        # Combine the three dictionaries into one master
+        for line in linetimedict_yest:
+            linetimedict[line] = linetimedict.setdefault(line, []) + linetimedict_yest[line]
+        for line in linetimedict_tom:
+            linetimedict[line] = linetimedict.setdefault(line, []) + linetimedict_tom[line]
+
+    except:
+        arcpy.AddError("Error creating dictionary of lines and trips in time window.")
+        raise CustomError
+
+    return linetimedict
 
 
 def RetrieveStatsForSetOfStops(stoplist, stoptimedict, CalcWaitTime, start_sec, end_sec):
@@ -444,10 +586,42 @@ def RetrieveStatsForSetOfStops(stoplist, stoptimedict, CalcWaitTime, start_sec, 
     NumTripsPerHr = round(float(NumTrips) / ((end_sec - start_sec) / 3600), 2)
 
     MaxWaitTime = None
-    if CalcWaitTime == "true":
+    if CalcWaitTime:
         MaxWaitTime = CalculateMaxWaitTime(StopTimesAtThisPoint, start_sec, end_sec)
 
     return NumTrips, NumTripsPerHr, NumStopsInRange, MaxWaitTime
+
+
+def RetrieveStatsForLines(linekey, linetimedict, start_sec, end_sec, combine_corridors, triproute_dict=None):
+    '''For a set of lines, query the linetimedict {line_key: [[trip_id, start_time, end_time]]}
+    and return the NumTrips, NumTripsPerHr, MaxWaitTime, and AvgHeadway for
+    that set of lines.'''
+
+    # Find the list of unique trips
+    triplist = []
+    StartTimesOnThisLine = []
+    route_id = None
+    if not combine_corridors:
+        linekeyparts = linekey.split(" , ")
+        linekey = linekeyparts[0] + " , " + linekeyparts[1]
+        route_id = linekeyparts[2]
+    try:
+        linetimelist = linetimedict[linekey]
+        for linetime in linetimelist:
+            trip = linetime[0]
+            if combine_corridors or triproute_dict[trip] == route_id:
+                triplist.append(trip)
+                StartTimesOnThisLine.append(linetime[1])
+    except KeyError:
+        pass
+    triplist = list(set(triplist))
+    NumTrips = len(triplist)
+    NumTripsPerHr = round(float(NumTrips) / ((end_sec - start_sec) / 3600), 2)
+
+    MaxWaitTime = CalculateMaxWaitTime(StartTimesOnThisLine, start_sec, end_sec)
+    AvgHeadway = CalculateAvgHeadway(StartTimesOnThisLine)
+
+    return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
 
 
 def CalculateMaxWaitTime(stoptimelist, start_sec, end_sec):
@@ -477,6 +651,14 @@ def CalculateMaxWaitTime(stoptimelist, start_sec, end_sec):
     return maxWaitTime_toReturn
 
 
+def CalculateAvgHeadway(TimeList):
+    '''Find the average amount of time between all trips in a list. Cannot be calculated if there are fewer than 2 trips.'''
+    if len(TimeList) > 1:
+        return int(round(float(sum(abs(x - y) for (x, y) in zip(TimeList[1:], TimeList[:-1]))/(len(TimeList)-1))/60, 0)) # minutes
+    else:
+        return None
+
+
 def MakeStopsFeatureClass(stopsfc, stoplist=None):
     '''Make a feature class of GTFS stops from the SQL table. Returns the path
     to the feature class and a list of stop IDs.'''
@@ -484,8 +666,15 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
     stopsfc_path = os.path.dirname(stopsfc)
     stopsfc_name = os.path.basename(stopsfc)
 
+    # If the output location is a feature dataset, we have to match the coordinate system
+    desc = arcpy.Describe(stopsfc_path)
+    if hasattr(desc, "spatialReference"):
+        output_coords = desc.spatialReference
+    else:
+        output_coords = WGSCoords
+
     # Create a points feature class for the point pairs.
-    StopsLayer = arcpy.management.CreateFeatureclass(stopsfc_path, stopsfc_name, "POINT", spatial_reference=WGSCoords)
+    StopsLayer = arcpy.management.CreateFeatureclass(stopsfc_path, stopsfc_name, "POINT", spatial_reference=output_coords)
     arcpy.management.AddField(StopsLayer, "stop_id", "TEXT")
     arcpy.management.AddField(StopsLayer, "stop_code", "TEXT")
     arcpy.management.AddField(StopsLayer, "stop_name", "TEXT")
@@ -522,67 +711,43 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
         DetermineArcVersion()
 
     # Add the stops table to a feature class.
-    if ArcVersion == "10.0":
-        cur3 = arcpy.InsertCursor(StopsLayer)
-        for stopitem in StopTable:
-            stop = list(stopitem)
-            # Shapefile output can't handle null values, so make them empty strings.
-            if ".shp" in stopsfc_name:
-                for idx in possiblenulls:
-                    if not stop[idx]:
-                        stop[idx] = ""
-            row = cur3.newRow()
-            pt = arcpy.Point()
-            pt.X = float(stop[5])
-            pt.Y = float(stop[4])
-            row.shape = pt
-            row.setValue("stop_id", stop[0])
-            row.setValue("stop_code", stop[1])
-            row.setValue("stop_name", stop[2])
-            row.setValue("stop_desc", stop[3])
-            row.setValue("zone_id", stop[6])
-            row.setValue("stop_url", stop[7])
-            if ".shp" in stopsfc_name:
-                row.setValue("loc_type", stop[8])
-                row.setValue("parent_sta", stop[9])
-            else:
-                row.setValue("location_type", stop[8])
-                row.setValue("parent_station", stop[9])
-            cur3.insertRow(row)
-        del row
-
+    if ".shp" in stopsfc_name:
+        cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@", "stop_id",
+                                                    "stop_code", "stop_name", "stop_desc",
+                                                    "zone_id", "stop_url", "loc_type",
+                                                    "parent_sta"])
     else:
-        # For everything 10.1 and forward
+        cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@", "stop_id",
+                                                    "stop_code", "stop_name", "stop_desc",
+                                                    "zone_id", "stop_url", "location_type",
+                                                    "parent_station"])
+    # Schema of stops table
+    ##   0 - stop_id
+    ##   1 - stop_code
+    ##   2 - stop_name
+    ##   3 - stop_desc
+    ##   4 - stop_lat
+    ##   5 - stop_lon
+    ##   6 - zone_id
+    ##   7 - stop_url
+    ##   8 - location_type
+    ##   9 - parent_station
+    for stopitem in StopTable:
+        stop = list(stopitem)
+        pt = arcpy.Point()
+        pt.X = float(stop[5])
+        pt.Y = float(stop[4])
+        # GTFS stop lat/lon is written in WGS1984
+        ptGeometry = arcpy.PointGeometry(pt, WGSCoords)
+        if output_coords != WGSCoords:
+            ptGeometry = ptGeometry.projectAs(output_coords)
+        # Shapefile output can't handle null values, so make them empty strings.
         if ".shp" in stopsfc_name:
-            cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@X", "SHAPE@Y", "stop_id",
-                                                     "stop_code", "stop_name", "stop_desc",
-                                                     "zone_id", "stop_url", "loc_type",
-                                                     "parent_sta"])
-        else:
-            cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@X", "SHAPE@Y", "stop_id",
-                                                     "stop_code", "stop_name", "stop_desc",
-                                                     "zone_id", "stop_url", "location_type",
-                                                     "parent_station"])
-        # Schema of stops table
-        ##   0 - stop_id
-        ##   1 - stop_code
-        ##   2 - stop_name
-        ##   3 - stop_desc
-        ##   4 - stop_lat
-        ##   5 - stop_lon
-        ##   6 - zone_id
-        ##   7 - stop_url
-        ##   8 - location_type
-        ##   9 - parent_station
-        for stopitem in StopTable:
-            stop = list(stopitem)
-            # Shapefile output can't handle null values, so make them empty strings.
-            if ".shp" in stopsfc_name:
-                for idx in possiblenulls:
-                    if not stop[idx]:
-                        stop[idx] = ""
-            cur3.insertRow((float(stop[5]), float(stop[4]), stop[0], stop[1],
-                             stop[2], stop[3], stop[6], stop[7], stop[8], stop[9]))
+            for idx in possiblenulls:
+                if not stop[idx]:
+                    stop[idx] = ""
+        cur3.insertRow((ptGeometry, stop[0], stop[1],
+                            stop[2], stop[3], stop[6], stop[7], stop[8], stop[9]))
     del cur3
 
     return stopsfc, StopIDList
@@ -612,40 +777,25 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
         DetermineArcVersion()
 
     # SALayer is the NA Layer object returned by getOutput(0)
-    if ArcVersion == "10.0":
-        # Make the service area layer
-        # Can't use the hierarchy attribute in 10.0.
+    # Make the service area layer
+    # The "hierarcy" attribute for SA is only available in 10.1.
+    # Default is that hierarchy is on, but we don't want it on for
+    # pedestrian travel (probably makes little difference).
+    try:
         SALayer = arcpy.na.MakeServiceAreaLayer(inNetworkDataset, outNALayer_SA,
                                     impedanceAttribute, TravelFromTo,
                                     BufferSize, PolyType, merge,
                                     NestingType, LineType, overlap,
                                     split, exclude, accumulate, uturns,
-                                    restrictions, TrimPolys, TrimPolysValue).getOutput(0)
-    else:
-        # For everything 10.1 and forward
-        # Make the service area layer
-        # The "hierarcy" attribute for SA is only available in 10.1.
-        # Default is that hierarchy is on, but we don't want it on for
-        # pedestrian travel (probably makes little difference).
-        try:
-            SALayer = arcpy.na.MakeServiceAreaLayer(inNetworkDataset, outNALayer_SA,
-                                        impedanceAttribute, TravelFromTo,
-                                        BufferSize, PolyType, merge,
-                                        NestingType, LineType, overlap,
-                                        split, exclude, accumulate, uturns,
-                                        restrictions, TrimPolys, TrimPolysValue, "", hierarchy).getOutput(0)
-        except:
-            errors = arcpy.GetMessages(2).split("\n")
-            if errors[0] == "ERROR 030152: Geoprocessing Current Workspace not found.":
-                arcpy.AddMessage(CurrentGPWorkspaceError)
-                print(CurrentGPWorkspaceError)
-            raise
+                                    restrictions, TrimPolys, TrimPolysValue, "", hierarchy).getOutput(0)
+    except:
+        errors = arcpy.GetMessages(2).split("\n")
+        if errors[0] == "ERROR 030152: Geoprocessing Current Workspace not found.":
+            arcpy.AddMessage(CurrentGPWorkspaceError)
+        raise CustomError
 
     # To refer to the SA sublayers, get the sublayer names.  This is essential for localization.
-    if ArcVersion == "10.0":
-        naSubLayerNames = dict((sublayer.datasetName, sublayer.name) for sublayer in  arcpy.mapping.ListLayers(SALayer)[1:])
-    else:
-        naSubLayerNames = arcpy.na.GetNAClassNames(SALayer)
+    naSubLayerNames = arcpy.na.GetNAClassNames(SALayer)
     facilities = naSubLayerNames["Facilities"]
 
     # Add a field for stop_id as a unique identifier for service areas.
@@ -655,12 +805,9 @@ def MakeServiceAreasAroundStops(StopsLayer, inNetworkDataset, impedanceAttribute
         arcpy.na.AddFieldToAnalysisLayer(outNALayer_SA, facilities, "stop_id", "TEXT", field_length=255)
 
     # Specify the field mappings for the stop_id field.
-    if ArcVersion == "10.0":
-        fieldMappingSA = "Name stop_id #; stop_id stop_id #"
-    else:
-        fieldMappingSA = arcpy.na.NAClassFieldMappings(SALayer, facilities)
-        fieldMappingSA["Name"].mappedFieldName = "stop_id"
-        fieldMappingSA["stop_id"].mappedFieldName = "stop_id"
+    fieldMappingSA = arcpy.na.NAClassFieldMappings(SALayer, facilities)
+    fieldMappingSA["Name"].mappedFieldName = "stop_id"
+    fieldMappingSA["stop_id"].mappedFieldName = "stop_id"
 
     # Add the GTFS stops as locations for the analysis.
     if ProductName == "ArcGISPro":
@@ -726,19 +873,17 @@ def import_AGOLservice(service_name, username="", password="", ags_connection_fi
 
 def ConnectToSQLDatabase(SQLDbase):
     '''Connect to a SQL database'''
+    global c, conn
     conn = sqlite3.connect(SQLDbase)
-    global c
     c = conn.cursor()
 
 
 def GetGTFSTableNames():
     '''Return a list of SQL database table names'''
+    ctn = conn.cursor()
     GetTblNamesStmt = "SELECT name FROM sqlite_master WHERE type='table';"
-    c.execute(GetTblNamesStmt)
-    tblnames = c.fetchall()
-    tblnamelist = []
-    for name in tblnames:
-        tblnamelist.append(name[0])
+    ctn.execute(GetTblNamesStmt)
+    tblnamelist = [name[0] for name in ctn]
     return tblnamelist
 
 
@@ -756,13 +901,121 @@ def DetermineArcVersion():
     ProductName = ArcVersionInfo['ProductName']
     ArcVersion = ArcVersionInfo['Version']
 
-def CheckAndSetWorkspace(workspace):
-    '''Set arcpy.env.workspace if it's not already set to a file geodatabase. This is essential for Pro when creating NA layers.'''
-    currentworkspace = arcpy.env.workspace
-    if currentworkspace:
-        desc = arcpy.Describe(currentworkspace)
-        if desc.workspaceFactoryProgID != "esriDataSourcesGDB.FileGDBWorkspaceFactory.1": #File gdb
-            arcpy.env.workspace = workspace
+def CheckArcVersion(min_version_pro=None, min_version_10x=None):
+    DetermineArcVersion()
+    # Lists must stay in product release order
+    # They do not need to have new product numbers added unless a tool requires a higher version
+    versions_pro = ["1.0", "1.1", "1.1.1", "1.2"]
+    versions_10x = ["10.1", "10.2", "10.2.1", "10.2.2", "10.3", "10.3.1", "10.4"]
+
+    def check_version(min_version, all_versions):
+        if min_version not in all_versions:
+            arcpy.AddError("Invalid minimum software version number: %s" % str(min_version))
+            raise CustomError
+        version_idx = all_versions.index(min_version)
+        if ArcVersion in all_versions[:version_idx]:
+            # Fail out if the current software version is in the list somewhere earlier than the minimum version
+            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of %s prior to %s.  \
+You have version %s.  Please check the user's guide for more information on software version compatibility." % (ProductName, min_version, ArcVersion))
+            raise CustomError
+
+    if ProductName == "ArcGISPro" and min_version_pro:
+        check_version(min_version_pro, versions_pro)
+    else:
+        if min_version_10x:
+            check_version(min_version_10x, versions_10x)
+
+def CheckArcInfoLicense():
+    ArcLicense = arcpy.ProductInfo()
+    if ArcLicense != "ArcInfo":
+        arcpy.AddError("To run this tool, you must have the Desktop \
+Advanced (ArcInfo) license.  Your license type is: %s." % ArcLicense)
+        raise CustomError
+
+
+def CheckOutNALicense():
+    if arcpy.CheckExtension("Network") == "Available":
+        arcpy.CheckOutExtension("Network")
+    else:
+        arcpy.AddError("You must have a Network Analyst license to use this tool.")
+        raise CustomError
+
+
+def CheckWorkspace():
+    '''Check if arcpy.env.workspace is set to a file geodatabase. This is essential for Pro when creating NA layers.'''
+    if ProductName == "ArcGISPro":
+        currentworkspace = arcpy.env.workspace
+        if not currentworkspace:
+            arcpy.AddError(CurrentGPWorkspaceError)
+            raise CustomError
+        else:
+            workspacedesc = arcpy.Describe(arcpy.env.workspace)
+            if not workspacedesc.workspaceFactoryProgID.startswith('esriDataSourcesGDB.FileGDBWorkspaceFactory'): # file gdb
+                arcpy.AddError(CurrentGPWorkspaceError)
+                raise CustomError
+
+
+def CleanUpTrimSettings(TrimSettings):
+    if TrimSettings and TrimSettings != -1.0:
+        TrimPolys = "TRIM_POLYS"
+        TrimPolysValue = str(TrimSettings) + " meters"
+    else:
+        TrimPolys = "NO_TRIM_POLYS"
+        TrimPolysValue = ""
+    return TrimPolys, TrimPolysValue
+
+def CleanUpImpedance(imp):
+    '''Extract impedance attribute and units from text string'''
+    # The input is formatted as "[Impedance] (Units: [Units])"
+    return imp.split(" (")[0]
+
+def CleanUpDepOrArr(DepOrArrChoice):
+    if DepOrArrChoice == "Arrivals":
+        return "arrival_time"
+    elif DepOrArrChoice == "Departures":
+        return "departure_time"
+    return None
+
+def CheckSpecificDate(day):
+    '''Is the chosen day a specific date or a generic weekday?'''
+    # Note: Datetime format check is in tool validation code
+    if day in days: #Generic weekday
+        return False, day
+    else: #Specific date
+        return True, datetime.datetime.strptime(day, '%Y%m%d')
+
+def ConvertTimeWindowToSeconds(start_time, end_time):
+    # Lower end of time window (HH:MM in 24-hour time)
+    # Default start time is midnight if they leave it blank.
+    if start_time == "":
+        start_time = "00:00"
+    # Convert to seconds
+    start_sec = parse_time(start_time + ":00")
+    # Upper end of time window (HH:MM in 24-hour time)
+    # Default end time is 11:59pm if they leave it blank.
+    if end_time == "":
+        end_time = "23:59"
+    # Convert to seconds
+    end_sec = parse_time(end_time + ":00")
+    return start_sec, end_sec
+
+def HandleOIDUniqueID(inPointsLayer, inLocUniqueID):
+    '''If ObjectID was selected as the unique ID, copy the values to a new field
+    so they don't get messed up when copying the table.'''
+    pointsOID = arcpy.Describe(inPointsLayer).OIDFieldName
+    if inLocUniqueID.lower() == pointsOID.lower():
+        try:
+            inLocUniqueID = "BBBUID"
+            arcpy.AddMessage("You have selected your input features' ObjectID field as the unique ID to use for this analysis. \
+In order to use this field, we have to transfer the ObjectID values to a new field in your input data called '%s' because ObjectID values \
+may change when the input data is copied to the output. Adding the '%s' field now, and calculating the values to be the same as the current \
+ObjectID values..." % (inLocUniqueID, inLocUniqueID))
+            arcpy.management.AddField(inPointsLayer, inLocUniqueID, "LONG")
+            arcpy.management.CalculateField(inPointsLayer, inLocUniqueID, "!" + pointsOID + "!", "PYTHON_9.3")
+        except:
+            arcpy.AddError("Unable to add or calculate new unique ID field. Please fix your data or choose a different unique ID field.")
+            raise CustomError
+    return inLocUniqueID
 
 
 class CustomError(Exception):

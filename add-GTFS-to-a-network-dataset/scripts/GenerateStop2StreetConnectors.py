@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset
 ## Tool name: 2) Generate Stop-Street Connectors
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 9 February 2017
+## Last updated: 2 February 2018
 ################################################################################
 ''' This tool snaps the transit stops to the street feature class, generates a
 connector line between the original stop location and the snapped stop location,
@@ -12,7 +12,7 @@ can be substituted for this step when the user's data contains more information
 about how stops should be connected to streets, such as station entrance
 locations or station interior geometry.'''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2018 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -246,10 +246,9 @@ following is true: " + SelectExpression
         # Make a dictionary of stop wheelchair_boarding info
         GetStopInfoStmt = "SELECT stop_id, wheelchair_boarding, parent_station FROM stops"
         c.execute(GetStopInfoStmt)
-        StopInfo = c.fetchall()
         WheelchairBoarding_dict = {} # {stop_id: wheelchair_boarding}
         ParentStation_dict = {} # {stop_id: parent_station}
-        for stop in StopInfo:
+        for stop in c:
             WheelchairBoarding_dict[stop[0]] = unicode(stop[1])
             ParentStation_dict[stop[0]] = stop[2]
 
@@ -288,6 +287,10 @@ following is true: " + SelectExpression
     # stops should move at all (though Integrate sometimes causes this to
     # happen).
     arcpy.management.Integrate([[outStreetsSplit, 1], [TempSnappedStops, 2]])
+
+    # Add a pedestrians_allowed field that the user can calculate. It will be automatically used in the pedestrian
+    # restriction attribute if the user creates their network using the provided template.
+    arcpy.management.AddField(outStreetsSplit, "pedestrians_allowed", "SHORT")
 
     # Clean up.
     arcpy.management.Delete(TempSnappedStops)

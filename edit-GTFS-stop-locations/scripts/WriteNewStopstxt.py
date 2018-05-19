@@ -2,13 +2,13 @@
 ## Toolbox: Edit GTFS Stop Locations
 ## Tool name: 2) Write New stops.txt
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 8 June 2015
+## Last updated: 14 December 2017
 ################################################################################
 '''Using the feature class created in Step 1 and edited by the user, this tool
 generates a new stops.txt GTFS file with the lat/lon values updated to the
 edited stop locations.'''
 ################################################################################
-'''Copyright 2015 Esri
+'''Copyright 2017 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -37,12 +37,21 @@ try:
         arcpy.AddError("Sorry, this tool requires ArcGIS 10.1 or higher.")
         raise CustomError
 
+    # GTFS stop lat/lon are written in WGS1984 coordinates
+    WGSCoords = "GEOGCS['GCS_WGS_1984',DATUM['D_WGS_1984', \
+    SPHEROID['WGS_1984',6378137.0,298.257223563]], \
+    PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]]; \
+    -400 -400 1000000000;-100000 10000;-100000 10000; \
+    8.98315284119522E-09;0.001;0.001;IsHighPrecision"
+    WGSCoords_name = 'GCS_WGS_1984'
+
     # User input
     inStopsFC = arcpy.GetParameterAsText(0)
     outStopstxt = arcpy.GetParameterAsText(1)
 
     # Get the fields from the stops feature class
-    fieldobjs = arcpy.ListFields(inStopsFC)
+    desc = arcpy.Describe(inStopsFC)
+    fieldobjs = desc.fields
     columns = []
     for field in fieldobjs:
         # Eliminate the OID and shape fields, since we don't write that to the csv
@@ -51,6 +60,12 @@ try:
     # Shapefiles automatically generate a useless column called Id, so get rid of it.
     if ".shp" in os.path.basename(inStopsFC) and "Id" in columns:
         del columns[columns.index("Id")]
+    
+    # Check input coordinate system
+    convert_coords = False
+    input_SR = desc.spatialReference
+    if input_SR.name != WGSCoords_name:
+        convert_coords = True
 
     # Make sure the required GTFS fields are present.
     required_fields = ["stop_id", "stop_name", "stop_lat", "stop_lon"]
@@ -83,14 +98,18 @@ Step 1 of this toolbox." % field)
     wr.writerow(cols_towrite)
 
     # Read in the info from the stops feature class and write it to the new csv file
-    fields = ["SHAPE@XY"] + columns
+    fields = ["SHAPE@"] + columns
     stop_lat_idx = fields.index("stop_lat")
     stop_lon_idx = fields.index("stop_lon")
     with arcpy.da.SearchCursor(inStopsFC, fields) as cur:
         for row in cur:
+            ptGeometry = row[0]
+            if convert_coords:
+                ptGeometry = ptGeometry.projectAs(WGSCoords)
             # Extract the lat/lon values from the shape info
-            stop_lon = row[0][0]
-            stop_lat = row[0][1]
+            pt = ptGeometry.firstPoint
+            stop_lon = pt.X
+            stop_lat = pt.Y
             toWrite = list(row)
             # Assign the new lat/lon to the appropriate columns
             toWrite[stop_lat_idx] = stop_lat

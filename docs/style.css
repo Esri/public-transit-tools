@@ -1,0 +1,36 @@
+.banner-title {
+    background:rgba(34, 36, 38, 0.6);
+    padding-left: .25em;
+    padding-right: .25em;
+    padding-top: .1em;
+    padding-bottom: .1em;
+    border-radius: 5px;
+}
+
+.top-nav-link.is-active {
+    border-bottom-color: #497671;
+}
+.top-nav-link:hover, .top-nav-link:focus {
+    color: #497671;
+    border-bottom-color: #497671;
+}
+
+.sub-nav {
+    background: url(./images/Banner.png) no-repeat center;
+    background-size: cover;
+}
+
+a {
+    color: #68b9a4;
+}
+a:hover {
+    color: #68b9a4;
+}
+
+.btn {
+    background-color: #497671;
+    border: none;
+}
+.btn:hover {
+    background-color: #68b9a4;
+}

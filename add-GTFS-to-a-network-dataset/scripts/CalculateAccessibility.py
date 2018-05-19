@@ -2,7 +2,7 @@
 ## Toolbox: Add GTFS to a Network Dataset / Transit Analysis Tools
 ## Tool name: Calculate Accessibility Matrix
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 13 September 2017
+## Last updated: 14 December 2017
 ################################################################################
 '''Count the number of destinations reachable from each origin by transit and 
 walking. The tool calculates an Origin-Destination Cost Matrix for each start 
@@ -67,7 +67,7 @@ try:
     increment_input = arcpy.GetParameter(8)
 
     # Make sure origins and destinations aren't empty
-    empty_error = "Your %s feature class is empty.  Please choose a feature class containing points you wish to analyze."
+    empty_error = u"Your %s feature class is empty.  Please choose a feature class containing points you wish to analyze."
     if int(arcpy.management.GetCount(origins_feature_class).getOutput(0)) == 0:
         arcpy.AddError(empty_error % "Origins")
         raise CustomError
@@ -75,26 +75,20 @@ try:
         arcpy.AddError(empty_error % "Destinations")
         raise CustomError
 
-    # Get Origins and Destionations Describe objects for later use
-    origins_desc = arcpy.Describe(origins_feature_class)
-    destinations_desc = arcpy.Describe(destinations_feature_class)
-
-    # Make sure Origins and Destinations are points and not some other shape type
-    shape_error = "Your %s feature class is not a Point feature class.  %s must be points."
-    if origins_desc.shapeType != "Point":
-        arcpy.AddError(shape_error % ("Origins", "Origins"))
-        raise CustomError
-    if destinations_desc.shapeType != "Point":
-        arcpy.AddError(shape_error % ("Destinations", "Destinations"))
-        raise CustomError
-
     # Make list of times of day to run the analysis
-    timelist = AnalysisHelpers.make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input)
+    try:
+        timelist = AnalysisHelpers.make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input)
+    except:
+        raise CustomError
 
     
     # ----- Add Origins and Destinations to the OD layer -----
 
     arcpy.AddMessage("Adding Origins and Destinations to OD Cost Matrix Layer...")
+
+    # Get Origins and Destionations Describe objects for later use
+    origins_desc = arcpy.Describe(origins_feature_class)
+    destinations_desc = arcpy.Describe(destinations_feature_class)
 
     # Get the sublayer names and objects for use later
     sublayer_names = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
@@ -115,9 +109,18 @@ try:
     fieldMappings_destinations = arcpy.na.NAClassFieldMappings(input_network_analyst_layer, destinations_sublayer_name)
     fieldMappings_destinations["InputOID"].mappedFieldName = destinations_objectID
 
+    # If using a weight field, filter out destinations with 0 or Null weight since they will not contribute to the final output
+    destinations_layer = destinations_feature_class
+    if destinations_weight_field:
+        expression = u"%s IS NOT NULL AND %s <> 0" % (destinations_weight_field, destinations_weight_field)
+        destinations_layer = arcpy.management.MakeFeatureLayer(destinations_feature_class, "Dests", expression)
+        if int(arcpy.management.GetCount(destinations_layer).getOutput(0)) == 0:
+            arcpy.AddError(u"The weight field %s of your input Destinations table has values of 0 or Null for all rows." % destinations_weight_field)
+            raise CustomError
+
     # Add origins and destinations
     arcpy.na.AddLocations(input_network_analyst_layer, origins_sublayer_name, origins_feature_class, fieldMappings_origins, "", append="CLEAR")
-    arcpy.na.AddLocations(input_network_analyst_layer, destinations_sublayer_name, destinations_feature_class, fieldMappings_destinations, "", append="CLEAR")
+    arcpy.na.AddLocations(input_network_analyst_layer, destinations_sublayer_name, destinations_layer, fieldMappings_destinations, "", append="CLEAR")
 
     # Create dictionary linking the ObjectID fields of the input feature classes and the NA sublayers
     # We need to do this because, particularly when the NA layer already had data in it, the ObjectID
@@ -182,7 +185,7 @@ try:
     destination_weight_dict = {} # {Input Destinations feature class ObjectID: Weight}
     num_dests = 0
     if destinations_weight_field:
-        with arcpy.da.SearchCursor(destinations_feature_class, ["OID@", destinations_weight_field]) as cur:
+        with arcpy.da.SearchCursor(destinations_layer, ["OID@", destinations_weight_field]) as cur:
             for row in cur:
                 destination_weight_dict[row[0]] = row[1]
                 num_dests += row[1]
