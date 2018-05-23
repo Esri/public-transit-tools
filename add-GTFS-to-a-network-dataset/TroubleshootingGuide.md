@@ -25,6 +25,7 @@ This document describes some common problems encountered by users of *Add GTFS t
   - [During schedule caching, I got an error that said "All EIDs were null in the transit schedule table. Please run Get Network EIDs."](#noEIDs)
   - [My analysis never uses the transit lines. It only uses the streets.](#NoTransitLines)
   - [My Service Areas have ugly spikes around the transit lines](#Exclude)
+  - [I got a Memory Error, or ArcMap hung or crashed](#Memory)
 + Other
   - [I upgraded ArcMap to a new version, and now Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx are no longer in ArcToolbox](#ArcMapUpgrade)
   - [The Network Identify tool always shows a cost of -1 for TransitLines edges in my network](#NetworkIdentify)
@@ -177,6 +178,21 @@ Here is a technique for debugging your transit network in detail.  The idea is t
 If you are solving a Service Area analysis, you need to prevent service areas from being drawn around transit lines.  The service area polygons should only be drawn around streets since pedestrians can't exit the transit vehicle partway between stops.  To do this, open the layer properties and go to the Polygon Generation tab.  In the bottom left corner, click to exclude TransitLines and Connectors_Stops2Streets (or whatever is most appropriate for your network).
 
 ![Screenshot of tool dialog](./images/Screenshot_AnalysisSettings_ExcludedSources.png)
+
+
+## <a name="Memory"></a>I got a Memory Error, or ArcMap hung or crashed
+ArcMap is a 32-bit application, which means that even if you have a powerful computer with lots of memory, ArcMap cannot make use of all those resources.  Memory errors (or hanging or crashing) are not uncommon when solving large network analysis problems.
+
+The way around this is to install ArcGIS Server or the 64-bit Background Geoprocessing extension.  In ArcMap, enable background processing (Geoprocessing menu -> Geoprocessing Options -> Background Processing -> Enable).  Now, when you run geoprocessing tools, they will run in the background in a 64-bit environment and will be able to use your computer's full memory resources.  Note that if you want to solve a network analysis layer in the 64-bit environment, you must use the Solve geoprocessing tool instead of the Solve button on the Network Analyst toolbar.
+
+Before you can use your transit-enabled network dataset successfully in the 64-bit environment, you have to additionally register the transit evaluator against ArcGIS Server or the 64-bit Background Geoprocessing extension, as appropriate.  Instructions for this are in the user's guide:
+- [Registering the evaluator with ArcGIS Server](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#using-your-network-dataset-with-arcgis-server)
+- [Registering the evaluator with the 64-bit Background Geoprocessing extension](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#using-your-network-dataset-with-64-bit-background-geoprocessing)
+
+
+With one of these products installed, you can also run scripts in standalone python in the 64-bit environment.  To do this, you simply need to run the script against the 64-bit python installation that was installed when you installed ArcGIS Server or the 64-bit Background Geoprocessing extension.  Typically the python executable can be found at C:\Python27\ArcGISx6410.6\python.exe, or equivalent.
+
+If you are trying to solve a very large network analysis problem, the slides and code samples from [this presentation](http://esriurl.com/ds18pyslnp) might be helpful to you.
 
 
 ## <a name="ArcMapUpgrade"></a>I upgraded ArcMap to a new version, and now Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx are no longer in ArcToolbox
