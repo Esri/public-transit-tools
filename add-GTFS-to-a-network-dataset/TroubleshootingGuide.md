@@ -14,6 +14,7 @@ This document describes some common problems encountered by users of *Add GTFS t
 + Creating the network
   - [I tried to run one of the tools in the Add GTFS to a Network Dataset toolbox, but it said it was missing a script reference.](#MissingScript)
   - [I tried to run one of the tools in the Add GTFS to a Network Dataset toolbox, but it failed with a bunch of error messages like "ImportError".](#MessedUpArcpy)
+  - [My TransitLines feature class has diagonal lines everywhere and doesn't look like the actual transit system](#LineShape)
   - [A tool failed with "ExecuteError: ERROR 999999: Error executing function. Failed to execute (CreateFeatureclass)."](#CorruptGDB)
   - [When I'm setting up the evaluators for my transit travel time cost attribute, "TransitEvaluator" doesn't appear in the drop-down list of evaluator types](#DropDown)
   - [When I built my network, I got build errors.](#BuildErrors)
@@ -58,6 +59,13 @@ Please test your python installation using the following steps:
 
 If one of the steps above fails, it's likely that ArcMap's reference to python is messed up.  You can try reinstalling ArcMap, talking to your systems administrator, or calling [Esri Tech Support](http://support.esri.com/).
 
+
+## <a name="LineShape"></a>My TransitLines feature class has diagonal lines everywhere and doesn't look like the actual transit system
+This is correct.  The TransitLines feature class contains straight-line connections between transit stops that are directly connected by transit service.  They are meant to conceptually represent the connection rather than the actual paths taken by transit vehicles.
+
+The Add GTFS to a Network Dataset toolbox produces data designed specifically to be incorporated into a network dataset to be used for transit network analysis.  Because the network dataset will use travel times derived from the GTFS schedules, the geometry of the TransitLines features is actually irrelevant to the analysis.  
+
+If you wish to create a nice-looking visual representation of your transit lines, you should instead use the [Display GTFS in ArcGIS](http://esri.github.io/public-transit-tools/DisplayGTFSinArcGIS.html) toolbox.
 
 ## <a name="CorruptGDB"></a>A tool failed with "ExecuteError: ERROR 999999: Error executing function. Failed to execute (CreateFeatureclass)."
 This failure is usually a symptom that the geodatabase has gotten corrupted somehow.  Delete your geodatabase, create a new one, and try running the tool again.
