@@ -1,6 +1,6 @@
 ################################################################################
-## Toolbox: Determine Time Lapse Polygon Percent Accessibility / Transit Analysis Tools
-## Tool name: Calculate Accessibility Matrix
+## Toolbox: Determine Time Lapse Polygon Percent Access Polygon / Transit Analysis Tools
+## Tool name: Determine Time Lapse Polygon Percent Access Polygon
 ## Created by: David Wasserman, Fehr & Peers, d.wasserman@fehrandpeers.com
 ## Last updated: 18 May 2019
 ################################################################################
@@ -89,8 +89,8 @@ def generate_statistical_fieldmap(target_features, join_features, prepended_name
     return field_mappings
 
 
-def get_percentage_access_isochrone(in_path, outfile, facility_field="FacilityID",name_field="Name", tobreak_field="ToBreak",
-                                    time_field="TimeOfDay"):
+def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field="FacilityID",name_field="Name", tobreak_field="ToBreak",
+                                    time_field="TimeOfDay",match_option = "HAVE_THEIR_CENTER_IN "):
     """This script/notebook aims transform a TimeLapsedPolygon into a percentage of access coverage polygon where
     each polygon represents the percentage of time transit can access a specific location.
     Params:
@@ -103,15 +103,17 @@ def get_percentage_access_isochrone(in_path, outfile, facility_field="FacilityID
     arcpy.env.overwriteOutput = True
     workspace = "in_memory"
     # Get facilities as unique values and the number of time periods.
+    desc = arcpy.Describe(in_path)
+    oid = desc.OIDFieldName
     unique_values = sorted(set([row[0] for row in arcpy.da.SearchCursor(in_path, [facility_field])]))
     unique_times = sorted(set([row[0] for row in arcpy.da.SearchCursor(in_path, [time_field])]))
     unique_breaks = sorted(set([row[0] for row in arcpy.da.SearchCursor(in_path, [tobreak_field])]))
     facility_count = len(unique_values)
     time_period_count = len(unique_times)
     arcpy.AddMessage("Time period count is:{0}".format(time_period_count))
-
     # Add a field for counting the sum of total time periods
     raw_iso_fields = []
+    facility_fields = [facility_id,name_field]
     for idx, brk in enumerate(unique_breaks):
         break_text = "P"+int(brk*100) if brk<1 else int(brk)
         isochrone_count = "TP{0}Cnt{1}".format(break_text, idx)
@@ -126,28 +128,38 @@ def get_percentage_access_isochrone(in_path, outfile, facility_field="FacilityID
                                                 return 0 """)
         raw_iso_fields.append(isochrone_count)
     sum_fields = ["SUM"+str(fieldname) for fieldname in raw_iso_fields]
-    # Establish counters
-    counter = 0
+    first_fields = ["FIRST"+str(fieldname) for fieldname in facility_fields ]
     # Define Output Paths
     temp_layer = "FacilityIso"
-    temp_union = os.path.join(workspace, "TempUnion")
+    pre_temp_raster = os.path.join(workspace, "PreTempRaster")
+    temp_raster = os.path.join(workspace,"TempRaster")
+    temp_point = os.path.join(workspace,"TempPoint")
+    temp_polygon = os.path.join(workspace,"TempPolygon")
     temp_join = os.path.join(workspace, "TempJoin")
     temp_final_dis = os.path.join(workspace, "TempDissFin")
+    # Establish counters
+    counter = 0
     arcpy.AddMessage("Processing isochrones...")
     percent_ranges = list(range(0, 101, 10))
     for value in unique_values:
         try:
             query = construct_sql_equality_query(facility_field, value, workspace)
             arcpy.MakeFeatureLayer_management(in_path, temp_layer, query)
-            arcpy.Union_analysis(temp_layer, temp_union, cluster_tolerance=None)
-            merge_rules = {"SUM": raw_iso_fields}
-            fmap = generate_statistical_fieldmap(temp_union, temp_layer, merge_rule_dict=merge_rules)
+            arcpy.FeatureToRaster_conversion(temp_layer,oid,pre_temp_raster,cell_size)
+            arcpy.RasterToPoint_conversion(pre_temp_raster,temp_point)
+            pt_oid = arcpy.Describe(temp_point).OIDFieldName
+            arcpy.FeatureToRaster_conversion(temp_point,pt_oid,temp_raster,cell_size)
+            arcpy.RasterToPolygon_conversion(temp_raster,temp_polygon,simplify=False)
+            merge_rules = {"FIRST":facility_fields,"SUM": raw_iso_fields}
+            fmap = generate_statistical_fieldmap(temp_polygon, temp_layer, merge_rule_dict=merge_rules)
             # Spatial join with fmap field map will only associate the count field sum with the unioned feature class
-            arcpy.SpatialJoin_analysis(temp_union, temp_layer, temp_join, field_mapping=fmap, search_radius="-.001 Feet")
+            arcpy.SpatialJoin_analysis(temp_polygon, temp_layer, temp_join, field_mapping=fmap,
+                                   match_option="HAVE_THEIR_CENTER_IN")
             # The raw union is very geometrically complex. Dissolve shapes of the same coverage count.
-            dissolve_fields = [facility_id]+ sum_fields
+            dissolve_fields = [first_fields[0]]+ sum_fields
+
             arcpy.Dissolve_management(temp_join, temp_final_dis,dissolve_field=dissolve_fields,statistics_fields=
-                                      [[name_field,"FIRST"]])
+                                      [[first_fields[1],"FIRST"]])
             # If the file does not exist or the counter is 0- copy the facility selection to a new feature class
             if not arcpy.Exists(outfile) or counter == 0:
                 arcpy.CopyFeatures_management(temp_final_dis, outfile)
@@ -162,6 +174,7 @@ def get_percentage_access_isochrone(in_path, outfile, facility_field="FacilityID
         except:
             arcpy.AddWarning("Failed to compute percentage access polygon for facility : {0}".format(value))
             counter += 1
+    arcpy.AddMessage("Facility processing complete.")
     for idx, brk in enumerate(unique_breaks):
         break_text = "P" + str(int(brk * 100)) if brk < 1 else int(brk)
         TPCoverage = "TPCv{0}_{1}Perc".format(break_text,idx)
@@ -180,9 +193,11 @@ def get_percentage_access_isochrone(in_path, outfile, facility_field="FacilityID
 if __name__ == '__main__':
     filepath = arcpy.GetParameterAsText(0)
     outfile = arcpy.GetParameterAsText(1)
-    facility_id = arcpy.GetParameterAsText(2)
-    name_field = arcpy.GetParameterAsText(3)
-    tobreak_field = arcpy.GetParameterAsText(4)
-    time_period_field = arcpy.GetParameterAsText(5)
-    get_percentage_access_isochrone(filepath, outfile, facility_field=facility_id,name_field=name_field,
-                                    tobreak_field=tobreak_field,time_field=time_period_field)
+    cell_size = arcpy.GetParameterAsText(2)
+    facility_id = arcpy.GetParameterAsText(3)
+    name_field = arcpy.GetParameterAsText(4)
+    tobreak_field = arcpy.GetParameterAsText(5)
+    time_period_field = arcpy.GetParameterAsText(6)
+    match_option = arcpy.GetParameterAsText(7)
+    get_percentage_access_isochrone(filepath, outfile, cell_size, facility_field=facility_id, name_field=name_field,
+                                    tobreak_field=tobreak_field, time_field=time_period_field,match_option=match_option)
