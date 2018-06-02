@@ -130,7 +130,7 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
     sum_fields = ["SUM"+str(fieldname) for fieldname in raw_iso_fields]
     first_fields = ["FIRST"+str(fieldname) for fieldname in facility_fields ]
     # Define Output Paths
-    temp_layer = "FacilityIso"
+    temp_selection = os.path.join(workspace,"TempSelect")
     pre_temp_raster = os.path.join(workspace, "PreTempRaster")
     temp_raster = os.path.join(workspace,"TempRaster")
     temp_point = os.path.join(workspace,"TempPoint")
@@ -144,16 +144,16 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
     for value in unique_values:
         try:
             query = construct_sql_equality_query(facility_field, value, workspace)
-            arcpy.MakeFeatureLayer_management(in_path, temp_layer, query)
-            arcpy.FeatureToRaster_conversion(temp_layer,oid,pre_temp_raster,cell_size)
+            arcpy.Select_analysis(in_path, temp_selection, query)
+            arcpy.FeatureToRaster_conversion(temp_selection,oid,pre_temp_raster,cell_size)
             arcpy.RasterToPoint_conversion(pre_temp_raster,temp_point)
             pt_oid = arcpy.Describe(temp_point).OIDFieldName
             arcpy.FeatureToRaster_conversion(temp_point,pt_oid,temp_raster,cell_size)
             arcpy.RasterToPolygon_conversion(temp_raster,temp_polygon,simplify=False)
             merge_rules = {"FIRST":facility_fields,"SUM": raw_iso_fields}
-            fmap = generate_statistical_fieldmap(temp_polygon, temp_layer, merge_rule_dict=merge_rules)
+            fmap = generate_statistical_fieldmap(temp_polygon, temp_selection, merge_rule_dict=merge_rules)
             # Spatial join with fmap field map will only associate the count field sum with the unioned feature class
-            arcpy.SpatialJoin_analysis(temp_polygon, temp_layer, temp_join, field_mapping=fmap,
+            arcpy.SpatialJoin_analysis(temp_polygon, temp_selection, temp_join, field_mapping=fmap,
                                    match_option="HAVE_THEIR_CENTER_IN")
             # The raw union is very geometrically complex. Dissolve shapes of the same coverage count.
             dissolve_fields = [first_fields[0]]+ sum_fields
