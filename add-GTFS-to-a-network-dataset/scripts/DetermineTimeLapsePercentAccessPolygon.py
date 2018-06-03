@@ -89,8 +89,9 @@ def generate_statistical_fieldmap(target_features, join_features, prepended_name
     return field_mappings
 
 
-def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field="FacilityID",name_field="Name", tobreak_field="ToBreak",
-                                    time_field="TimeOfDay",match_option = "HAVE_THEIR_CENTER_IN "):
+def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field="FacilityID", name_field="Name",
+                                    tobreak_field="ToBreak",
+                                    time_field="TimeOfDay", match_option="HAVE_THEIR_CENTER_IN", target_percent=None):
     """This script/notebook aims transform a TimeLapsedPolygon into a percentage of access coverage polygon where
     each polygon represents the percentage of time transit can access a specific location.
     Params:
@@ -111,30 +112,45 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
     facility_count = len(unique_values)
     time_period_count = len(unique_times)
     arcpy.AddMessage("Time period count is:{0}".format(time_period_count))
+    # Set up Shapefile Limits
+    break_lim = 20
+    out_shp = False
+    if ".shp" in outfile:
+        break_lim = 3
+        out_shp = True
     # Add a field for counting the sum of total time periods
     raw_iso_fields = []
-    facility_fields = [facility_id,name_field]
+    facility_fields = [facility_id, name_field]
     for idx, brk in enumerate(unique_breaks):
-        break_text = "P"+int(brk*100) if brk<1 else int(brk)
-        isochrone_count = "TP{0}Cnt{1}".format(break_text, idx)
-        arcpy.AddMessage("Adding a field for counting isochrone break {0} named {1}...".format(brk,isochrone_count))
-        arcpy.AddField_management(in_path, isochrone_count, "LONG")
-        arcpy.CalculateField_management(in_path, isochrone_count, expression="flag_break(!{0}!,{1})".format(
-            tobreak_field, brk),expression_type="PYTHON_9.3", code_block=
-                                        """def flag_break(break_field,target_break):
-                                            if break_field==target_break:
-                                                return 1
-                                            else:
-                                                return 0 """)
-        raw_iso_fields.append(isochrone_count)
-    sum_fields = ["SUM"+str(fieldname) for fieldname in raw_iso_fields]
-    first_fields = ["FIRST"+str(fieldname) for fieldname in facility_fields ]
+        try:
+            break_text = ("P" + str(int(brk * 100)))[:break_lim] if brk < 1 else str(int(brk))[
+                                                                                 :break_lim]  # 3 char for .shp
+            isochrone_count = "TP{0}_{1}".format(break_text, idx)
+            if out_shp:
+                isochrone_count = "TP_B{0}".format(idx)
+            arcpy.AddMessage(
+                "Adding a field for counting isochrone break {0} named {1}...".format(brk, isochrone_count))
+            arcpy.AddField_management(in_path, isochrone_count, "LONG")
+            arcpy.CalculateField_management(in_path, isochrone_count, expression="flag_break(!{0}!,{1})".format(
+                tobreak_field, brk), expression_type="PYTHON_9.3", code_block=
+                                            """def flag_break(break_field,target_break):
+                                                if break_field==target_break:
+                                                    return 1
+                                                else:
+                                                    return 0 """)
+            raw_iso_fields.append(isochrone_count)
+        except Exception as e:
+            arcpy.AddMessage("Could not add isochrone break fields. \n "
+                             "Error was: {0}".format(e.messages))
+    sum_fields = ["SUM" + str(fieldname) for fieldname in raw_iso_fields]
+    first_fields = ["FIRST" + str(fieldname) for fieldname in facility_fields]
+    out_name_field = "FIRST{0}".format(name_field)
     # Define Output Paths
-    temp_selection = os.path.join(workspace,"TempSelect")
+    temp_selection = os.path.join(workspace, "TempSelect")
     pre_temp_raster = os.path.join(workspace, "PreTempRaster")
-    temp_raster = os.path.join(workspace,"TempRaster")
-    temp_point = os.path.join(workspace,"TempPoint")
-    temp_polygon = os.path.join(workspace,"TempPolygon")
+    temp_raster = os.path.join(workspace, "TempRaster")
+    temp_point = os.path.join(workspace, "TempPoint")
+    temp_polygon = os.path.join(workspace, "TempPolygon")
     temp_join = os.path.join(workspace, "TempJoin")
     temp_final_dis = os.path.join(workspace, "TempDissFin")
     # Establish counters
@@ -145,21 +161,25 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
         try:
             query = construct_sql_equality_query(facility_field, value, workspace)
             arcpy.Select_analysis(in_path, temp_selection, query)
-            arcpy.FeatureToRaster_conversion(temp_selection,oid,pre_temp_raster,cell_size)
-            arcpy.RasterToPoint_conversion(pre_temp_raster,temp_point)
+            arcpy.FeatureToRaster_conversion(temp_selection, oid, pre_temp_raster, cell_size)
+            arcpy.RasterToPoint_conversion(pre_temp_raster, temp_point)
             pt_oid = arcpy.Describe(temp_point).OIDFieldName
-            arcpy.FeatureToRaster_conversion(temp_point,pt_oid,temp_raster,cell_size)
-            arcpy.RasterToPolygon_conversion(temp_raster,temp_polygon,simplify=False)
-            merge_rules = {"FIRST":facility_fields,"SUM": raw_iso_fields}
+            arcpy.FeatureToRaster_conversion(temp_point, pt_oid, temp_raster, cell_size)
+            arcpy.RasterToPolygon_conversion(temp_raster, temp_polygon, simplify=False)
+            merge_rules = {"FIRST": facility_fields, "SUM": raw_iso_fields}
             fmap = generate_statistical_fieldmap(temp_polygon, temp_selection, merge_rule_dict=merge_rules)
             # Spatial join with fmap field map will only associate the count field sum with the unioned feature class
             arcpy.SpatialJoin_analysis(temp_polygon, temp_selection, temp_join, field_mapping=fmap,
-                                   match_option="HAVE_THEIR_CENTER_IN")
+                                       match_option=match_option)
             # The raw union is very geometrically complex. Dissolve shapes of the same coverage count.
-            dissolve_fields = [first_fields[0]]+ sum_fields
+            dissolve_fields = [first_fields[0]] + sum_fields
 
-            arcpy.Dissolve_management(temp_join, temp_final_dis,dissolve_field=dissolve_fields,statistics_fields=
-                                      [[first_fields[1],"FIRST"]])
+            arcpy.Dissolve_management(temp_join, temp_final_dis, dissolve_field=dissolve_fields, statistics_fields=
+            [[first_fields[1], "FIRST"]])
+            arcpy.AlterField_management(temp_final_dis, "FIRST_FIRST{0}".format(name_field), out_name_field,
+                                        out_name_field)
+            arcpy.AlterField_management(temp_final_dis, "FIRST{0}".format(facility_field), facility_field,
+                                        facility_field)
             # If the file does not exist or the counter is 0- copy the facility selection to a new feature class
             if not arcpy.Exists(outfile) or counter == 0:
                 arcpy.CopyFeatures_management(temp_final_dis, outfile)
@@ -171,22 +191,38 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
             if 100 * (counter / facility_count) >= percent_ranges[0]:
                 arcpy.AddMessage("Processed {0}% of facilities...".format(percent_ranges[0]))
                 del percent_ranges[0]
-        except:
-            arcpy.AddWarning("Failed to compute percentage access polygon for facility : {0}".format(value))
-            counter += 1
+        except Exception as e:
+            arcpy.AddMessage("Could not process facility number {0}...\n"
+                             "Error was: {1}".format(value, e.message))
     arcpy.AddMessage("Facility processing complete.")
+    time_perod_coverage_fields = []
+    data_source = arcpy.Describe(outfile).catalogPath
     for idx, brk in enumerate(unique_breaks):
-        break_text = "P" + str(int(brk * 100)) if brk < 1 else int(brk)
-        TPCoverage = "TPCv{0}_{1}Perc".format(break_text,idx)
-        arcpy.AddMessage("Computing percentage coverage for field {0}...".format(TPCoverage))
         try:
+            break_text = "P" + str(int(brk * 100))[:break_lim] if brk < 1 \
+                else str(int(brk))[:break_lim]  # 3 char in .shp
+            TPCoverage = arcpy.ValidateFieldName("PctC{0}_{1}".format(break_text, idx), data_source)
+            arcpy.AddMessage("Computing percentage coverage for field {0}...".format(TPCoverage))
+            # try:
             arcpy.AddField_management(outfile, TPCoverage, "DOUBLE")
             arcpy.CalculateField_management(outfile, TPCoverage,
                                             expression="float(!{0}!)/float({1})".format(sum_fields[idx],
                                                                                         time_period_count),
                                             expression_type="PYTHON_9.3")
-        except:
-            arcpy.AddWarning("Could not calculate percentage of time periods covered.")
+            time_perod_coverage_fields.append(TPCoverage)
+        except Exception as e:
+            arcpy.AddWarning("Could not calculate percentage of time periods covered.\n "
+                             "Error was: {0}".format(e.message))
+    if target_percent > 0 and target_percent <= 1:
+        arcpy.AddMessage("A target coverage percentage of {0} has been selected."
+                         " Processing final isochrones...".format(target_percent))
+        temp_select_per = os.path.join(workspace, "TempPerSelect")
+        catalog_path = arcpy.Describe(outfile).catalogPath
+        queries = [construct_sql_equality_query(field, target_percent, catalog_path, ">=")
+                   for field in time_perod_coverage_fields]
+        final_query = str("".join(query + " OR " for query in queries)).strip(" OR ")
+        arcpy.Select_analysis(outfile, temp_select_per, final_query)
+        arcpy.Dissolve_management(temp_select_per, outfile, dissolve_field=[facility_field, out_name_field])
     print("Script Completed Successfully.")
 
 
@@ -199,5 +235,8 @@ if __name__ == '__main__':
     tobreak_field = arcpy.GetParameterAsText(5)
     time_period_field = arcpy.GetParameterAsText(6)
     match_option = arcpy.GetParameterAsText(7)
+    target_percent = arcpy.GetParameter(8)
     get_percentage_access_isochrone(filepath, outfile, cell_size, facility_field=facility_id, name_field=name_field,
-                                    tobreak_field=tobreak_field, time_field=time_period_field,match_option=match_option)
+                                    tobreak_field=tobreak_field, time_field=time_period_field,
+                                    match_option=match_option,
+                                    target_percent=target_percent)
