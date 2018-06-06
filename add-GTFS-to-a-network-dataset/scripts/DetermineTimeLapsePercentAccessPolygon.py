@@ -106,6 +106,14 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
     # Get facilities as unique values and the number of time periods.
     desc = arcpy.Describe(in_path)
     oid = desc.OIDFieldName
+    sr = desc.spatialReference
+    if not sr.PCSCode:
+        arcpy.AddError("This tool requires a projected coordinate system. When using a projected coordinate system"
+                       "keep in mind that the cell size is in the same units as the linear unit of the projected "
+                       "coordinated system.")
+        import sys
+        sys.exit()
+
     unique_values = sorted(set([row[0] for row in arcpy.da.SearchCursor(in_path, [facility_field])]))
     unique_times = sorted(set([row[0] for row in arcpy.da.SearchCursor(in_path, [time_field])]))
     unique_breaks = sorted(set([row[0] for row in arcpy.da.SearchCursor(in_path, [tobreak_field])]))
@@ -140,8 +148,8 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
                                                     return 0 """)
             raw_iso_fields.append(isochrone_count)
         except Exception as e:
-            arcpy.AddMessage("Could not add isochrone break fields. \n "
-                             "Error was: {0}".format(e.messages))
+            arcpy.AddError("Could not add isochrone break fields. \n "
+                             "Error was: {0}".format(str(e.args[0])))
     sum_fields = ["SUM" + str(fieldname) for fieldname in raw_iso_fields]
     first_fields = ["FIRST" + str(fieldname) for fieldname in facility_fields]
     out_name_field = "FIRST{0}".format(name_field)
@@ -192,8 +200,8 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
                 arcpy.AddMessage("Processed {0}% of facilities...".format(percent_ranges[0]))
                 del percent_ranges[0]
         except Exception as e:
-            arcpy.AddMessage("Could not process facility number {0}...\n"
-                             "Error was: {1}".format(value, e.message))
+            arcpy.AddWarning("Could not process facility number {0}...\n"
+                             "Error was: {1}".format(value, str(e.args[0])))
     arcpy.AddMessage("Facility processing complete.")
     time_perod_coverage_fields = []
     data_source = arcpy.Describe(outfile).catalogPath
@@ -211,8 +219,8 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
                                             expression_type="PYTHON_9.3")
             time_perod_coverage_fields.append(TPCoverage)
         except Exception as e:
-            arcpy.AddWarning("Could not calculate percentage of time periods covered.\n "
-                             "Error was: {0}".format(e.message))
+            arcpy.AddError("Could not calculate percentage of time periods covered.\n "
+                             "Error was: {0}".format(str(e.args[0])))
     if target_percent > 0 and target_percent <= 1:
         arcpy.AddMessage("A target coverage percentage of {0} has been selected."
                          " Processing final isochrones...".format(target_percent))
@@ -220,9 +228,20 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
         catalog_path = arcpy.Describe(outfile).catalogPath
         queries = [construct_sql_equality_query(field, target_percent, catalog_path, ">=")
                    for field in time_perod_coverage_fields]
-        final_query = str("".join(query + " OR " for query in queries)).strip(" OR ")
-        arcpy.Select_analysis(outfile, temp_select_per, final_query)
-        arcpy.Dissolve_management(temp_select_per, outfile, dissolve_field=[facility_field, out_name_field])
+        counter = 0
+        break_field = "Break_ID"
+        for break_id,query in zip(time_perod_coverage_fields,queries):
+            arcpy.Select_analysis(outfile, temp_select_per, query)
+            arcpy.AddField_management(temp_select_per,break_field,"TEXT")
+            arcpy.CalculateField_management(temp_select_per,break_field,'"{0}"'.format(break_id),
+                                            expression_type="PYTHON_9.3")
+            arcpy.Dissolve_management(temp_select_per, temp_final_dis,
+                                      dissolve_field=[facility_field, out_name_field,break_field])
+            if counter == 0:
+                arcpy.CopyFeatures_management(temp_final_dis, outfile)
+                # If counter is not 0, append the facilities output to the output feature class.
+            else:
+                arcpy.Append_management(temp_final_dis, outfile)
     print("Script Completed Successfully.")
 
 
