@@ -125,20 +125,16 @@ Once your origin  feature classes are prepared, run the *Determine Percent Acces
 * **Input Feature Class**: This is the input Time Lapse Polygon output. Runtime is proportionate to the number of isochrones and facilities. 
 * **Output Feature Class **: This is the output collapsed time lapse isochrones created by the tool. For each ToBreak, a count of the number of time periods an isochrone accessed a specific location and a percentage of the total number of time periods an isochrone accessed a specific location will be added. 
 * **Cell Size**: This tool depends on converting input polygons for each facility into a raster and then into a polygon. The cell size determines the size and precision of the output polygons. The cell size has a heavy influence on processing time required. It defaults to 100 units of the current projection. 
-* **Facility ID**: This is the facility ID that associated with your Isochrones.
-* **Name Field**:  This field is the Name field that is inherited from the feature class. This field will only be retained for the FIRST ToBreak isochrone encountered. 
-* **To Break Field**: This is the ToBreak field from the Time Lapse Polygons tools. Each break is summarized separately in the output feature class.
-* **Time Stamp Field**: This is the date field from the Time Lapse Polygons tool. The percentage of time periods where an isochrone accesses a specific location is based on the unique number of time stamps in this field. 
 * **Match Option**: This is the match option that determines how Time Lapse Polygons are associated with the cell polygons used to accumulate isochrone counts. The default is HAVE_THEIR_CENTER_IN because it should typically associate cells that have the majority of the cell covered by an isochrone. You can use INTERSECT if you want a more liberal estimation of access or are using a large cell size. 
-* **Target Percentage**: This optional parameter is a short cut provided to get a single output polygon by filtering out and dissolving to only polygons that meet the target percentage coverage rate or better. If multiple breaks are in the input file, the resulting polygon will appear for any break that meets or exceeds the target coverage rate. If this oprtional parameter is used, the count of time periods or the percentage coverage percentage fields will not appear in the output. 
+* **Target Percentage**: This optional parameter is a short cut provided to get a single output polygon by filtering out and dissolving to only polygons that meet the target percentage coverage rate or better. If multiple breaks are in the input file, the resulting polygon will appear for any break that meets or exceeds the target coverage rate. If this optional parameter is used, the count of time periods or the percentage coverage percentage fields will not appear in the output. 
 
 #### Outputs
 The output polygon from this analysis is a cell based accumulation of each facilities Time Lapse Polygons with fields denoting the percentage of time periods where an area is covered by transit isochrones. The fields of the output feature class will be in the form of:
 
 * FacilityID: This is the same facility ID as the input Time Lapsed Polygons. 
-* Name: This is the "FIRST" Name field value encountered as part of a final Dissolve.
+* FIRSTName: This is the "FIRST" Name field value encountered as part of a final Dissolve. This is useful if you want to maintain a human readable name from a source file in this isochrone output. 
 * SUMTP{ToBreakNumber}_{Field Number}:  This is the count of the number of time periods with isochrones covering an area. Field name might vary for shapefile format. 
-* PctC{ToBreakNumber}_{Field Number}:  This is the percentage of times time periods with isochrones covering an area. If you want the "50th Percentile" isochrone, you can select all polygons greater than 0.50. The option also exists to get the target percent polygon threshold. Field name might vary for shapefile format.  
+* PrpC{ToBreakNumber}_{Field Number}:  This is the proportion of times a transit isochrones of a specific time period cover an area. If you want the "50th Percentile" isochrone, you can select all polygons greater than 0.50. The option also exists to get the target percent polygon threshold. Field name might vary for shapefile format.  
 
 
 #### Tool performance

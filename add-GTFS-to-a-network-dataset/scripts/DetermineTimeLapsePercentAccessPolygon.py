@@ -2,7 +2,7 @@
 ## Toolbox: Determine Time Lapse Polygon Percent Access Polygon / Transit Analysis Tools
 ## Tool name: Determine Time Lapse Polygon Percent Access Polygon
 ## Created by: David Wasserman, Fehr & Peers, d.wasserman@fehrandpeers.com
-## Last updated: 18 May 2019
+## Last updated: 8 June 2019
 ################################################################################
 ''''''
 ################################################################################
@@ -90,8 +90,8 @@ def generate_statistical_fieldmap(target_features, join_features, prepended_name
 
 
 def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field="FacilityID", name_field="Name",
-                                    tobreak_field="ToBreak",
-                                    time_field="TimeOfDay", match_option="HAVE_THEIR_CENTER_IN", target_percent=None):
+                                    tobreak_field="ToBreak", time_field="TimeOfDay",
+                                    match_option="HAVE_THEIR_CENTER_IN", target_percent=None):
     """This script/notebook aims transform a TimeLapsedPolygon into a percentage of access coverage polygon where
     each polygon represents the percentage of time transit can access a specific location.
     Params:
@@ -100,6 +100,9 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
     facility_field: the facilityID of the chosen TimeLapsePolygons.
     time_field: the datetime field of the chosen TimeLapsePolygons.
     to_break_field: the To Break field of the chosen TimeLapsePolygons.
+    match_option: the spatial match option between raster cells time lapse isochrones.
+    target_percent: if not none, this parameter will enable the creation of single output
+    per break based.
     """
     arcpy.env.overwriteOutput = True
     workspace = "in_memory"
@@ -113,7 +116,6 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
                        "coordinated system.")
         import sys
         sys.exit()
-
     unique_values = sorted(set([row[0] for row in arcpy.da.SearchCursor(in_path, [facility_field])]))
     unique_times = sorted(set([row[0] for row in arcpy.da.SearchCursor(in_path, [time_field])]))
     unique_breaks = sorted(set([row[0] for row in arcpy.da.SearchCursor(in_path, [tobreak_field])]))
@@ -149,10 +151,11 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
             raw_iso_fields.append(isochrone_count)
         except Exception as e:
             arcpy.AddError("Could not add isochrone break fields. \n "
-                             "Error was: {0}".format(str(e.args[0])))
+                           "Error was: {0}".format(str(e.args[0])))
     sum_fields = ["SUM" + str(fieldname) for fieldname in raw_iso_fields]
     first_fields = ["FIRST" + str(fieldname) for fieldname in facility_fields]
     out_name_field = "FIRST{0}".format(name_field)
+    target_percent_field = "Threshold"
     # Define Output Paths
     temp_selection = os.path.join(workspace, "TempSelect")
     pre_temp_raster = os.path.join(workspace, "PreTempRaster")
@@ -164,7 +167,7 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
     # Establish counters
     counter = 0
     arcpy.AddMessage("Processing isochrones...")
-    percent_ranges = list(range(0, 101, 10))
+    percent_ranges = list(range(0, 100, max([10, int(100 / len(unique_values))])))
     for value in unique_values:
         try:
             query = construct_sql_equality_query(facility_field, value, workspace)
@@ -202,14 +205,15 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
         except Exception as e:
             arcpy.AddWarning("Could not process facility number {0}...\n"
                              "Error was: {1}".format(value, str(e.args[0])))
-    arcpy.AddMessage("Facility processing complete.")
+    arcpy.AddMessage("Processed 100% of facilities...\n"
+                     "Facility processing complete.")
     time_perod_coverage_fields = []
     data_source = arcpy.Describe(outfile).catalogPath
     for idx, brk in enumerate(unique_breaks):
         try:
             break_text = "P" + str(int(brk * 100))[:break_lim] if brk < 1 \
                 else str(int(brk))[:break_lim]  # 3 char in .shp
-            TPCoverage = arcpy.ValidateFieldName("PctC{0}_{1}".format(break_text, idx), data_source)
+            TPCoverage = arcpy.ValidateFieldName("PrpC{0}_{1}".format(break_text, idx), data_source)
             arcpy.AddMessage("Computing percentage coverage for field {0}...".format(TPCoverage))
             # try:
             arcpy.AddField_management(outfile, TPCoverage, "DOUBLE")
@@ -220,7 +224,7 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
             time_perod_coverage_fields.append(TPCoverage)
         except Exception as e:
             arcpy.AddError("Could not calculate percentage of time periods covered.\n "
-                             "Error was: {0}".format(str(e.args[0])))
+                           "Error was: {0}".format(str(e.args[0])))
     if target_percent > 0 and target_percent <= 1:
         arcpy.AddMessage("A target coverage percentage of {0} has been selected."
                          " Processing final isochrones...".format(target_percent))
@@ -230,18 +234,24 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
                    for field in time_perod_coverage_fields]
         counter = 0
         break_field = "Break_ID"
-        for break_id,query in zip(time_perod_coverage_fields,queries):
-            arcpy.Select_analysis(outfile, temp_select_per, query)
-            arcpy.AddField_management(temp_select_per,break_field,"TEXT")
-            arcpy.CalculateField_management(temp_select_per,break_field,'"{0}"'.format(break_id),
+        arcpy.CopyFeatures_management(outfile, temp_polygon)
+        for break_id, query in zip(time_perod_coverage_fields, queries):
+            arcpy.AddMessage("Processing query: {0}".format(query))
+            arcpy.Select_analysis(temp_polygon, temp_select_per, query)
+            arcpy.AddField_management(temp_select_per, break_field, "TEXT")
+            arcpy.CalculateField_management(temp_select_per, break_field, '"{0}"'.format(break_id),
                                             expression_type="PYTHON_9.3")
+            arcpy.AddField_management(temp_select_per, target_percent_field, "DOUBLE")
+            arcpy.CalculateField_management(temp_select_per, target_percent_field, 'float({0})'.format(target_percent))
             arcpy.Dissolve_management(temp_select_per, temp_final_dis,
-                                      dissolve_field=[facility_field, out_name_field,break_field])
+                                      dissolve_field=[facility_field, out_name_field, break_field,
+                                                      target_percent_field])
             if counter == 0:
                 arcpy.CopyFeatures_management(temp_final_dis, outfile)
                 # If counter is not 0, append the facilities output to the output feature class.
             else:
                 arcpy.Append_management(temp_final_dis, outfile)
+            counter += 1
     print("Script Completed Successfully.")
 
 
@@ -249,12 +259,12 @@ if __name__ == '__main__':
     filepath = arcpy.GetParameterAsText(0)
     outfile = arcpy.GetParameterAsText(1)
     cell_size = arcpy.GetParameterAsText(2)
-    facility_id = arcpy.GetParameterAsText(3)
-    name_field = arcpy.GetParameterAsText(4)
-    tobreak_field = arcpy.GetParameterAsText(5)
-    time_period_field = arcpy.GetParameterAsText(6)
-    match_option = arcpy.GetParameterAsText(7)
-    target_percent = arcpy.GetParameter(8)
+    match_option = arcpy.GetParameterAsText(3)
+    target_percent = arcpy.GetParameter(4)
+    facility_id = "FacilityID"
+    name_field = "Name"
+    tobreak_field = "ToBreak"
+    time_period_field = "TimeOfDay"
     get_percentage_access_isochrone(filepath, outfile, cell_size, facility_field=facility_id, name_field=name_field,
                                     tobreak_field=tobreak_field, time_field=time_period_field,
                                     match_option=match_option,
