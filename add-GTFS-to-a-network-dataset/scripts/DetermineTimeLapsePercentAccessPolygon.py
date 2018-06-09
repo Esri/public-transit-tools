@@ -88,6 +88,47 @@ def generate_statistical_fieldmap(target_features, join_features, prepended_name
             field_mappings.addFieldMap(new_field_map)
     return field_mappings
 
+def generate_coverage_threshold_polygons(source_percentage_polygon,time_period_coverage_fields,target_percent,
+                                         facility_field, out_name_field, workspace="in_memory"):
+    """This function replaces the source_percentage polygon with polygons that meet a percent threshold of coverage.
+    Params:
+    source_percentage_polygon: this is a polygon that is used to get discrete coverage percentages
+    time_period_coverage_fields: these are the fields that denote percent coverages per break
+    target_percent: the target coverage percent threshold. If it is .5 for example, the polygons where 50% of
+    time periods can reach an area are the output polygon
+    facility_field: fields to dissolve and keep in output
+    out_name_field: fields to dissolve and keep in output
+    workspace: output workspace, defaults to in_memory for temporary features"""
+    arcpy.AddMessage("A target coverage percentage of {0} has been selected."
+                         " Processing final isochrones...".format(target_percent))
+    temp_polygon = os.path.join(workspace, "TempPolygon")
+    temp_final_dis = os.path.join(workspace, "TempDissFin")
+    temp_select_per = os.path.join(workspace, "TempPerSelect")
+    target_percent_field = "Threshold"
+    catalog_path = arcpy.Describe(source_percentage_polygon).catalogPath
+    queries = [construct_sql_equality_query(field, target_percent, catalog_path, ">=")
+               for field in time_period_coverage_fields]
+    counter = 0
+    break_field = "Break_ID"
+    arcpy.CopyFeatures_management(source_percentage_polygon, temp_polygon)
+    for break_id, query in zip(time_period_coverage_fields, queries):
+        arcpy.AddMessage("Processing query: {0}".format(query))
+        arcpy.Select_analysis(temp_polygon, temp_select_per, query)
+        arcpy.AddField_management(temp_select_per, break_field, "TEXT")
+        arcpy.CalculateField_management(temp_select_per, break_field, '"{0}"'.format(break_id),
+                                        expression_type="PYTHON_9.3")
+        arcpy.AddField_management(temp_select_per, target_percent_field, "DOUBLE")
+        arcpy.CalculateField_management(temp_select_per, target_percent_field, 'float({0})'.format(target_percent))
+        arcpy.Dissolve_management(temp_select_per, temp_final_dis,
+                                  dissolve_field=[facility_field, out_name_field, break_field,
+                                                  target_percent_field])
+        if counter == 0:
+            arcpy.CopyFeatures_management(temp_final_dis, outfile)
+            # If counter is not 0, append the facilities output to the output feature class.
+        else:
+            arcpy.Append_management(temp_final_dis, outfile)
+        counter += 1
+
 
 def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field="FacilityID", name_field="Name",
                                     tobreak_field="ToBreak", time_field="TimeOfDay",
@@ -155,7 +196,6 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
     sum_fields = ["SUM" + str(fieldname) for fieldname in raw_iso_fields]
     first_fields = ["FIRST" + str(fieldname) for fieldname in facility_fields]
     out_name_field = "FIRST{0}".format(name_field)
-    target_percent_field = "Threshold"
     # Define Output Paths
     temp_selection = os.path.join(workspace, "TempSelect")
     pre_temp_raster = os.path.join(workspace, "PreTempRaster")
@@ -164,6 +204,7 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
     temp_polygon = os.path.join(workspace, "TempPolygon")
     temp_join = os.path.join(workspace, "TempJoin")
     temp_final_dis = os.path.join(workspace, "TempDissFin")
+    temp_select_per = os.path.join(workspace, "TempPerSelect")
     # Establish counters
     counter = 0
     arcpy.AddMessage("Processing isochrones...")
@@ -207,7 +248,7 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
                              "Error was: {1}".format(value, str(e.args[0])))
     arcpy.AddMessage("Processed 100% of facilities...\n"
                      "Facility processing complete.")
-    time_perod_coverage_fields = []
+    time_period_coverage_fields = []
     data_source = arcpy.Describe(outfile).catalogPath
     for idx, brk in enumerate(unique_breaks):
         try:
@@ -221,37 +262,14 @@ def get_percentage_access_isochrone(in_path, outfile, cell_size, facility_field=
                                             expression="float(!{0}!)/float({1})".format(sum_fields[idx],
                                                                                         time_period_count),
                                             expression_type="PYTHON_9.3")
-            time_perod_coverage_fields.append(TPCoverage)
+            time_period_coverage_fields.append(TPCoverage)
         except Exception as e:
             arcpy.AddError("Could not calculate percentage of time periods covered.\n "
                            "Error was: {0}".format(str(e.args[0])))
     if target_percent > 0 and target_percent <= 1:
-        arcpy.AddMessage("A target coverage percentage of {0} has been selected."
-                         " Processing final isochrones...".format(target_percent))
-        temp_select_per = os.path.join(workspace, "TempPerSelect")
-        catalog_path = arcpy.Describe(outfile).catalogPath
-        queries = [construct_sql_equality_query(field, target_percent, catalog_path, ">=")
-                   for field in time_perod_coverage_fields]
-        counter = 0
-        break_field = "Break_ID"
-        arcpy.CopyFeatures_management(outfile, temp_polygon)
-        for break_id, query in zip(time_perod_coverage_fields, queries):
-            arcpy.AddMessage("Processing query: {0}".format(query))
-            arcpy.Select_analysis(temp_polygon, temp_select_per, query)
-            arcpy.AddField_management(temp_select_per, break_field, "TEXT")
-            arcpy.CalculateField_management(temp_select_per, break_field, '"{0}"'.format(break_id),
-                                            expression_type="PYTHON_9.3")
-            arcpy.AddField_management(temp_select_per, target_percent_field, "DOUBLE")
-            arcpy.CalculateField_management(temp_select_per, target_percent_field, 'float({0})'.format(target_percent))
-            arcpy.Dissolve_management(temp_select_per, temp_final_dis,
-                                      dissolve_field=[facility_field, out_name_field, break_field,
-                                                      target_percent_field])
-            if counter == 0:
-                arcpy.CopyFeatures_management(temp_final_dis, outfile)
-                # If counter is not 0, append the facilities output to the output feature class.
-            else:
-                arcpy.Append_management(temp_final_dis, outfile)
-            counter += 1
+        #Function will generate dissolved polygons where each break meets the target percentage.
+        generate_coverage_threshold_polygons(outfile, time_period_coverage_fields, target_percent,
+                                             facility_field, out_name_field, workspace)
     print("Script Completed Successfully.")
 
 
