@@ -13,7 +13,7 @@ The [Display GTFS Stops](#Stops) tool makes a feature class of stops using infor
 The [Display GTFS Route Shapes](#Shapes) tool converts the information from the GTFS routes.txt and shapes.txt files into an ArcGIS feature class, allowing you to view your transit lines on a map.  The output will contain one line feature for each unique shape in your GTFS data.  The attributes for each line contain all the information about the routes represented by the shape.
 
 ## Software requirements
-- ArcGIS 10.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro.
+- ArcGIS 10.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro. *This toolbox is deprecated in ArcGIS Pro 2.2 and higher.  To convert your GTFS stops and shapes to feature classes in ArcGIS Pro 2.2 and higher, please use the [GTFS Stops To Features](http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-stops-to-features.htm) and [GTFS Shapes To Features](http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-shapes-to-features.htm) tools in the Conversion Tools toolbox.*
 
 ## Data requirements
 - A valid GTFS dataset. To use the Display GTFS Route Shapes tool, your GTFS dataset must include the optional shapes.txt file.
