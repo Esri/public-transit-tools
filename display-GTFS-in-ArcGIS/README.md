@@ -17,7 +17,7 @@ The Display GTFS Stops tool makes a feature class of stops using information fro
 
 ## Requirements
 
-* ArcGIS 10.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro.
+* ArcGIS 10.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro. *This toolbox is deprecated in ArcGIS Pro 2.2 and higher.  To convert your GTFS stops and shapes to feature classes in ArcGIS Pro 2.2 and higher, please use the [GTFS Stops To Features](http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-stops-to-features.htm) and [GTFS Shapes To Features](http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-shapes-to-features.htm) tools in the Conversion Tools toolbox.*
 * A valid GTFS dataset. To use the Display GTFS Route Shapes tool, your GTFS dataset must include the optional shapes.txt file.
 
 ## Resources

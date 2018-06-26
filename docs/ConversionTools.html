@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta content="IE=edge" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, user-scalable=no">
-    <title>GTFS Realtime Connector for GeoEvent | GTFS in ArcGIS</title>
+    <title>GTFS Conversion Tools | GTFS in ArcGIS</title>
     <link rel="shortcut icon" href="/img/favicon.ico">
     <!-- get calcite-web css from the cdn (use latest version) -->
     <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/css/calcite-web.min.css">
@@ -39,20 +39,20 @@
       <select class="phone-show select-full trailer-half js-select-nav">
 <option value="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</option>
 <option value="./BetterBusBuffers.html">BetterBusBuffers</option>
-<option value="./ConversionTools.html">GTFS Conversion Tools</option>
+<option value="./ConversionTools.html" selected>GTFS Conversion Tools</option>
 <option value="./GenerateGTFSShapes.html">Generate GTFS Shapes</option>
 <option value="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</option>
-<option value="./GTFSRTConnector.html" selected>GTFS Realtime Connector for GeoEvent</option>
+<option value="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</option>
 <option value="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</option>
 <option value="./EditGTFSStopLocations.html">Edit GTFS Stop Locations</option>
 </select>
 <nav class="sub-nav-list phone-hide" aria-labelledby="subnav">
 <a class="sub-nav-link" href="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</a>
 <a class="sub-nav-link" href="./BetterBusBuffers.html">BetterBusBuffers</a>
-<a class="sub-nav-link" href="./ConversionTools.html">GTFS Conversion Tools</a>
+<a class="sub-nav-link is-active" href="./ConversionTools.html">GTFS Conversion Tools</a>
 <a class="sub-nav-link" href="./GenerateGTFSShapes.html">Generate GTFS Shapes</a>
 <a class="sub-nav-link" href="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</a>
-<a class="sub-nav-link is-active" href="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</a>
+<a class="sub-nav-link" href="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</a>
 <a class="sub-nav-link" href="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</a>
 <a class="sub-nav-link" href="./EditGTFSStopLocations.html">Edit GTFS Stop Locations</a>
 </nav>
@@ -62,31 +62,28 @@
 
   <!-- side bar with image and links -->
   <div class="column-7">
-    <img src="./images/GTFSRTConnector.png" alt="GTFS Realtime Connector for GeoEvent screenshot">
-    <a href="http://arcg.is/1T8j4X" rel="noopener" target="_blank" class="btn btn-fill leader-half trailer-half">Download</a>
+    <img src="./images/ConversionTools.png" alt="GTFS Conversion Tools screenshot">
     <aside class="side-nav" id="sidenav">
       <nav aria-labelledby="sidenav">
-        <a href="https://github.com/Esri/gtfsrealtime-for-geoevent" rel="noopener" target="_blank" class="side-nav-link">GitHub</a>
+        <a href="http://pro.arcgis.com/en/pro-app/tool-reference/conversion/an-overview-of-the-transit-feed-gtfs-toolset.htm" rel="noopener" target="_blank" class="side-nav-link">Documentation</a>
       </nav>
     </aside>
   </div>
 
-
   <!-- main content -->
   <div class="column-16 pre-1">
 
-    <h2 class="leader-1">GTFS Realtime Connector for GeoEvent</h2>
+    <h2 class="leader-1">GTFS Conversion Tools</h2>
 
-    <p><strong>Use the GTFS Realtime Connector for GeoEvent to view GTFS Realtime trip updates, service alerts, and vehicle positions in a map.</strong></p>
+    <p><strong>Use the GTFS conversion tools in ArcGIS Pro to visualize your GTFS stops and route shapes in a map and update your GTFS stops.txt file.</strong></p>
 
-    <p><a href="https://developers.google.com/transit/gtfs-realtime/" rel="noopener" target="_blank">GTFS Realtime</a> is an extension to static GTFS that provides a standard format for the real time status of a transit system, such as the positions of buses and trains, information about delays, and service alerts.  The GTFS Realtime Connector for <a href="http://server.arcgis.com/en/geoevent/" rel="noopener" target="_blank">GeoEvent Server</a> allows you to ingest GTFS Realtime feeds and display them in a map.</p>
+    <p>As of version 2.2, ArcGIS Pro contains tools for working with GTFS data in the <a href="http://pro.arcgis.com/en/pro-app/tool-reference/conversion/an-overview-of-the-transit-feed-gtfs-toolset.htm" target="_blank" rel="noopener">Transit Feed (GTFS)</a> toolset in the Conversion Tools toolbox.</p>
 
-    <p>The GTFS Realtime Connector for GeoEvent Server can poll and process the three feed types listed below:</p>
-    <ul>
-      <li>Trip updates – delays, cancellations, updated routes, etc.</li>
-      <li>Service alerts – stop moved, unforeseen events affecting a station, route, or the entire network, etc.</li>
-      <li>Vehicle positions – information about transit vehicles including location and congestion level.</li>
-    </ul>
+    <p>The <a href="http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-stops-to-features.htm" target="_blank" rel="noopener">GTFS Stops To Features</a> tool converts a GTFS stops.txt file to a feature class of points you can view in the map.  The <a href="http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-shapes-to-features.htm" target="_blank" rel="noopener">GTFS Shapes To Features</a> tool converts a GTFS shapes.txt file to a polyline feature class showing the physical paths taken by vehicles in the public transit system.</p>
+    
+    <p>The <a href="http://pro.arcgis.com/en/pro-app/tool-reference/conversion/features-to-gtfs-stops.htm" target="_blank" rel="noopener">Features To GTFS Stops</a> tool converts a point feature class into a GTFS stops.txt file.  You can use this tool in combination with the GTFS Stops To Features tool to edit and update your GTFS stops.txt file.</p>
+    
+    <p><i>If you need this functionality in ArcMap or older versions of ArcGIS Pro, download the <a href="./DisplayGTFSinArcGIS.html" target="_blank" rel="noopener">Display GTFS in ArcGIS</a> toolbox and/or the <a href="./EditGTFSStopLocations.html" target="_blank" rel="noopener">Edit GTFS Stop Locations</a> toolbox.</p></i>
 
   </div>
 

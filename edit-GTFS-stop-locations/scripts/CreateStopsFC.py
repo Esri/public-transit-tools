@@ -2,13 +2,13 @@
 ## Toolbox: Edit GTFS Stop Locations
 ## Tool name: 1) Create Stops Feature Class
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 14 December 2017
+## Last updated: 26 June 2018
 ################################################################################
 ''' This tool generates feature classes of transit stops from the GTFS stop.txt
 file. The user can modify the stop locations and generate an updated stops.txt
 file in Step 2 of this toolbox.'''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2018 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -36,6 +36,10 @@ try:
     if ArcVersion == "10.0":
         arcpy.AddError("Sorry, this tool requires ArcGIS 10.1 or higher.")
         raise CustomError
+    if ProductName == "ArcGISPro" and ArcVersion >= "2.2":
+        # >= seems to work adequately based on alphabetic comparisons of version numbers
+        arcpy.AddWarning("This tool is deprecated in ArcGIS Pro 2.2 and higher. Please use the GTFS Stops To \
+Features tool in the Conversion Tools toolbox instead.")
 
     orig_overwrite = arcpy.env.overwriteOutput
     arcpy.env.overwriteOutput = True

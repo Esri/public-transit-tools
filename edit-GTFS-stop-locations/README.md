@@ -13,7 +13,7 @@ The Edit GTFS Stop Locations toolbox is a set of python script tools that allow 
 
 ## Requirements
 
-* ArcMap 10.1 or higher or ArcGIS Pro
+* ArcMap 10.1 or higher or ArcGIS Pro. *This tool is deprecated in ArcGIS Pro 2.2 and higher.  To edit your GTFS stop locations in ArcGIS Pro 2.2 and higher, please use the [GTFS Stops To Features](http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-stops-to-features.htm) and [Features To GTFS Stops](http://pro.arcgis.com/en/pro-app/tool-reference/conversion/features-to-gtfs-stops.htm) tools in the Conversion Tools toolbox.*
 * GTFS stops.txt file you wish to edit
 
 ## Resources

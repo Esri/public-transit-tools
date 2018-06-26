@@ -9,7 +9,7 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 The Edit GTFS Stop Locations toolbox allows you to edit your GTFS stop locations in ArcMap.  It creates a feature class from your current GTFS stops.txt file so you can edit the stop locations and/or attributes using the ArcMap editing tools.  When you have finished editing your stops, the tool will generate a new GTFS stops.txt file that incorporates your changes.
 
 ## Software requirements
-- ArcMap 10.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro.
+- ArcMap 10.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro. *This tool is deprecated in ArcGIS Pro 2.2 and higher.  To edit your GTFS stop locations in ArcGIS Pro 2.2 and higher, please use the [GTFS Stops To Features](http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-stops-to-features.htm) and [Features To GTFS Stops](http://pro.arcgis.com/en/pro-app/tool-reference/conversion/features-to-gtfs-stops.htm) tools in the Conversion Tools toolbox.*
 
 ## Data requirements
 - To run this tool, all you need is a GTFS stops.txt file.
