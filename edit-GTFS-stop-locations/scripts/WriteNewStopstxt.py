@@ -2,13 +2,13 @@
 ## Toolbox: Edit GTFS Stop Locations
 ## Tool name: 2) Write New stops.txt
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 14 December 2017
+## Last updated: 26 June 2018
 ################################################################################
 '''Using the feature class created in Step 1 and edited by the user, this tool
 generates a new stops.txt GTFS file with the lat/lon values updated to the
 edited stop locations.'''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2018 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -36,6 +36,10 @@ try:
     if ArcVersion == "10.0":
         arcpy.AddError("Sorry, this tool requires ArcGIS 10.1 or higher.")
         raise CustomError
+    if ProductName == "ArcGISPro" and ArcVersion >= "2.2":
+        # >= seems to work adequately based on alphabetic comparisons of version numbers
+        arcpy.AddWarning("This tool is deprecated in ArcGIS Pro 2.2 and higher. Please use the Features To \
+GTFS Stops tool in the Conversion Tools toolbox instead.")
 
     # GTFS stop lat/lon are written in WGS1984 coordinates
     WGSCoords = "GEOGCS['GCS_WGS_1984',DATUM['D_WGS_1984', \

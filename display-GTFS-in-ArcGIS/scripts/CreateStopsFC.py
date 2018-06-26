@@ -2,7 +2,7 @@
 ## Toolbox: Display GTFS in ArcGIS
 ## Tool name: Display GTFS Stops
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 12 March 2018
+## Last updated: 26 June 2018
 ################################################################################
 ''' This tool generates feature classes of transit stops from the GTFS stop.txt
 file for display and analysis in ArcGIS for Desktop.'''
@@ -35,6 +35,10 @@ try:
     if ArcVersion == "10.0":
         arcpy.AddError("Sorry, this tool requires ArcGIS 10.1 or higher.")
         raise CustomError
+    if ProductName == "ArcGISPro" and ArcVersion >= "2.2":
+        # >= seems to work adequately based on alphabetic comparisons of version numbers
+        arcpy.AddWarning("This tool is deprecated in ArcGIS Pro 2.2 and higher. Please use the GTFS Stops To \
+Features tool in the Conversion Tools toolbox instead.")
 
     orig_overwrite = arcpy.env.overwriteOutput
     arcpy.env.overwriteOutput = True

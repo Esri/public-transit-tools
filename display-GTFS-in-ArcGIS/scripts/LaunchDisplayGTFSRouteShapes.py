@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Display GTFS in ArcGIS
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 1 April 2017
+## Last updated: 26 June 2018
 ############################################################################
 ''' Display GTFS Route Shapes launcher
 Display GTFS Route Shapes converts GTFS route and shape data into an ArcGIS
@@ -9,7 +9,7 @@ feature class so you can visualize your GTFS routes on a map.
 This script launches the correct code depending on the user's ArcGIS verison.
 '''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2018 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -37,6 +37,9 @@ try:
         arcpy.AddError("Sorry, this tool requires ArcGIS 10.1 or higher.")
     
     if ProductName == "ArcGISPro":
+        if ArcVersion >= "2.2": # >= seems to work adequately based on alphabetic comparisons of version numbers
+            arcpy.AddWarning("This tool is deprecated in ArcGIS Pro 2.2 and higher. Please use the GTFS Shapes To \
+Features tool in the Conversion Tools toolbox instead.")
         import DisplayGTFSRouteShapes as disp    
     else:
         if ArcVersion in ["10.1", "10.2", "10.2.1", "10.2.2", "10.3", "10.3.1"]:
