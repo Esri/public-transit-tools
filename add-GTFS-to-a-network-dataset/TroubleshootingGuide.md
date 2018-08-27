@@ -6,7 +6,7 @@ Copyright 2018 Esri
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 
-## Common problems
+## Common problems and questions
 This document describes some common problems encountered by users of *Add GTFS to a Network Dataset*, and how to solve them.
 
 + Registering / installing the tools
@@ -25,6 +25,8 @@ This document describes some common problems encountered by users of *Add GTFS t
   - [During schedule caching, I got an error that said "All EIDs were null in the transit schedule table. Please run Get Network EIDs."](#noEIDs)
   - [My analysis never uses the transit lines. It only uses the streets.](#NoTransitLines)
   - [My Service Areas have ugly spikes around the transit lines](#Exclude)
+  - [How can I generate directions with transit?](#Directions)
+  - [How can I find out which transit lines were used in my Route or Closest Facility analysis?](#CopyTraversed)
   - [I got a Memory Error, or ArcMap hung or crashed](#Memory)
 + Other
   - [I upgraded ArcMap to a new version, and now Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx are no longer in ArcToolbox](#ArcMapUpgrade)
@@ -179,6 +181,12 @@ If you are solving a Service Area analysis, you need to prevent service areas fr
 
 ![Screenshot of tool dialog](./images/Screenshot_AnalysisSettings_ExcludedSources.png)
 
+
+## <a name="Directions"></a>How can I generate directions with transit?
+Unfortunately, ArcMap's directions engine does not support directions with public transit. If you attempt to generate directions using a Route or Closest Facility, you will not see directions that make sense for public transit.  Your only option would be to post-process your results using the [Copy Traversed Source Features (with Transit)](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md#CopyTraversed) tool and generate your own directions using the output from that tool, which would be a significant effort.
+
+## <a name="CopyTraversed"></a>How can I find out which transit lines were used in my Route or Closest Facility analysis?
+When you solve a Route or Closest Facility analysis, the resulting routes are given as a single line feature with attributes that describe the entire journey.  If you would like to find out which individual transit stops and lines were used in this journey, you can use the [Copy Traversed Source Features (with Transit)](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md#CopyTraversed) tool in the Transit Analysis Tools toolbox that is included in the Add GTFS to a Network Dataset download.
 
 ## <a name="Memory"></a>I got a Memory Error, or ArcMap hung or crashed
 ArcMap is a 32-bit application, which means that even if you have a powerful computer with lots of memory, ArcMap cannot make use of all those resources.  Memory errors (or hanging or crashing) are not uncommon when solving large network analysis problems.
