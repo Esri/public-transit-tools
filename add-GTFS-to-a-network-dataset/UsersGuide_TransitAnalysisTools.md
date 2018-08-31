@@ -1,6 +1,9 @@
 # Transit Analysis Tools User's Guide
 
-Created by Melinda Morang, Esri  
+Created by Melinda Morang, Esri
+
+Contributors:
+David Wasserman, Fehr & Peers  
 
 Copyright 2018 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
@@ -91,6 +94,51 @@ OD Cost Matrices with many origins and destinations may take a long time to solv
 
 Note that when this tool runs, if the input OD Cost Matrix layer and the network it references are in the map, these layers might re-draw over and over again, which impacts tool performance.  Before running the tool, turn off the layers in the map to prevent the re-draw behavior.
 
+
+## <a name="PercentAccessPolygons"></a>Determine Percent Access Polygons
+We often want to analyze "accessibility" in a city, how much access people or places have to certain types of facilities or opportunities.  For example, we might want to know how many jobs people in different neighborhoods of a city have access to within a reasonable commute time.  The *Determine Percent Access Polygons* tool can help you generate isochrone polygons that can be used to derive "typical access polygons".  Given a set o of Time Lapse Polygons outputs, this tool counts the number and percentage of coverage polygons reachable from each origin by transit and walking within a travel time breaks of the chosen Time Lapse Polygons. These polygons give you the ability to collapse Time Lapse Polygons into more robust metrics of transit mobility & access. 
+
+The results of analyses performed using your GTFS-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis.  An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM.  A given origin might have access to a given destination at 8:00 AM but not at 8:01 AM if, by starting at 8:01 AM, the traveler has just missed the bus. 
+
+The *Determine Percent Access Polygons* tool attempts to account for the dynamic nature of transit schedules by solving an by collapsing the results of a Time Lapse Polygon analysis for multiple times of day and summarizing the results in terms of the percentage of polygons that cover an area. More details about the tools outputs are below. 
+
+Running this tool involves three steps:
+
+1. Prepare your Origin Data 
+2. Prepare your Time Lapse Polygons for the time periods of interest 
+3. Run the *Determine Percent Access Polygons* tool
+
+### 1. Prepare your Origin data
+
+Your origins must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the [Feature to Point](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/feature-to-point.htm) tool to do this.
+
+### 2. Prepare Time Lapse Polygons for the time periods of interest
+
+Use the Prepare Time Lapse Polygons tool on a service area layer associated with the target GTFS network. 
+
+### 3. Run the *Determine Percent Access Polygons* tool
+Once your origin  feature classes are prepared, run the *Determine Percent Access Polygons* tool to generate collapsed isochrones that can be used to inform potential accessibility measures.
+
+![Screenshot of tool dialog](./images/Screenshot_DeterminePercentAccessPolygons*.png)
+
+#### Inputs
+* **Input Feature Class**: This is the input Time Lapse Polygon output. Runtime is proportionate to the number of isochrones and facilities. 
+* **Output Coverage Polygons**: This is the output collapsed time lapse isochrones created by the tool. For each ToBreak, a count of the number of time periods an isochrone accessed a specific location and a percentage of the total number of time periods an isochrone accessed a specific location will be added. If a target percentage is specified, only polygons that meet or exeed the target percentage coverage threshold are created as an output. 
+* **Cell Size**: This tool depends on converting input polygons for each facility into a raster and then into a polygon. The cell size determines the size and precision of the output polygons. The cell size has a heavy influence on processing time required. It defaults to 100 units of the current projection. 
+* **Match Option**: This is the match option that determines how Time Lapse Polygons are associated with the cell polygons used to accumulate isochrone counts. The default is HAVE_THEIR_CENTER_IN because it should typically associate cells that have the majority of the cell covered by an isochrone. You can use INTERSECT if you want a more liberal estimation of access or are using a large cell size. 
+* **Target Percentage**: This optional parameter is a short cut provided to get a single output polygon by filtering out and dissolving to only polygons that meet the target percentage coverage rate or better. If multiple breaks are in the input file, the resulting polygon will appear for any break that meets or exceeds the target coverage rate. If this optional parameter is used, the count of time periods or the percentage coverage percentage fields will not appear in the output. 
+
+#### Outputs
+The output polygon from this analysis is a cell based accumulation of each facilities Time Lapse Polygons with fields denoting the percentage of time periods where an area is covered by transit isochrones. The fields of the output feature class will be in the form of:
+
+* FacilityID: This is the same facility ID as the input Time Lapsed Polygons. 
+* FIRSTName: This is the "FIRST" Name field value encountered as part of a final Dissolve. This is useful if you want to maintain a human readable name from a source file in this isochrone output. 
+* SUMTP{ToBreakNumber}_{Field Number}:  This is the count of the number of time periods with isochrones covering an area. Field name might vary for shapefile format. 
+* PrpC{ToBreakNumber}_{Field Number}:  This is the proportion of times a transit isochrones of a specific time period cover an area. If you want the "50th Percentile" isochrone, you can select all polygons greater than 0.50. The option also exists to get the target percent polygon threshold. Field name might vary for shapefile format.  
+
+
+#### Tool performance
+This tool operates on a per facility basis, and conducts a series of geometric operations for each of the generated isochrones. The run time of the tool is proportional to the number of cell size of aggregation geometries, unique time periods, facilities, and the geometric complexity of chosen isochrone (number of breaks). The operations are run in memory for each facility and then appended to a master file. 
 
 
 ## <a name="CopyTraversed"></a>Copy Traversed Source Features (with Transit)
