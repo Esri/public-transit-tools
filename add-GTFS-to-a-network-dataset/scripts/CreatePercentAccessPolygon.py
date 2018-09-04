@@ -1,8 +1,9 @@
 ################################################################################
-## Toolbox: Determine Time Lapse Polygon Percent Access Polygon / Transit Analysis Tools
-## Tool name: Determine Time Lapse Polygon Percent Access Polygon
+## Toolbox: Transit Analysis Tools
+## Tool name: Create Percent Access Polygons
 ## Created by: David Wasserman, Fehr & Peers, d.wasserman@fehrandpeers.com
-## Last updated: 3 September 2018
+##        and: Melinda Morang, Esri
+## Last updated: 4 September 2018
 ################################################################################
 ''''''
 ################################################################################
@@ -52,7 +53,7 @@ def create_polygon_raster_template(in_polys, outgdb, cell_size):
     # Convert the full time lapse dataset into a temporary raster. The cell values are irrelvant.
     poly_oid = arcpy.Describe(in_polys).OIDFieldName
     temp_raster = os.path.join(outgdb, "Temp_" + guid + "_InitialRaster")
-    arcpy.conversion.PolygonToRaster(in_polys, poly_oid, temp_raster, cellsize=cell_size)
+    arcpy.conversion.FeatureToRaster(in_polys, poly_oid, temp_raster, cell_size=cell_size)
 
     # Create a temporary point dataset with one point for the centroid of every raster cell
     # The value of the points is irrelevant. We just need their geometry and an OID.
@@ -63,14 +64,17 @@ def create_polygon_raster_template(in_polys, outgdb, cell_size):
     # equal to the value of the OID of the point it was created from.  This way, each cell has a unique value.
     pt_oid = arcpy.Describe(temp_points).OIDFieldName
     temp_raster2 = os.path.join(outgdb, "Temp_" + guid + "_ProcessedRaster")
-    arcpy.conversion.PointToRaster(temp_points, pt_oid, temp_raster2, cellsize=cell_size)
+    arcpy.conversion.FeatureToRaster(temp_points, pt_oid, temp_raster2, cell_size=cell_size)
 
     # Convert this raster to polygons.  The result contains one square polygon per raster cell and can be used for
     # calculating spatial joins with the original time lapse polygon dataset.
     poly_raster_template_fc = os.path.join(outgdb, "Temp_" + guid + "_PolyRasterTemplate")
     arcpy.conversion.RasterToPolygon(temp_raster2, poly_raster_template_fc, simplify=False)
 
-    # TODO: add clean-up for temporary outputs
+    # Clean up intermediate outputs
+    clean_up = [temp_raster, temp_points, temp_raster2]
+    for temp_output in clean_up:
+        arcpy.management.Delete(temp_output)
 
     return poly_raster_template_fc
 
@@ -155,8 +159,7 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
             out_Dissolve = out_fc
         else:
             out_Dissolve = os.path.join(os.path.dirname(out_fc), "Temp_" + guid + "_Dissolve")
-        statistics_fields = [[field, "First"] for field in fields_to_preserve]
-        arcpy.management.Dissolve(percent_layer, out_Dissolve, statistics_fields=statistics_fields)
+        arcpy.management.Dissolve(percent_layer, out_Dissolve, fields_to_preserve)
 
         percent_field = "Percent"
         arcpy.management.AddField(out_Dissolve, percent_field, "DOUBLE")
@@ -168,8 +171,6 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
             arcpy.management.Delete(out_Dissolve)
         first = False
 
-        # TODO Clean up unneeded fields
-
 
 def main():
 
@@ -179,17 +180,13 @@ def main():
     # The feature class must be in a projected coordinate system, but this is checked in tool validation
     in_time_lapse_polys = arcpy.GetParameterAsText(0)
     # Outputs will be in the selected gdb and will be prepended by the name specified by the user
+    # Must be a file geodatabase. Checked in tool validation.
     outgdb = arcpy.GetParameterAsText(1)
     out_name_prefix = arcpy.GetParameterAsText(2)
     # Raster cell size for output (length or width of cell, not area)
     cell_size = float(arcpy.GetParameterAsText(3))
-    # List of percent of times accessed to sumarize in results
+    # List of percent of times accessed to summarize in results
     percents = arcpy.GetParameter(5)
-    #####
-    arcpy.AddMessage(percents)
-    arcpy.AddMessage(type(percents))
-    arcpy.AddMessage(cell_size)
-    arcpy.AddMessage(type(cell_size))
 
     # Hard-coded "options"
     # Field names that must be in the input time lapse polygons
@@ -221,18 +218,25 @@ def main():
     num_time_steps = len(set(unique_times))
 
     # For each set of time lapse polygons, generate the cell-like counts
+    out_cells = []
+    out_pcts = []
     for combo in unique_output_combos:
         facility_id = combo[0]
         from_break = combo[1]
         to_break = combo[2]
-        arcpy.AddMessage("Processing FacilityID %i, FromBreak %d, ToBreak %d" % (facility_id, from_break, to_break))
+
+        if facility_id is None:
+            msg = "Processing FacilityID <Null>, FromBreak %d, ToBreak %d" % (from_break, to_break)
+        else:
+            msg = "Processing FacilityID %i, FromBreak %d, ToBreak %d" % (facility_id, from_break, to_break)
+        arcpy.AddMessage(msg)
 
         # Select the subset of polygons for this FacilityID/FromBreak/ToBreak combo
         # Note: Don't use a feature layer and Select By Attributes because of a bug with field mapping in Spatial Join
         # in 10.6 which caused field maps to be ignored for layers.
         temp_selected_polys = os.path.join(outgdb, "Temp_" + guid + "_SelectedPolys")
         if facility_id is None:
-            facility_query = arcpy.AddFieldDelimiters(in_time_lapse_polys, facility_id_field) + "IS NULL"
+            facility_query = arcpy.AddFieldDelimiters(in_time_lapse_polys, facility_id_field) + " IS NULL"
         else:
             facility_query = arcpy.AddFieldDelimiters(in_time_lapse_polys, facility_id_field) + " = " + str(facility_id)
         query = facility_query + " AND " + \
@@ -241,7 +245,7 @@ def main():
         arcpy.analysis.Select(in_time_lapse_polys, temp_selected_polys, query)
 
         # Create a name for the raw cell-like output with counts for this FacilityID/FromBreak/ToBreak combo
-        # Example: [user's name prefix]_Cells_FacilityID_1_FromBreak_0_ToBreak_0_5
+        # Example: [user's name prefix]_Cells_FacilityID_1_FromBreak_0_0_ToBreak_0_5
         # If there is a decimal separator in the FromBreak or ToBreak, ValidateFieldName will convert it to "_".
         out_name_suffix = "_FacilityID_" + str(facility_id) + \
                             "_FromBreak_" + str(from_break) + \
@@ -254,7 +258,7 @@ def main():
 
         # Count the number of time lapse polygons that intersect each "cell" in the raster-like polygon template and
         # write out a new feature class to disk that shows the counts
-        arcpy.AddMessage("Creating raw cell count output...")
+        arcpy.AddMessage("- Creating raw cell count output...")
         create_raw_cell_counts_fc(
             temp_selected_polys,
             poly_raster_template_fc,
@@ -262,15 +266,24 @@ def main():
             fmaps,
             match_option,
             num_time_steps)
+        out_cells.append(out_cell_counts_fc)
 
         # Dissolve the cell-like polygons that were accessible >= X% of times
-        arcpy.AddMessage("Creating percent access polygons...")
-        percent_output_name = arcpy.ValidateFieldName(out_name_prefix + "_Percents" + out_name_suffix, outgdb)
-        percent_output_fc = os.path.join(outgdb, percent_output_name)
-        create_percent_access_polys(out_cell_counts_fc, percents, percent_output_fc, fields_to_preserve)
+        if percents:
+            arcpy.AddMessage("- Creating percent access polygons...")
+            percent_output_name = arcpy.ValidateFieldName(out_name_prefix + "_Percents" + out_name_suffix, outgdb)
+            percent_output_fc = os.path.join(outgdb, percent_output_name)
+            create_percent_access_polys(out_cell_counts_fc, percents, percent_output_fc, fields_to_preserve)
+            out_pcts.append(percent_output_fc)
 
-        # TODO: Clean up temporary outputs
-        # TODO: Set output datasets
+    # Clean up intermediate outputs
+    clean_up = [temp_selected_polys, poly_raster_template_fc]
+    for temp_output in clean_up:
+        arcpy.management.Delete(temp_output)
+
+    # Set outputs
+    arcpy.SetParameter(6, out_cells)
+    arcpy.SetParameter(7, out_pcts)
 
 
 if __name__ == '__main__':
