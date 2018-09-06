@@ -105,7 +105,7 @@ try:
             arcpy.AddWarning(msg % str(solverProps.defaultCutoff))
         if solverProps.defaultTargetDestinationCount:
             count = int(solverProps.defaultTargetDestinationCount)
-            msg = "Your OD Cost Matrix layer uses a default target destination count of %i. This means that the " + \
+            msg = "Your OD Cost Matrix layer has the number of destinations to find set to %i. This means that the " + \
                 "travel time for only the %i closest destinations to each origin will be reported in the OD Cost " + \
                 "Matrix output.  Because the travel time between each origin and destination changes throughout " + \
                 "the day, the closest destinations may be different at different times of day, so the statistics " + \
