@@ -97,8 +97,8 @@ def generate_field_map(in_time_lapse_polys, fields_to_preserve):
     return field_mappings
 
 
-def create_raw_cell_counts_fc(selected_time_lapse_polys, in_poly_raster_template, out_fc, fmaps, match_option,
-                              num_time_steps):
+def create_raw_cell_counts_fc(selected_time_lapse_polys, in_poly_raster_template, temp_spatial_join_fc, fmaps, 
+                              match_option):
     '''Do a spatial join in order to count the number of time lapse polygons intersect each "cell" in the raster-like
     polylgon template.  We are effectively applying the template to a specific set of time lapse polygons, doing the
     count, and creating the raw output.  The result is a polygon feature class of raster-like cells with a field called
@@ -107,7 +107,8 @@ def create_raw_cell_counts_fc(selected_time_lapse_polys, in_poly_raster_template
     Params:
     selected_time_lapse_polys: Set (or subset) of time lapse polygons to use
     in_poly_raster_template: The raster-like polygon feature class produced from create_polygon_raster_template()
-    out_fc: Path to output feature class
+    temp_spatial_join_fc: Path to a temporary output FC which we will overwrite each time this method is called and then
+        delete at the end of the tool during clean-up
     fmaps: FieldMappings object indicating which fields to preserve
     match_options: match_options parameter for the Spatial Join tool
     '''
@@ -115,21 +116,31 @@ def create_raw_cell_counts_fc(selected_time_lapse_polys, in_poly_raster_template
     arcpy.analysis.SpatialJoin(
         in_poly_raster_template,
         selected_time_lapse_polys,
-        out_fc,
+        temp_spatial_join_fc,
         "JOIN_ONE_TO_ONE", # Output keeps only one copy of each "cell" when multiple time lapse polys intersect it
         "KEEP_COMMON", # Delete any "cells" that don't overlap the time lapse polys being considered
         field_mapping=fmaps, # Preserve some fields from the original data
         match_option=match_option
         )
 
-    # Housekeeping - We don't need this field for anything.
-    arcpy.management.DeleteField(out_fc, "TARGET_FID")
+
+def dissolve_raw_cell_counts_fc(raw_cell_count_fc, out_fc, fields_to_preserve, num_time_steps):
+    '''Currently, the feature class contains a large number of little square polygons representing raster cells. The
+    Join_Count field added by Spatial Join says how many of the input time lapse polygons overlapped the cell.  We 
+    don't need all the little squares.  We can dissolve them so that we have one polygon per unique value of 
+    Join_Count. Also calculate a field showing the Percent of times each polygon was reached.
+    Params:
+    raw_cell_count_fc: The feature class of raster-like polygons created from create_raw_cell_counts_fc()
+    out_fc: Path to output feature class
+    fields_to_preserve: Informational fields to preserve in the output
+    num_time_steps: Number of time steps used in the overall time lapse polygons
+    '''
+
+    arcpy.management.Dissolve(raw_cell_count_fc, out_fc, fields_to_preserve + ["Join_Count"])
 
     # Add a field converting the raw count to the percent of total times accessed
     percent_field = "Percent"
     arcpy.management.AddField(out_fc, percent_field, "DOUBLE")
-    # The Join_Count field is automatically added when you do a Spatial Join and represents the number of input features
-    # that intersected the output feature
     expression = "float(!Join_Count!) * 100.0 / float(%d)" % num_time_steps
     arcpy.management.CalculateField(out_fc, percent_field, expression, "PYTHON_9.3")
 
@@ -220,6 +231,7 @@ def main():
     # For each set of time lapse polygons, generate the cell-like counts
     out_cells = []
     out_pcts = []
+    temp_spatial_join_fc = os.path.join(outgdb, "Temp_" + guid + "_SpatialJoin")
     for combo in unique_output_combos:
         facility_id = combo[0]
         from_break = combo[1]
@@ -259,13 +271,16 @@ def main():
         # Count the number of time lapse polygons that intersect each "cell" in the raster-like polygon template and
         # write out a new feature class to disk that shows the counts
         arcpy.AddMessage("- Creating raw cell count output...")
+        # Create the raw output
         create_raw_cell_counts_fc(
             temp_selected_polys,
             poly_raster_template_fc,
-            out_cell_counts_fc,
+            temp_spatial_join_fc,
             fmaps,
-            match_option,
-            num_time_steps)
+            match_option
+            )
+        # Dissolve all the little cells that were reached the same number of times to make the output more manageable
+        dissolve_raw_cell_counts_fc(temp_spatial_join_fc, out_cell_counts_fc, fields_to_preserve, num_time_steps)
         out_cells.append(out_cell_counts_fc)
 
         # Dissolve the cell-like polygons that were accessible >= X% of times
@@ -277,7 +292,7 @@ def main():
             out_pcts.append(percent_output_fc)
 
     # Clean up intermediate outputs
-    clean_up = [temp_selected_polys, poly_raster_template_fc]
+    clean_up = [temp_selected_polys, poly_raster_template_fc, temp_spatial_join_fc]
     for temp_output in clean_up:
         arcpy.management.Delete(temp_output)
 
