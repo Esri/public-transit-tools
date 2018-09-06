@@ -152,30 +152,12 @@ The input to the *Create Percent Access Polygons* is a polygon feature class cre
 * **Percentage Thresholds**: You can choose to summarize the tool's raw output for different percentage thresholds.  For example, you can find out what area can be reached at least 75% of start times by setting 75 as one of your percentage thresholds.  More explanation of tool outputs is given below.
 
 ### Outputs
-All output will be created in the file geodatabase you specified in the tool inputs.  There are two types of output feature classes created:
+The tool will create one or two output feature classes in the file geodatabase you specified in the tool inputs.
 
-1. Raw raster-like polygon feature class with "cells" showing the number and percentage of time each area of time was reached.
-2. Percent access polygons showing the area reached at least as often as your designated percentage thresholds. This output is a summarized and dissolved version of the raw raster-like output.
+1. [Output Name Prefix]_Raw: Raw raster-like polygon feature class showing the number and percentage of time each area was reached, intended primarily for visualization.  The individual polygons are dissolved so that all areas reached the same number of times for a unique combination of FacilityID, FromBreak, and ToBreak are combined into one multipart polygon.  Note that if your input time lapse polygons contain multiple facilities or multiple FromBreak and ToBreak combinations, the output may contain multiple overlapping features that may be visually confusing in the map.
+2. [Output Name Prefix]_Percents: If you have specified one or more Percentage Thresholds, this output contains polygons showing the area reached at least as often as your designated percentage thresholds. This output is a summarized and dissolved version of the raw raster-like output.  There will be a separate feature for each percentage threshold for each unique combination of FacilityID, FromBreak, and ToBreak in the input data.
 
-There will be one output feature class of each of the above times for each unique combination of FacilityID, FromBreak, and ToBreak in your input time lapse polygons dataset.  They will be designated with filenames like this:
-
-1. [Prefix]\_Cells\_FacilityID\_[ID]\_FromBreak\_[break]\_ToBreak\_[break]
-2. [Prefix]\_Percents\_FacilityID\_[ID]\_FromBreak\_[break]\_ToBreak\_[break]
-
-Example: Suppose your time lapse polygons contains service areas for two different facilities (IDs 1 and 2) and two different sizes (0-15 minutes and 0-30 minutes).  Suppose you set the Output Name Prefix in the tool to "CinciAccess".  You will have four outputs of each type:
-
-* CinciAccess\_Cells\_FacilityID\_1\_FromBreak\_0\_0\_ToBreak\_15\_0
-* CinciAccess\_Percents\_FacilityID\_1\_FromBreak\_0\_0\_ToBreak\_15\_0
-* CinciAccess\_Cells\_FacilityID\_1\_FromBreak\_0\_0\_ToBreak\_30\_0
-* CinciAccess\_Percents\_FacilityID\_1\_FromBreak\_0\_0\_ToBreak\_30\_0
-* CinciAccess\_Cells\_FacilityID\_2\_FromBreak\_0\_0\_ToBreak\_15\_0
-* CinciAccess\_Percents\_FacilityID\_2\_FromBreak\_0\_0\_ToBreak\_15\_0
-* CinciAccess\_Cells\_FacilityID\_2\_FromBreak\_0\_0\_ToBreak\_30\_0
-* CinciAccess\_Percents\_FacilityID\_2\_FromBreak\_0\_0\_ToBreak\_30\_0
-
-The FromBreak and ToBreak substitute an "_" for the decimal separator because decimals are not allowed in feature class names.  So, in the example above, "0_0" means "0.0", and "15_0" means "15.0".
-
-In output of type 1. (the raw "Cells" output), the "Join_Count" field refers to the raw number of polygons that overlapped this area, or the raw number of times this area was reached during the time window.  The "Percent" field refers to the percentage of total times the area was reached.
+In output of type 1. (the "Raw" output), the "Join_Count" field refers to the raw number of polygons that overlapped this area, or the raw number of times this area was reached during the time window.  The "Percent" field refers to the percentage of total times the area was reached.
 
 In output of type 2. (the "Percents" output), the "Percent" field refers to the threshold.  The polygon represents the area reachable at least that percentage of start times.
 
@@ -185,7 +167,6 @@ In both outputs, the time lapse polygon FacilityID, Name, FromBreak, and ToBreak
 The following conditions will cause longer run times for the tool:
 - Large numbers of unique FacilityID, FromBreak, and ToBreak combinations
 - Smaller cell sizes
-- Larger numbers of percentage thresholds
 - Larger input polygon extents (large area covered)
 
 You may also run into out-of-memory errors, or ArcMap may hang, if you have a very large extent and/or very small cell sizes.  Check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md#Memory) for help with memory errors.  Note that if you use ArcGIS Server or the 64-bit Background Geoprocessing Extension to run this tool only, you do not need to register the transit evaluator with either of these products.
