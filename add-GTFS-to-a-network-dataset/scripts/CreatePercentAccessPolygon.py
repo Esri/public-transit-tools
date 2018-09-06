@@ -3,7 +3,7 @@
 ## Tool name: Create Percent Access Polygons
 ## Created by: David Wasserman, Fehr & Peers, https://github.com/d-wasserman
 ##        and: Melinda Morang, Esri
-## Last updated: 5 September 2018
+## Last updated: 6 September 2018
 ################################################################################
 ''''''
 ################################################################################
@@ -204,7 +204,7 @@ def main():
     percents = arcpy.GetParameter(5)
 
     # Define output feature classes
-    out_cell_counts_fc = os.path.join(outgdb, arcpy.ValidateFieldName(out_name_prefix + "_Cells", outgdb))
+    out_cell_counts_fc = os.path.join(outgdb, arcpy.ValidateFieldName(out_name_prefix + "_Raw", outgdb))
     out_percents_fc = os.path.join(outgdb, arcpy.ValidateFieldName(out_name_prefix + "_Percents", outgdb))
 
     # Hard-coded "options"
@@ -308,7 +308,8 @@ def main():
 
     # Set outputs
     arcpy.SetParameter(6, out_cell_counts_fc)
-    arcpy.SetParameter(7, out_percents_fc)
+    if percents:
+        arcpy.SetParameter(7, out_percents_fc)
 
 
 if __name__ == '__main__':
