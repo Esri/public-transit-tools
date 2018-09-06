@@ -158,6 +158,7 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
     '''
 
     first = True
+    temp_out_dissolve_fc = os.path.join(os.path.dirname(out_fc), "Temp_" + guid + "_Dissolve")
     for percent in sorted(percents):
 
         # Select all the cells where the number of times with access is >= our percent threshold
@@ -169,7 +170,7 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
         if first:
             out_Dissolve = out_fc
         else:
-            out_Dissolve = os.path.join(os.path.dirname(out_fc), "Temp_" + guid + "_Dissolve")
+            out_Dissolve = temp_out_dissolve_fc
         arcpy.management.Dissolve(percent_layer, out_Dissolve, fields_to_preserve)
 
         percent_field = "Percent"
@@ -177,10 +178,13 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
         arcpy.management.CalculateField(out_Dissolve, percent_field, str(percent))
 
         if not first:
-            # If this wasn't the first percent output, append it to the master output fc and delete the temporary stuff
+            # If this wasn't the first percent output, append it to the master output fc
             arcpy.management.Append(out_Dissolve, out_fc, "TEST")
-            arcpy.management.Delete(out_Dissolve)
         first = False
+
+    # Clean up temporary output
+    if arcpy.Exists(temp_out_dissolve_fc):
+        arcpy.management.Delete(temp_out_dissolve_fc)
 
 
 def main():
@@ -198,6 +202,10 @@ def main():
     cell_size = float(arcpy.GetParameterAsText(3))
     # List of percent of times accessed to summarize in results
     percents = arcpy.GetParameter(5)
+
+    # Define output feature classes
+    out_cell_counts_fc = os.path.join(outgdb, arcpy.ValidateFieldName(out_name_prefix + "_Cells", outgdb))
+    out_percents_fc = os.path.join(outgdb, arcpy.ValidateFieldName(out_name_prefix + "_Percents", outgdb))
 
     # Hard-coded "options"
     # Field names that must be in the input time lapse polygons
@@ -229,9 +237,9 @@ def main():
     num_time_steps = len(set(unique_times))
 
     # For each set of time lapse polygons, generate the cell-like counts
-    out_cells = []
-    out_pcts = []
+    first = True
     temp_spatial_join_fc = os.path.join(outgdb, "Temp_" + guid + "_SpatialJoin")
+    temp_raw_dissolve_fc = os.path.join(outgdb, "Temp_" + guid + "_RawDissolve")
     for combo in unique_output_combos:
         facility_id = combo[0]
         from_break = combo[1]
@@ -241,7 +249,7 @@ def main():
             msg = "Processing FacilityID <Null>, FromBreak %d, ToBreak %d" % (from_break, to_break)
         else:
             msg = "Processing FacilityID %i, FromBreak %d, ToBreak %d" % (facility_id, from_break, to_break)
-        arcpy.AddMessage(msg)
+        arcpy.AddMessage(msg + "...")
 
         # Select the subset of polygons for this FacilityID/FromBreak/ToBreak combo
         # Note: Don't use a feature layer and Select By Attributes because of a bug with field mapping in Spatial Join
@@ -256,21 +264,11 @@ def main():
                 arcpy.AddFieldDelimiters(in_time_lapse_polys, tobreak_field) + " = " + str(to_break)
         arcpy.analysis.Select(in_time_lapse_polys, temp_selected_polys, query)
 
-        # Create a name for the raw cell-like output with counts for this FacilityID/FromBreak/ToBreak combo
-        # Example: [user's name prefix]_Cells_FacilityID_1_FromBreak_0_0_ToBreak_0_5
-        # If there is a decimal separator in the FromBreak or ToBreak, ValidateFieldName will convert it to "_".
-        out_name_suffix = "_FacilityID_" + str(facility_id) + \
-                            "_FromBreak_" + str(from_break) + \
-                            "_ToBreak_" + str(to_break)
-        raw_output_name = arcpy.ValidateFieldName(out_name_prefix + "_Cells" + out_name_suffix, outgdb)
-        out_cell_counts_fc = os.path.join(outgdb, raw_output_name)
-
         # Create a FieldMappings object for Spatial Join to preserve informational input fields
         fmaps = generate_field_map(temp_selected_polys, fields_to_preserve)
 
         # Count the number of time lapse polygons that intersect each "cell" in the raster-like polygon template and
         # write out a new feature class to disk that shows the counts
-        arcpy.AddMessage("- Creating raw cell count output...")
         # Create the raw output
         create_raw_cell_counts_fc(
             temp_selected_polys,
@@ -280,25 +278,37 @@ def main():
             match_option
             )
         # Dissolve all the little cells that were reached the same number of times to make the output more manageable
-        dissolve_raw_cell_counts_fc(temp_spatial_join_fc, out_cell_counts_fc, fields_to_preserve, num_time_steps)
-        out_cells.append(out_cell_counts_fc)
+        if first:
+            out_raw_dissolve = out_cell_counts_fc
+        else:
+            out_raw_dissolve = temp_raw_dissolve_fc
+        dissolve_raw_cell_counts_fc(temp_spatial_join_fc, out_raw_dissolve, fields_to_preserve, num_time_steps)
+        if not first:
+            # If this wasn't the first output, append it to the master output fc
+            arcpy.management.Append(out_raw_dissolve, out_cell_counts_fc, "TEST")
 
-        # Dissolve the cell-like polygons that were accessible >= X% of times
-        if percents:
-            arcpy.AddMessage("- Creating percent access polygons...")
-            percent_output_name = arcpy.ValidateFieldName(out_name_prefix + "_Percents" + out_name_suffix, outgdb)
-            percent_output_fc = os.path.join(outgdb, percent_output_name)
-            create_percent_access_polys(out_cell_counts_fc, percents, percent_output_fc, fields_to_preserve)
-            out_pcts.append(percent_output_fc)
+        # Finished with the first loop
+        first = False
+
+    # Dissolve the cell-like polygons that were accessible >= X% of times
+    if percents:
+        arcpy.AddMessage("Creating percent access polygons...")
+        create_percent_access_polys(out_cell_counts_fc, percents, out_percents_fc, fields_to_preserve)        
 
     # Clean up intermediate outputs
-    clean_up = [temp_selected_polys, poly_raster_template_fc, temp_spatial_join_fc]
+    clean_up = [
+        temp_selected_polys,
+        poly_raster_template_fc,
+        temp_spatial_join_fc,
+        temp_raw_dissolve_fc
+        ]
     for temp_output in clean_up:
-        arcpy.management.Delete(temp_output)
+        if arcpy.Exists(temp_output):
+            arcpy.management.Delete(temp_output)
 
     # Set outputs
-    arcpy.SetParameter(6, out_cells)
-    arcpy.SetParameter(7, out_pcts)
+    arcpy.SetParameter(6, out_cell_counts_fc)
+    arcpy.SetParameter(7, out_percents_fc)
 
 
 if __name__ == '__main__':
