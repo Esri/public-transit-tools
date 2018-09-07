@@ -154,14 +154,16 @@ The input to the *Create Percent Access Polygons* is a polygon feature class cre
 ### Outputs
 The tool will create one or two output feature classes in the file geodatabase you specified in the tool inputs.
 
-1. [Output Name Prefix]_Raw: Raw raster-like polygon feature class showing the number and percentage of time each area was reached, intended primarily for visualization.  The individual polygons are dissolved so that all areas reached the same number of times for a unique combination of FacilityID, FromBreak, and ToBreak are combined into one multipart polygon.  Note that if your input time lapse polygons contain multiple facilities or multiple FromBreak and ToBreak combinations, the output may contain multiple overlapping features that may be visually confusing in the map.
+1. [Output Name Prefix]_Raw: Raw raster-like polygon feature class showing the number and percentage of time each area was reached, intended primarily for visualization.  The individual polygons are dissolved so that all areas reached the same number of times for a unique combination of FacilityID, FromBreak, and ToBreak are combined into one multipart polygon.
 2. [Output Name Prefix]_Percents: If you have specified one or more Percentage Thresholds, this output contains polygons showing the area reached at least as often as your designated percentage thresholds. This output is a summarized and dissolved version of the raw raster-like output.  There will be a separate feature for each percentage threshold for each unique combination of FacilityID, FromBreak, and ToBreak in the input data.
 
 In output of type 1. (the "Raw" output), the "Join_Count" field refers to the raw number of polygons that overlapped this area, or the raw number of times this area was reached during the time window.  The "Percent" field refers to the percentage of total times the area was reached.
 
 In output of type 2. (the "Percents" output), the "Percent" field refers to the threshold.  The polygon represents the area reachable at least that percentage of start times.
 
-In both outputs, the time lapse polygon FacilityID, Name, FromBreak, and ToBreak fields are preserved for informational purposes.  
+In both outputs, the time lapse polygon FacilityID, Name, FromBreak, and ToBreak fields are preserved for informational purposes.
+
+Note that if your input time lapse polygons contain multiple facilities or multiple FromBreak and ToBreak combinations, the outputs may contain multiple overlapping features that may be visually confusing in the map.  You can use a [definition query](https://desktop.arcgis.com/en/arcmap/latest/map/working-with-layers/displaying-a-subset-of-features-in-a-layer.htm) to display only a subset of these features at a time.
 
 ### Tool performance
 The following conditions will cause longer run times for the tool:
