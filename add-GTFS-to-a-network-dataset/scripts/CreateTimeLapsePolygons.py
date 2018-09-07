@@ -2,12 +2,12 @@
 ## Toolbox: Add GTFS to a Network Dataset / Transit Analysis Tools
 ## Tool name: Prepare Time Lapse Polygons
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 21 November 2017
+## Last updated: 6 September 2018
 ################################################################################
 '''Run a Service Area analysis incrementing the time of day. Save the polygons 
 to a feature class that can be used to generate a time lapse video.'''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2018 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -71,21 +71,12 @@ try:
     sublayer_names = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
     polygons_subLayer = arcpy.mapping.ListLayers(input_network_analyst_layer, sublayer_names["SAPolygons"])[0]
 
-    time_field = "TimeOfDay"
-
-    # Clean up any pre-existing fields with this name (unlikely case)
-    poly_fields = [f for f in arcpy.Describe(polygons_subLayer).fields if f.name == time_field]
-    if poly_fields:
-        for f in poly_fields:
-            if f.name == time_field and f.type != "Date":
-                arcpy.AddWarning("Your Service Area layer's Polygons sublayer contained a field called TimeOfDay \
-of a type other than Date.  This field will be deleted and replaced with a field of type Date used for the output \
-of this tool.")
-                arcpy.management.DeleteField(polygons_subLayer, time_field)
-
-    # Add the TimeOfDay field to the Polygons sublayer.  If it already exists, this will do nothing.
-    arcpy.na.AddFieldToAnalysisLayer(input_network_analyst_layer, sublayer_names["SAPolygons"], time_field, "DATE")
-
+    # Add the TimeOfDay field
+    time_field = AnalysisHelpers.add_TimeOfDay_field_to_sublayer(
+        input_network_analyst_layer,
+        polygons_subLayer,
+        sublayer_names["SAPolygons"]
+        )
 
     # ----- Solve NA layer in a loop for each time of day -----
 
@@ -94,6 +85,7 @@ of this tool.")
 
     # Solve for each time of day and save output
     arcpy.AddMessage("Solving Service Area at time...")
+    first = True
     for t in timelist:
         arcpy.AddMessage(str(t))
         
@@ -104,15 +96,15 @@ of this tool.")
         arcpy.na.Solve(input_network_analyst_layer)
         
         # Calculate the TimeOfDay field
-        expression = '"' + str(t) + '"' # Unclear why a DATE field requires a string expression, but it does.
-        arcpy.management.CalculateField(polygons_subLayer, time_field, expression, "PYTHON_9.3")
+        AnalysisHelpers.calculate_TimeOfDay_field(polygons_subLayer, time_field, t)
         
         #Append the polygons to the output feature class. If this was the first
         #solve, create the feature class.
-        if not arcpy.Exists(output_feature_class):
+        if first:
             arcpy.management.CopyFeatures(polygons_subLayer, output_feature_class)
         else:
             arcpy.management.Append(polygons_subLayer, output_feature_class)
+        first = False
 
 except CustomError:
     pass
