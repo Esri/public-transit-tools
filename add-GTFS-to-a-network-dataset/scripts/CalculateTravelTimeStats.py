@@ -77,6 +77,16 @@ try:
     end_time_input = arcpy.GetParameterAsText(5)
     increment_input = arcpy.GetParameter(6)
 
+    # Whether to save the combined NA results to a single feature class
+    save_combined_output = arcpy.GetParameter(7)
+    combined_output = arcpy.GetParameterAsText(8)
+    if save_combined_output and not combined_output:
+        arcpy.AddWarning(
+            "You chose to save the combined network analysis results but did not specify an output feature class. " + \
+            "The combined network analysis results will not be saved."
+            )
+        save_combined_output = False
+
     # Make list of times of day to run the analysis
     try:
         timelist = AnalysisHelpers.make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input)
@@ -112,6 +122,14 @@ try:
                 "reported for each origin-destination pair in the output of this tool may be inaccurate."
             arcpy.AddWarning(msg % (count, count))
 
+    if save_combined_output:
+        # Add the TimeOfDay field to the output sublayer to track results
+        time_field = AnalysisHelpers.add_TimeOfDay_field_to_sublayer(
+            input_network_analyst_layer,
+            output_subLayer,
+            output_sublayer_name
+            )
+
     # Initialize a dictionary to track output stats
     # {key: [Min travel time, Max travel time, Num times reached, Mean travel time]}
     # OD key: (OriginID, DestinationID)
@@ -120,6 +138,7 @@ try:
 
     # Solve for each time of day and save output
     arcpy.AddMessage("Solving %s at time..." % solver_opts["Friendly Name"])
+    first = True
     for t in timelist:
         arcpy.AddMessage(str(t))
 
@@ -137,6 +156,17 @@ try:
                 # Only alert them if it's some weird error.
                 arcpy.AddMessage("Solve failed.  Errors: %s. Continuing to next time of day." % errs)
             continue
+
+        if save_combined_output:
+            # Calculate the TimeOfDay field
+            AnalysisHelpers.calculate_TimeOfDay_field(output_subLayer, time_field, t)
+            #Append the polygons to the output feature class. If this was the first
+            #solve, create the feature class.
+            if first:
+                arcpy.management.CopyFeatures(output_subLayer, combined_output)
+            else:
+                arcpy.management.Append(output_subLayer, combined_output)
+            first = False
 
         # Read the OD matrix output and populate the dictionary with the min travel time for each OD pair
         cur_fields = ["Total_" + solverProps.impedance] + [kf[0] for kf in solver_opts["Key fields"]]

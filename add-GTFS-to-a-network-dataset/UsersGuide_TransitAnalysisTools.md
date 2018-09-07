@@ -102,6 +102,8 @@ For each origin-destination pair in an OD Cost Matrix layer or each route in a R
 - Maximum travel time
 - Mean travel time
 
+You can also choose to save a feature class containing the combined network analysis output for the entire time window. 
+
 Running this tool involves two steps:
 
 1. Prepare an OD Cost Matrix or Route layer in the map
@@ -111,12 +113,12 @@ Running this tool involves two steps:
 
 After creating your GTFS-enabled network dataset using the *Add GTFS to a Network Dataset* toolbox, [create an OD Cost Matrix](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm) or [Route](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-3-finding-the-best-route-using-a-network-dataset.htm) network analysis layer in the map for the origins and destinations or route stops you want to analyze, and configure the layer with the [correct analysis settings](./AddGTFStoND_UsersGuide.html#Step7).  Solve it for a few different times of day to make sure it works and that you get the results you want.
 
-The *Calculate Travel Time Statistics* tool does not use the geometry of the solved network analysis layers.  To improve tool performance, set the Output Shape Type setting to "None".
+The *Calculate Travel Time Statistics* tool does not use the geometry of the solved network analysis layers when calculating statistics.  To improve tool performance, set the Output Shape Type setting to "None".
 
 You can also [save your network analysis layer as a .lyr file](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm) to use as input for the tool.  This will be particularly useful is you want to run this tool in a python script outside of ArcMap.
 
 ### 2. Run the *Calculate Travel Time Statistics* tool
-Once your network analysis layer is prepared, run the *Calculate Travel Time Statistics* tool to solve the layer for a range of start times over a time window.  The tool will calculate statistics about the travel time across the time window and save the results to a table.
+Once your network analysis layer is prepared, run the *Calculate Travel Time Statistics* tool to solve the layer for a range of start times over a time window.  The tool will calculate statistics about the travel time across the time window and save the results to a table and optionally save the combined network analysis output for each time slice to a feature class.
 
 ![Screenshot of tool dialog](./images/Screenshot_CalculateTravelTimeStatistics_Dialog.png)
 
@@ -128,6 +130,8 @@ Once your network analysis layer is prepared, run the *Calculate Travel Time Sta
 * **End Day (Weekday or YYYYMMDD date)**: If you're using a generic weekday for Start Day, you must use the same day for End Day.  If you want to run an analysis spanning multiple days, choose specific YYYYMMDD dates for both Start Day and End Day.
 * **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that a network analysis result will be included for the time of day you enter here.
 * **Time Increment (minutes)**: Increment the network analysis layer's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the output would include results for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would generate results for 10:00, 10:02, 10:04, etc.
+* **Save combined network analysis results**: You can choose whether to save the network analysis layer's output sublayer (Lines for OD Cost Matrix, Routes for Route) for each time slice into a single combined feature class. Using this option slows the tool's performance.
+* **Output combined network analysis results**: If you have chosen to save the combined network analysis results, specify the path to an output feature class to store the results.  A file geodatabase feature class is highly recommended, since the output may contain a large number of rows.
 
 #### Outputs
 The resulting geodatabase table will contain one row per origin-destination pair (for an OD Cost Matrix layer) or route name (for a Route layer) in the solved network analysis layer.  The OriginID and DestinationID or the route Name fields are included for reference.  The following summary statistics fields are included:
@@ -141,11 +145,14 @@ If your input is an OD Cost Matrix layer, use caution when setting a default cut
 
 Suppose your OD Cost Matrix layer uses a "Destinations To Find" count of 5. This means that the travel time for only the 5 closest destinations to each origin will be reported in the OD Cost Matrix output.  Because the travel time between each origin and destination changes throughout the day, the closest destinations may be different at different times of day, so the statistics reported for each origin-destination pair in the output of this tool may be inaccurate.  For example, for Origin 1, Destination 3 might be one of the five closest destinations at 8:00, but at 8:01, it is not.  Destination 7 is closer.  Consequently, the calculated statistics will include the travel time from Origin 1 to Destination 3 at 8:00 but not 8:01, and it will include the travel time from Origin 1 to Destination 7 at 8:01 but not 8:00.  Because of this confusion, using the "Destinations To Find" setting with this tool is not recommended.
 
+If you have chosen to save the combined network analysis results an output feature class will be created.  This feature class will contain all the rows from the network analysis layer's output sublayer for each time slice in your time window with an additional **TimeOfDay** field indicating the time slice that produced the row.  This table could get very large, particularly for OD Cost Matrix.
+
 #### Tool performance
 Network analysis layers with large numbers of input features (origins, destinations, stops, etc.) may take a long time to solve, and since this tool solves the analysis once per start time within the time limit, this tool could take a very long time to complete.
 
 Note that when this tool runs, if the input OD Cost Matrix layer and the network it references are in the map, these layers might re-draw over and over again, which impacts tool performance.  Before running the tool, turn off the layers in the map to prevent the re-draw behavior.
 
+The tool will run slower if you have chosen to save the combined network analysis results.
 
 
 
