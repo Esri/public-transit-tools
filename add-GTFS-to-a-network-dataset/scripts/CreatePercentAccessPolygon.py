@@ -3,7 +3,7 @@
 ## Tool name: Create Percent Access Polygons
 ## Created by: David Wasserman, Fehr & Peers, https://github.com/d-wasserman
 ##        and: Melinda Morang, Esri
-## Last updated: 6 September 2018
+## Last updated: 8 September 2018
 ################################################################################
 ''''''
 ################################################################################
@@ -190,22 +190,21 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
 def main():
 
     arcpy.env.overwriteOutput = True
+    # Use the scratchGDB as a holder for temporary output
+    scratchgdb = arcpy.env.scratchGDB
 
     # Feature class of polygons created by the Prepare Time Lapse Polygons tool
     # The feature class must be in a projected coordinate system, but this is checked in tool validation
     in_time_lapse_polys = arcpy.GetParameterAsText(0)
-    # Outputs will be in the selected gdb and will be prepended by the name specified by the user
-    # Must be a file geodatabase. Checked in tool validation.
-    outgdb = arcpy.GetParameterAsText(1)
-    out_name_prefix = arcpy.GetParameterAsText(2)
+    out_cell_counts_fc = arcpy.GetParameterAsText(1)
     # Raster cell size for output (length or width of cell, not area)
-    cell_size = float(arcpy.GetParameterAsText(3))
+    cell_size = float(arcpy.GetParameterAsText(2))
+    out_percents_fc = arcpy.GetParameterAsText(4)
     # List of percent of times accessed to summarize in results
-    percents = arcpy.GetParameter(5)
-
-    # Define output feature classes
-    out_cell_counts_fc = os.path.join(outgdb, arcpy.ValidateFieldName(out_name_prefix + "_Raw", outgdb))
-    out_percents_fc = os.path.join(outgdb, arcpy.ValidateFieldName(out_name_prefix + "_Percents", outgdb))
+    if not out_percents_fc:
+        percents = []
+    else:
+        percents = arcpy.GetParameter(5)
 
     # Hard-coded "options"
     # Field names that must be in the input time lapse polygons
@@ -221,7 +220,7 @@ def main():
 
     # Create the raster-like polygons we'll use later with spatial joins.
     arcpy.AddMessage("Rasterizing time lapse polygons...")
-    poly_raster_template_fc = create_polygon_raster_template(in_time_lapse_polys, outgdb, cell_size)
+    poly_raster_template_fc = create_polygon_raster_template(in_time_lapse_polys, scratchgdb, cell_size)
 
     # Figure out the unique combinations of FacilityID, FromBreak, and ToBreak in the input data. Each of these will
     # be processed sequentially and get a separate output.
@@ -238,8 +237,8 @@ def main():
 
     # For each set of time lapse polygons, generate the cell-like counts
     first = True
-    temp_spatial_join_fc = os.path.join(outgdb, "Temp_" + guid + "_SpatialJoin")
-    temp_raw_dissolve_fc = os.path.join(outgdb, "Temp_" + guid + "_RawDissolve")
+    temp_spatial_join_fc = os.path.join(scratchgdb, "Temp_" + guid + "_SpatialJoin")
+    temp_raw_dissolve_fc = os.path.join(scratchgdb, "Temp_" + guid + "_RawDissolve")
     for combo in unique_output_combos:
         facility_id = combo[0]
         from_break = combo[1]
@@ -254,7 +253,7 @@ def main():
         # Select the subset of polygons for this FacilityID/FromBreak/ToBreak combo
         # Note: Don't use a feature layer and Select By Attributes because of a bug with field mapping in Spatial Join
         # in 10.6 which caused field maps to be ignored for layers.
-        temp_selected_polys = os.path.join(outgdb, "Temp_" + guid + "_SelectedPolys")
+        temp_selected_polys = os.path.join(scratchgdb, "Temp_" + guid + "_SelectedPolys")
         if facility_id is None:
             facility_query = arcpy.AddFieldDelimiters(in_time_lapse_polys, facility_id_field) + " IS NULL"
         else:
@@ -305,11 +304,6 @@ def main():
     for temp_output in clean_up:
         if arcpy.Exists(temp_output):
             arcpy.management.Delete(temp_output)
-
-    # Set outputs
-    arcpy.SetParameter(6, out_cell_counts_fc)
-    if percents:
-        arcpy.SetParameter(7, out_percents_fc)
 
 
 if __name__ == '__main__':
