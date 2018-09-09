@@ -145,7 +145,7 @@ def dissolve_raw_cell_counts_fc(raw_cell_count_fc, out_fc, fields_to_preserve, n
     arcpy.management.CalculateField(out_fc, percent_field, expression, "PYTHON_9.3")
 
 
-def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_preserve):
+def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_preserve, scratch_workspace):
     '''For each percent threshold, dissolve the cells where the number of times reached exceeds the threshold. Each
     threshold gets its own polygon, and they are all output to the same feature class.
     Params:
@@ -158,7 +158,7 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
     '''
 
     first = True
-    temp_out_dissolve_fc = os.path.join(os.path.dirname(out_fc), "Temp_" + guid + "_Dissolve")
+    temp_out_dissolve_fc = os.path.join(scratch_workspace, "Temp_" + guid + "_Dissolve")
     for percent in sorted(percents):
 
         # Select all the cells where the number of times with access is >= our percent threshold
@@ -292,7 +292,7 @@ def main():
     # Dissolve the cell-like polygons that were accessible >= X% of times
     if percents:
         arcpy.AddMessage("Creating percent access polygons...")
-        create_percent_access_polys(out_cell_counts_fc, percents, out_percents_fc, fields_to_preserve)        
+        create_percent_access_polys(out_cell_counts_fc, percents, out_percents_fc, fields_to_preserve, scratchgdb)        
 
     # Clean up intermediate outputs
     clean_up = [
