@@ -1,6 +1,9 @@
 # Transit Analysis Tools User's Guide
 
-Created by Melinda Morang, Esri  
+Created by Melinda Morang, Esri
+
+Contributors:
+David Wasserman, Fehr & Peers
 
 Copyright 2018 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
@@ -9,6 +12,7 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 These instructions explain how to use the supplemental Transit Analysis Tools with the transit network dataset you created using Add GTFS to a Network Dataset.  These tools, located in the Transit Analysis Tools.tbx toolbox, are designed to help you explore your data and understand the results of network analysis using transit.
 - [Calculate Accessibility Matrix](#AccessibilityMatrix)
 - [Copy Traversed Source Features (with Transit)](#CopyTraversed)
+- [Create Percent Access Polygons](#PercentAccess)
 - [Prepare Time Lapse Polygons](#TimeLapse)
 - [Transit Identify](#TransitIdentify)
 
@@ -126,6 +130,46 @@ All output will be created in the file geodatabase you specified in the tool inp
 
 
 
+## <a name="PercentAccess"></a>Create Percent Access Polygons
+We often want to analyze "accessibility" in a city, how much access people or places have to certain types of facilities or opportunities. For example, we might want to know how many jobs people in different neighborhoods of a city have access to within a reasonable commute time.  To do this type of analysis, we often want to create a service area (transitshed or isochrone) representing the area reachable by transit from a given facility within a travel time limit; we consider the area within this service area polygon to be accessible to the facility.
+
+Unfortunately, the results of analyses performed using your GTFS-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM.  The area reachable by transit at 8:01 AM could be considerably smaller if the traveler has just missed a bus.  A demonstration of this time dependency can be seen in [this video](https://youtu.be/tTSd6qJlans).  Consequently, a single Service Area analysis in ArcGIS is not a good representation of the area reachable by transit and is not adequate for studies of accessibility.
+
+The *Create Percent Access Polygons* tool helps you create "typical access polygons" that better represent the area reachable by transit across a time window.  The tool attempts to account for the dynamic nature of transit schedules by overlaying service area polygons from multiple times of day and summarizing the results in terms of the number or percentage of the input polygons that cover an area.  Areas covered by a larger percentage of input polygons were reached at more start times and are consequently more frequently accessible to travelers.
+
+The tool output will show you the percentage of times any given area was reached, and you can also choose to summarize these results for different percentage thresholds.  For example, you can find out what area can be reached at least 75% of start times.
+
+The input to the *Create Percent Access Polygons* is a polygon feature class created using the [*Prepare Time Lapse Polygons* tool](#TimeLapse).
+
+![Screenshot of tool dialog](./images/Screenshot_CreatePercentAccessPolygons_Dialog.png)
+
+### Inputs
+* **Input time lapse polygons feature flass**: A polygon feature class created using the [*Prepare Time Lapse Polygons* tool](#TimeLapse) that you wish to summarize.  The feature class must be in a projected coordinate system; for best results, use a projected coordinate system that preserves area.  If your *Prepare Time Lapse Polygons* is not projected, you can use the [Project tool](https://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/project.htm) to project it into an appropriate spatial reference.
+* **Output percent access polygons feature class**: The main output feature class of the tool.  This output is a raw raster-like polygon feature class showing the number and percentage of time each area covered by your time lapse polygons was reached, intended primarily for visualization.  The individual polygons are dissolved so that all areas reached the same number of times for a unique combination of FacilityID, FromBreak, and ToBreak are combined into one multipart polygon.  The output feature class must be in a geodatabase; it cannot be a shapefile.
+* **Cell Size**: This tool rasterizes the input polygons, essentially turning the study area into little squares.  Choose a size for these squares.  The cell size refers to the width or length of the cell, not the area.  The units for the cell size are the linear units of the projected coordinate system of the input time lapse polygons and are displayed in the Cell Size Units parameter below.  Smaller cell sizes will increase the tool's run time, and you may run out of memory.  Anything smaller than the size of a typical parcel in your city is probably not very useful.
+* **Cell Size Units**: This parameter is for informational purposes only and cannot be set.  It displays the linear units of your input time lapse polygon feature class's spatial reference so that you know what units your Cell Size refers to.
+* **Output threshold percentage feature class** This is an optional output you can choose to produce that further summarizes the output percent access polygons feature class.  If you specify one or more percentage thresholds, this output contains polygons showing the area reached at least as often as your designated percentage thresholds. There will be a separate feature for each percentage threshold for each unique combination of FacilityID, FromBreak, and ToBreak in the input data.
+* **Percentage Thresholds**: You can choose to summarize the tool's raw output for different percentage thresholds.  For example, you can find out what area can be reached at least 75% of start times by setting 75 as one of your percentage thresholds.  More explanation of tool outputs is given below.
+
+### Outputs
+In the output percent access polygons feature class, the "Join_Count" field refers to the raw number of time lapse polygons that overlapped this area, or the total number of times this area was reached during the time window.  The "Percent" field refers to the percentage of total times the area was reached.
+
+In the output threshold percentage feature class, the "Percent" field refers to the threshold.  The polygon represents the area reachable at least that percentage of start times.
+
+In both outputs, the time lapse polygon FacilityID, Name, FromBreak, and ToBreak fields are preserved for informational purposes.
+
+Note that if your input time lapse polygons contain multiple facilities or multiple FromBreak and ToBreak combinations, the outputs may contain multiple overlapping features that may be visually confusing in the map.  You can use a [definition query](https://desktop.arcgis.com/en/arcmap/latest/map/working-with-layers/displaying-a-subset-of-features-in-a-layer.htm) to display only a subset of these features at a time.
+
+### Tool performance
+The following conditions will cause longer run times for the tool:
+- Large numbers of unique FacilityID, FromBreak, and ToBreak combinations
+- Smaller cell sizes
+- Larger input polygon extents (large area covered)
+
+You may also run into out-of-memory errors, or ArcMap may hang, if you have a very large extent and/or very small cell sizes.  Check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md#Memory) for help with memory errors.  Note that if you use ArcGIS Server or the 64-bit Background Geoprocessing Extension to run this tool only, you do not need to register the transit evaluator with either of these products.
+
+
+
 
 ## <a name="TimeLapse"></a>Prepare Time Lapse Polygons
 The results of analyses performed using your GTFS-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis.  An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.
@@ -137,6 +181,8 @@ The *Prepare Time Lapse Polygons* tool will help you to make a video like this o
 1. Prepare a Service Area layer in the map
 2. Run the *Prepare Time Lapse Polygons* tool
 3. Create your time lapse video from the resulting polygon feature class in ArcMap or ArcGIS Pro.
+
+If you'd prefer to create a static output summarizing the results instead of or in addition to a video, you can use the [Create Percent Access Polygons](#PercentAccess) tool.
 
 ### 1. Prepare a Service Area layer in the map
 

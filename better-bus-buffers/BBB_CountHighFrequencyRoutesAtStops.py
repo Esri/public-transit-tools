@@ -1,8 +1,8 @@
 ############################################################################
 ## Tool name: BetterBusBuffers - Count High Frequency Routes At Stops
-## Created by: David Wasserman, david.wasserman.plan@gmail.com
-## Based on work by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 3 September 2018
+## Created by: David Wasserman, https://github.com/d-wasserman
+## Based on work by: Melinda Morang, Esri
+## Last updated: 5 September 2018
 ############################################################################
 ''' BetterBusBuffers - Count High Frequency Routes At Stops
 
