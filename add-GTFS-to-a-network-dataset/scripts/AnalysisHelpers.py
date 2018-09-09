@@ -1,11 +1,11 @@
 ################################################################################
 ## Toolbox: Add GTFS to a Network Dataset / Transit Analysis Tools
 ## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 21 November 2017
+## Last updated: 6 September 2018
 ################################################################################
 '''Helper methods for analysis tools.'''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2018 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -53,21 +53,29 @@ def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input
     
     # Lower end of time window (HH:MM in 24-hour time)
     generic_weekday = False
-    if start_day_input in days: #Generic weekday
+    if start_day_input in days: # Generic weekday
         generic_weekday = True
         start_day = days[start_day_input]
-    else: #Specific date
+    else: # Specific date
         start_day = datetime.datetime.strptime(start_day_input, '%Y%m%d')
     start_time_dt = datetime.datetime.strptime(start_time_input, "%H:%M")
-    start_time = datetime.datetime(start_day.year, start_day.month, start_day.day, start_time_dt.hour, start_time_dt.minute)
+    start_time = datetime.datetime(
+        start_day.year,
+        start_day.month,
+        start_day.day,
+        start_time_dt.hour,
+        start_time_dt.minute
+        )
 
     # Upper end of time window (HH:MM in 24-hour time)
     # End time is inclusive.  An analysis will be run using the end time.
-    if end_day_input in days: #Generic weekday
+    if end_day_input in days: # Generic weekday
         if not generic_weekday:
             # The tool UI validation should prevent them from encountering this problem.
-            arcpy.AddError("Your Start Day is a specific date, but your End Day is a generic weekday. \
-Please use either a specific date or a generic weekday for both Start Date and End Date.")
+            arcpy.AddError(
+                "Your Start Day is a specific date, but your End Day is a generic weekday. Please use either a " +
+                "specific date or a generic weekday for both Start Date and End Date."
+                )
             raise
         end_day = days[end_day_input]
         if start_day != end_day:
@@ -81,8 +89,10 @@ Please use either a specific date or a generic weekday for both Start Date and E
 
     else: #Specific date
         if generic_weekday:
-            arcpy.AddError("Your Start Day is a generic weekday, but your End Day is a specific date. \
-Please use either a specific date or a generic weekday for both Start Date and End Date.")
+            arcpy.AddError(
+                "Your Start Day is a generic weekday, but your End Day is a specific date. Please use either a " +
+                "specific date or a generic weekday for both Start Date and End Date."
+                )
             raise
         end_day = datetime.datetime.strptime(end_day_input, '%Y%m%d')
     end_time_dt = datetime.datetime.strptime(end_time_input, "%H:%M")
@@ -96,4 +106,30 @@ Please use either a specific date or a generic weekday for both Start Date and E
         raise
 
     return start_time, end_time
- 
+
+
+def add_TimeOfDay_field_to_sublayer(nalayer, sublayer_object, sublayer_name):
+    '''Add a field called TimeOfDay of type DATE to an NA sublayer'''
+    time_field = "TimeOfDay"
+
+    # Clean up any pre-existing fields with this name (unlikely case)
+    poly_fields = [f for f in arcpy.Describe(sublayer_object).fields if f.name == time_field]
+    if poly_fields:
+        for f in poly_fields:
+            if f.name == time_field and f.type != "Date":
+                msg = "Your network analysis layer's %s sublayer already contained a field called %s of a type " + \
+                      "other than Date.  This field will be deleted and replaced with a field of type Date used " + \
+                      "for the output of this tool."
+                arcpy.AddWarning(msg % (sublayer_name, time_field))
+                arcpy.management.DeleteField(sublayer_object, time_field)
+
+    # Add the TimeOfDay field to the sublayer.  If it already exists, this will do nothing.
+    arcpy.na.AddFieldToAnalysisLayer(nalayer, sublayer_name, time_field, "DATE")
+
+    return time_field
+
+
+def calculate_TimeOfDay_field(sublayer_object, time_field, time_of_day):
+    '''Set the TimeOfDay field to a specific time of day'''
+    expression = '"' + str(time_of_day) + '"' # Unclear why a DATE field requires a string expression, but it does.
+    arcpy.management.CalculateField(sublayer_object, time_field, expression, "PYTHON_9.3")
