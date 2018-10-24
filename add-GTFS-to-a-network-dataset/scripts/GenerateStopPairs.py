@@ -209,11 +209,12 @@ This is invalid, so trips with this id will not be included in your network." % 
     stoplatlon_dict = {}
 
     # Create a points feature class for the point pairs.
+    text_field_length = 500
     arcpy.CreateFeatureclass_management(outFD, outStopsFCName, "POINT", "", "", "", outFD_SR)
     arcpy.management.AddField(outStopsFC, "stop_id", "TEXT")
     arcpy.management.AddField(outStopsFC, "stop_code", "TEXT")
     arcpy.management.AddField(outStopsFC, "stop_name", "TEXT")
-    arcpy.management.AddField(outStopsFC, "stop_desc", "TEXT")
+    arcpy.management.AddField(outStopsFC, "stop_desc", "TEXT", field_length=text_field_length)
     arcpy.management.AddField(outStopsFC, "zone_id", "TEXT")
     arcpy.management.AddField(outStopsFC, "stop_url", "TEXT")
     arcpy.management.AddField(outStopsFC, "location_type", "TEXT")
@@ -231,7 +232,7 @@ This is invalid, so trips with this id will not be included in your network." % 
             stop_lon = stop[2]
             stop_code = stop[3]
             stop_name = stop[4]
-            stop_desc = stop[5]
+            stop_desc = stop[5][:text_field_length]
             zone_id = stop[6]
             stop_url = stop[7]
             location_type = stop[8]
