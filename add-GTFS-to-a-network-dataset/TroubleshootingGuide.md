@@ -28,6 +28,7 @@ This document describes some common problems encountered by users of *Add GTFS t
   - [How can I generate directions with transit?](#Directions)
   - [How can I find out which transit lines were used in my Route or Closest Facility analysis?](#CopyTraversed)
   - [I got a Memory Error, or ArcMap hung or crashed](#Memory)
+  - [Results seem wrong for my Vehicle Routing Problem (VRP) analysis or Route analysis with re-ordered stops](#VRP)
 + Other
   - [I upgraded ArcMap to a new version, and now Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx are no longer in ArcToolbox](#ArcMapUpgrade)
   - [The Network Identify tool always shows a cost of -1 for TransitLines edges in my network](#NetworkIdentify)
@@ -201,6 +202,9 @@ Before you can use your transit-enabled network dataset successfully in the 64-b
 With one of these products installed, you can also run scripts in standalone python in the 64-bit environment.  To do this, you simply need to run the script against the 64-bit python installation that was installed when you installed ArcGIS Server or the 64-bit Background Geoprocessing extension.  Typically the python executable can be found at C:\Python27\ArcGISx6410.6\python.exe, or equivalent.
 
 If you are trying to solve a very large network analysis problem, the slides and code samples from [this presentation](http://esriurl.com/ds18pyslnp) might be helpful to you.
+
+## <a name="VRP"></a>Results seem wrong for my Vehicle Routing Problem (VRP) analysis or Route analysis with re-ordered stops
+Vehicle Routing Problem analyses and Route analyses with the option to re-order stops can yield inaccurate results.  Both of these problem types rely on first internally calculating an OD cost matrix of all inputs to all other inputs in order to determine the optimal stop sequence.  Once the sequence has been determined, an ordinary graph search is performed to determine the travel times to the stops in the predetermined order. Unfortunately, this internal OD cost matrix is calculated in a time neutral environment. This poses a problem for analyses done using the transit evaluator because in the time neutral case, the evaluator ignores the transit lines and reverts essentially to walking. Consequently, the walk time is used to determine the ordering instead of the transit travel time. Thus, the sequencing isn’t really optimal, and the overall routes can be much longer than they should be.  As a result, I do not recommend using the Vehicle Routing Problem solver or the Route solver with the option to re-order stops with network dataset created using the Add GTFS to a Network Dataset toolbox.  You can follow [this GitHub issue](https://github.com/Esri/public-transit-tools/issues/133) for future updates on this problem.
 
 
 ## <a name="ArcMapUpgrade"></a>I upgraded ArcMap to a new version, and now Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx are no longer in ArcToolbox
