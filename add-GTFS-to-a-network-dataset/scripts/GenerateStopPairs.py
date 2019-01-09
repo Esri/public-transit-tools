@@ -232,7 +232,9 @@ This is invalid, so trips with this id will not be included in your network." % 
             stop_lon = stop[2]
             stop_code = stop[3]
             stop_name = stop[4]
-            stop_desc = stop[5][:text_field_length]
+            stop_desc = stop[5]
+            if stop_desc:
+                stop_desc = stop_desc[:text_field_length]
             zone_id = stop[6]
             stop_url = stop[7]
             location_type = stop[8]
