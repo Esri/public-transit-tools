@@ -364,12 +364,23 @@ If you are performing a complex analysis in which you want to modify your transi
 
 ## <a name="Server"></a>Using your network dataset with ArcGIS Server
 
-If you want to use your network dataset and the custom GTFS transit evaluator with ArcGIS Server, you must install TransitEvaluator.dll on the machine hosting the service.  Furthermore, you must register the dll using the 64-bit Server registration utility.  The registration you did when you ran the Install.bat file is not sufficient.
-
-To register TransitEvaluator.dll in server, open a command window as an administrator.  Type the following command:
-"C:\Program Files\Common Files\ArcGIS\bin\ESRIRegAsm.exe" "[path to location where you saved the Add GTFS to a Network Dataset files]\EvaluatorFiles\TransitEvaluator.dll" /p:Server
-
 Note: The transit evaluator will *not* work with ArcGIS Server on Linux.  It only works with Windows Server.
+
+If you want to use your network dataset and the custom GTFS transit evaluator with ArcGIS Server, you must do a different installation procedure on the machine hosting the service.  The AddGTFStoaNetworkDataset_Installer.exe installer is only for ArcMap.
+
+When you ran the AddGTFStoaNetworkDataset_Installer.exe installer with ArcMap, this extracted a set of files into the Toolboxes folder of your ArcMap install directory, probably something like `C:\Program Files (x86)\ArcGIS\Desktop10.6\ArcToolbox\Toolboxes`.  That set of files must be placed on the Server machine, and the     TransitEvaluator.dll file must be "registered" with ArcGIS Server using the ArcGIS Server registration utility.  This is so that ArcGIS Server recognizes this dll as part of itself, something it can use when solving network analysis problems.
+
+First, you should copy the relevant files to the machine running ArcGIS Server.  Or, if it's the same machine where you installed the tools with ArcMap, you should probably copy them to a different location that's outside of ArcMap's install directory, just to be safe.
+
+These are the relevant files (all in `C:\Program Files (x86)\ArcGIS\Desktop10.6\ArcToolbox\Toolboxes` or equivalent on your machine):
+- EvaluatorFiles folder - This is the critical one because it contains the TransitEvaluator.dll file and some supporting dlls.  This is actually the only one you need in order to run services using an already-created network dataset.
+- Network Analyst Tools.tbx and Transit Analysis Tools.tbx - You only need to copy these toolboxes if you want to run the tools in these toolboxes using ArcGIS Server.
+- scripts folder - You only need to copy this if you're also copying the toolboxes.
+
+Next, you need to register the transit evaluator with ArcGIS Server.  To do this, open a command window as an administrator.  Type the following command:
+`"C:\Program Files\Common Files\ArcGIS\bin\ESRIRegAsm.exe" "[path to location where you saved the Add GTFS to a Network Dataset files]\EvaluatorFiles\TransitEvaluator.dll" /p:Server`
+
+You should get a pop-up indicating whether the registration succeeded.
 
 If you are hosting a service using your transit-enabled network dataset, and you copy the service's data to the server, you must additionally copy the GTFS.sql file located in the geodatabase where your network dataset is stored.  Without this SQL database, the transit evaluator will not run, and ArcGIS does not automatically copy it along with the geodatabase (it leaves it behind).
 
