@@ -754,7 +754,7 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
                 if not stop[idx]:
                     stop[idx] = ""
         cur3.insertRow((ptGeometry, stop[0], stop[1],
-                            stop[2], stop[3], stop[6], stop[7], stop[8], stop[9]))
+                            stop[2], stop[3], stop[6],
                             stop[7], stop[8], stop[9]))
     del cur3
 
