@@ -40,6 +40,8 @@ InstallDir "$EXEDIR\AddGTFStoaNetworkDataset"
 
 Section Install
 DetailPrint "Searching the registry for ArcMap installation folder..."
+ReadRegStr $0 HKLM Software\WOW6432Node\ESRI\Desktop10.7 "InstallDir"
+IfErrors +1 Success
 ReadRegStr $0 HKLM Software\WOW6432Node\ESRI\Desktop10.6 "InstallDir"
 IfErrors +1 Success
 ReadRegStr $0 HKLM Software\WOW6432Node\ESRI\Desktop10.5 "InstallDir"
@@ -185,7 +187,8 @@ SectionEnd
 
 Section Uninstall
 # Get the current ArcMap install directory from the registry
-
+ReadRegStr $0 HKLM Software\WOW6432Node\ESRI\Desktop10.7 "InstallDir"
+IfErrors +1 Success
 ReadRegStr $0 HKLM Software\WOW6432Node\ESRI\Desktop10.6 "InstallDir"
 IfErrors +1 Success
 ReadRegStr $0 HKLM Software\WOW6432Node\ESRI\Desktop10.5 "InstallDir"
