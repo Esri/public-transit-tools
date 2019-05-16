@@ -17,12 +17,8 @@
    limitations under the License.'''
 ################################################################################
 
-import sys
 import datetime
 import arcpy
-
-# Determine if this is python 3 (which means probably ArcGIS Pro)
-isPy3 = sys.version_info > (3, 0)
 
 def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input):
     '''Make a list of datetimes to use as input for a network analysis time of day run in a loop'''
