@@ -91,22 +91,45 @@ class PrepareTimeLapsePolygons(object):
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
-        startday = parameters[2]
-        endday = parameters[3]
+        start_day = parameters[2]
+        end_day = parameters[4]
         start_time = parameters[3]
-        end_time = parameters[4]
+        end_time = parameters[5]
+        increment = parameters[6]
 
-        ToolValidator.allow_YYYYMMDD_day(startday)
-        ToolValidator.allow_YYYYMMDD_day(endday)
-        ToolValidator.check_time_window(start_time, end_time)
+        # Show a filter list of weekdays but also allow YYYYMMDD dates
+        ToolValidator.allow_YYYYMMDD_day(start_day)
+        ToolValidator.validate_day(end_day)
+
+        ToolValidator.set_end_day(start_day, end_day)
+
+        # Make sure time of day format is correct and time window is valid
+        ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+
+        # Make sure time increment is good
+        ToolValidator.validate_time_increment(increment)
+
         return
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
-        import SQLizeGTFS
-        inGTFSdir = parameters[0].valueAsText
-        SQLDbase = parameters[1].valueAsText
-        SQLizeGTFS.runTool(inGTFSdir, SQLDbase)
+        import CreateTimeLapsePolygons
+        SAlayer = parameters[0].value
+        outfc = parameters[1].valueAsText
+        start_day = parameters[2].valueAsText
+        start_time = parameters[3].valueAsText
+        end_day = parameters[4].valueAsText
+        end_time = parameters[5].valueAsText
+        increment = parameters[6].value
+        CreateTimeLapsePolygons.runTool(
+            SAlayer,
+            outfc,
+            start_day,
+            start_time,
+            end_day,
+            end_time,
+            increment
+            )
         return
 
 
