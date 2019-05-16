@@ -123,6 +123,6 @@ time window end is later than the time window start.")
 def validate_output_is_gdb(param_outTable):
     """Output table should be in a geodatabase, not a dbf or info table."""
     if param_outTable.altered:
-        wdesc = arcpy.Describe(os.path.dirname(unicode(param_outTable.valueAsText)))
+        wdesc = arcpy.Describe(os.path.dirname(param_outTable.valueAsText))
         if wdesc.dataType == "Folder" or (wdesc.dataType == "Workspace" and wdesc.workspaceType == "FileSystem"):
             param_outTable.setErrorMessage("Output table must be in a geodatabase.")
