@@ -29,7 +29,7 @@ class CustomError(Exception):
     pass
 
 def runTool(input_network_analyst_layer, output_feature_class,
-            start_day_input, end_day_input, start_time_input, end_time_input, increment_input):
+            start_day_input, start_time_input, end_day_input, end_time_input, increment_input):
 
     try:
 
@@ -46,15 +46,22 @@ def runTool(input_network_analyst_layer, output_feature_class,
 
         # Make list of times of day to run the analysis
         try:
-            timelist = AnalysisHelpers.make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input)
-        except:
+            timelist = AnalysisHelpers.make_analysis_time_of_day_list(
+                start_day_input, end_day_input, start_time_input, end_time_input, increment_input)
+        except Exception as ex:
+            arcpy.AddError(ex)
             raise CustomError
+
+        # If the input NA layer is a layer file, convert it to a layer object
+        if not AnalysisHelpers.isPy3:
+            if isinstance(input_network_analyst_layer, (unicode, str)) and input_network_analyst_layer.endswith(".lyr"):
+                input_network_analyst_layer = arcpy.mapping.Layer(input_network_analyst_layer)
+        else:
+            if isinstance(input_network_analyst_layer, str) and input_network_analyst_layer.endswith(".lyrx"):
+                input_network_analyst_layer = arcpy.mp.LayerFile(input_network_analyst_layer).listLayers()[0]
 
         
         # ----- Add a TimeOfDay field to SA Polygons -----
-
-        if AnalysisHelpers.isPy3 and not isinstance(input_network_analyst_layer, arcpy._mp.Layer):
-            input_network_analyst_layer = arcpy.mp.LayerFile(input_network_analyst_layer).listLayers()[0]
 
         # Grab the polygons sublayer, which we will export after each solve.
         sublayer_names = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
