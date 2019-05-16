@@ -1,13 +1,13 @@
 ################################################################################
-## Toolbox: Add GTFS to a Network Dataset / Transit Analysis Tools
+## Toolbox: Transit Network Analysis Tools
 ## Tool name: Prepare Time Lapse Polygons
-## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 6 September 2018
+## Created by: Melinda Morang, Esri
+## Last updated: 16 May 2019
 ################################################################################
 '''Run a Service Area analysis incrementing the time of day. Save the polygons 
 to a feature class that can be used to generate a time lapse video.'''
 ################################################################################
-'''Copyright 2018 Esri
+'''Copyright 2019 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -19,6 +19,7 @@ to a feature class that can be used to generate a time lapse video.'''
    limitations under the License.'''
 ################################################################################
 
+import os
 import datetime
 import arcpy
 import AnalysisHelpers
@@ -67,9 +68,15 @@ try:
     
     # ----- Add a TimeOfDay field to SA Polygons -----
 
+    if AnalysisHelpers.isPy3 and not isinstance(input_network_analyst_layer, arcpy._mp.Layer):
+        input_network_analyst_layer = arcpy.mp.LayerFile(input_network_analyst_layer).listLayers()[0]
+
     # Grab the polygons sublayer, which we will export after each solve.
     sublayer_names = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
-    polygons_subLayer = arcpy.mapping.ListLayers(input_network_analyst_layer, sublayer_names["SAPolygons"])[0]
+    if not AnalysisHelpers.isPy3:
+        polygons_subLayer = arcpy.mapping.ListLayers(input_network_analyst_layer, sublayer_names["SAPolygons"])[0]
+    else:
+        polygons_subLayer = input_network_analyst_layer.listLayers(sublayer_names["SAPolygons"])[0]
 
     # Add the TimeOfDay field
     time_field = AnalysisHelpers.add_TimeOfDay_field_to_sublayer(
@@ -93,7 +100,12 @@ try:
         solverProps.timeOfDay = t
         
         # Solve the Service Area
-        arcpy.na.Solve(input_network_analyst_layer)
+        try:
+            arcpy.na.Solve(input_network_analyst_layer)
+        except:
+            arcpy.AddError("Solve failed.")
+            arcpy.AddError(arcpy.GetMessages(2))
+            raise CustomError
         
         # Calculate the TimeOfDay field
         AnalysisHelpers.calculate_TimeOfDay_field(polygons_subLayer, time_field, t)
@@ -101,7 +113,11 @@ try:
         #Append the polygons to the output feature class. If this was the first
         #solve, create the feature class.
         if first:
-            arcpy.management.CopyFeatures(polygons_subLayer, output_feature_class)
+            arcpy.conversion.FeatureClassToFeatureClass(
+                polygons_subLayer,
+                os.path.dirname(output_feature_class),
+                os.path.basename(output_feature_class)
+                )
         else:
             arcpy.management.Append(polygons_subLayer, output_feature_class)
         first = False
