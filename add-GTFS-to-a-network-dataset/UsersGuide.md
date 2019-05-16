@@ -2,8 +2,12 @@
 
 Created by Melinda Morang, Esri  
 
-Copyright 2018 Esri  
+Copyright 2019 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
+
+## Deprecation notice ##
+
+**This tool is deprecated.** The tool author will no longer be making further enhancements or fixing major bugs. Instead, you can create and use transit-enabled network datasets in ArcGIS Pro 2.4 or higher without the need to download any additional tools. [Learn more about network analysis with public transit in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm)
 
 ## What this tool does
 *Add GTFS to a Network Dataset* allows you to put GTFS public transit data into an ArcGIS network dataset so you can run schedule-aware analyses using the Network Analyst tools, like Service Area, OD Cost Matrix, and Location-Allocation.
@@ -11,7 +15,8 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 After using these tools to set up your network dataset, you can use Network Analyst to perform transit/pedestrian accessibility analyses, make decisions about where to locate new facilities, find populations underserved by transit or particular types of facilities, or visualize the areas reachable from your business at different times of day. You can also publish services in ArcGIS Server that use your network dataset.
 
 ## Software requirements
-* ArcMap 10.1 or higher with a Desktop Standard (ArcEditor) license. (You can still use it if you have a Desktop Basic license, but you will have to find an alternate method for one of the pre-processing tools.) ArcMap 10.6 or higher is recommended because you will be able to construct your network dataset much more easily using a template rather than having to do it manually step by step. This tool does not work in ArcGIS Pro.
+* ArcMap 10.1 or higher with a Desktop Standard (ArcEditor) license. (You can still use it if you have a Desktop Basic license, but you will have to find an alternate method for one of the pre-processing tools.) ArcMap 10.6 or higher is recommended because you will be able to construct your network dataset much more easily using a template rather than having to do it manually step by step.
+  * This tool does not work in ArcGIS Pro. You can create and use transit-enabled network datasets in ArcGIS Pro 2.4 or higher without the need to download any additional tools. [Learn more about network analysis with public transit in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm)
 * Network Analyst extension.  Be sure to [enable your Network Analyst license](https://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/configuring-the-network-analyst-extension.htm) if you haven't already.
 * The necessary privileges to install something on your computer.
 
@@ -35,6 +40,10 @@ In order to use GTFS routes, stops, and schedules in a network dataset, you must
 6. [Finalize your transit network using the Get Network EIDs tool](#Step7)
 7. [Choose the correct analysis settings](#Step8)
 
+You may also need to complete additional steps if you plan to use your network in [ArcGIS Server](#Server) or with  the [64-bit Background Geoprocessing extension](#BackgroundGP).
+
+Once you have created your network dataset, you can use it with the standard Network Analyst tools in ArcGIS and with the downloadable [Transit Network Analysis Tools](http://www.arcgis.com/home/item.html?id=23cc1b720eb0418db4d0e61955b8fe43).
+
 
 ## <a name="Step1"></a>1) Download and install the tools
 
@@ -44,7 +53,7 @@ The unzipped file contains an installer, AddGTFStoaNetworkDataset_Installer.exe.
 
 The installation process does the following:
 - "Registers" a special transit evaluator with ArcGIS.  This will allow your network dataset to query the GTFS schedules when determining travel time through the network.
-- Adds "Add GTFS to a network dataset.tbx" and "Transit Analysis Tools.tbx" to ArcToolbox.
+- Adds "Add GTFS to a network dataset.tbx" to ArcToolbox.
 - Copies relevant files to the folder where ArcGIS is installed on your machine.
 - Places the tool documentation and an uninstaller into a folder in the same location as the installer.  Do not delete the uninstaller or you won't be able to uninstall the tools.
 
@@ -278,7 +287,9 @@ The input for this tool is just your network dataset.  There is no output.  It s
 
 ## <a name="Step8"></a>8) Choose the correct analysis settings
 
-Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS and the supplemental tools in [Transit Analysis Tools.tbx](./TransitAnalysisTools_UsersGuide.html).  If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
+Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS and the downloadable [Transit Network Analysis Tools](http://www.arcgis.com/home/item.html?id=23cc1b720eb0418db4d0e61955b8fe43).
+
+If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
 
 Recall that the basic workflow for running network analyses is as follows:
 
@@ -362,6 +373,73 @@ Each time you solve a network analysis for the first time with this network data
 If you are performing a complex analysis in which you want to modify your transit data between solves (for example, you are testing the effects of adding an extra trip and are directly modifying the SQL database of GTFS data), you might need the transit evaluator to re-cache the schedules prior to each solve.  Otherwise, it will not read in the changes you made to your transit schedules.  You can override the normal caching behavior by adding a parameter called "Cache on every solve", as described [above](#CacheParameter).
 
 
+
+## Utilities
+
+The toolbox contains some utility tools in the "Utilities" toolset to help you use and debug your transit-enabled network dataset:
+- [Transit Identify](#TransitIdentify)
+- [Copy Traversed Source Features (with Transit)](#CopyTraversed)
+
+### <a name="TransitIdentify"></a>Transit Identify
+The *Transit Identify* tool is a network debugging utility that will print the transit schedule for the selected transit line in the network.  If you make a selection on the TransitLines feature class that participates in your network dataset, the *Transit Identify* tool will print a list of the times of day and days of week the selected line feature is traveled across.
+
+You can use this information when testing that your network is working correctly.  For instance, if you suspect that the transit lines are ever being used in your analysis and you want to make sure your network connectivity is correct, you can use this tool to help you check the behavior of your network.
+
+#### Debugging procedure
+* Select any transit line.
+* Create a Route layer.
+* Place two stops on the street features on either end of the selected transit line.
+* Run Transit Identify to find a time of day and day of week when the selected transit line is used.
+* Set your Route's time of day to correspond with the time of day when you know the transit line is used.  You should set the time of day to a minute or two before the transit trip starts to account for a small amount of walking time from the origin point to the transit stop.
+* Solve the Route layer.  If the resulting route uses the transit line as expected, your network is working correctly. 
+
+This tool is *not* meant to be used to extract schedule information from the entire network; consequently, the tool will only run if the number of selected features is 5 or fewer.
+
+![Screenshot of tool dialog](./images/Screenshot_TransitIdentify_Dialog.png)
+
+#### Inputs
+* **TransitLines (with selected features)**: The only valid input for this tool is a feature layer of your TransitLines feature class with 1-5 transit line features selected.  In other words, you should add your TransitLines feature class to the map, select up to five transit lines manually or using Select by Attributes or Select by Location, and use the TransitLines map layer as the input.
+* **Save schedule info to this text file (optional)**: The schedule information for the selected transit lines will be printed to the ArcMap geoprocessing dialog.  If you would like to additionally save that information to a text file for easier reading or future reference, you may optionally indicate a text file path here.
+
+#### Outputs
+* **\[Text file\] (optional)**: A text file containing the schedule information for the selected transit line(s).
+
+
+### <a name="CopyTraversed"></a>Copy Traversed Source Features (with Transit)
+The ArcGIS Network Analyst tool *Copy Traversed Source Features* produces feature classes showing the network edges, junctions, and turns that were traversed when solving a network analysis layer.  It shows the actual network features that were used.  The *Copy Traversed Source Features (with Transit)* tool is an extension of the ArcGIS tool designed for use with transit network datasets.  It adds GTFS transit information to the traversal result produced by the ArcGIS *Copy Traversed Source Features* tool.  GTFS stop information is added to the output Junctions. GTFS route information, trip_id, arrive and depart time and stop names, and the transit time and wait time are added to the output Edges for each transit leg.  An additional feature class is produced containing only the transit edges.
+
+Learn more about the original [Copy Traversed Source Features](http://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/copy-traversed-source-features.htm) tool and the [output](http://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/copy-traversed-source-features-output.htm) from that tool in the ArcGIS documentation.
+
+![Screenshot of tool dialog](./images/Screenshot_CopyTraversedSourceFeaturesWithTransit_Dialog.png)
+
+#### Inputs
+* **Input Network Analysis Layer**: The network analysis layer created using your transit network dataset for which you want to produce the traversal result. At this time, only network analysis layers of type Route and Closest Facility are supported.
+* **Output Location**: A file geodatabase where the output feature classes will be written.
+* **Edge Feature Class Name**: The name for the output Edge feature class.  This feature class will show the network edges (streets, connector lines, transit lines, etc.) that were traversed and will include GTFS information for all transit lines.
+* **Junction Feature Class Name**: The name for the output Junctions feature class.  This feature class will show the network junctions (including GTFS stops) that were traversed and will include GTFS stop information.
+* **Turn Table Name**: The name for the output Turns table. This table will show any network Turns that were traversed.
+* **Transit Edge Feature Class Name**: The name for the output Transit Edge feature class.  This feature class will show the transit edges that were traversed and will include GTFS information for all the transit lines.
+
+#### Outputs
+All output will be created in the file geodatabase you specified in the tool inputs.
+* **[Edge Feature Class Name]**: This feature class shows the network edges (streets, connector lines, transit lines, etc.) that were traversed in the Route.  GTFS information for all transit lines is included.  The edges are sorted in the order traversed.
+* **[Junction Feature Class Name]**: This feature class shows the network junctions (including GTFS stops) that were traversed.  GTFS stop information is included for all GTFS stops.
+* **[Turn Table Name]**: This table shows any network Turns that were traversed.  If your network did not use Turns, this table will be empty.
+* **[Transit Edge Feature Class Name]**: This feature class is a subset of the Edge feature class and contains only the transit edges lines that were traversed, including the GTFS information
+
+#### Notes about the Edge output
+* The edges are sorted first by the Network Analyst RouteID (if there is more than one Route in your input layer), and second by the order traversed.
+* The wait_time and transit_time fields are given in units of minutes and rounded to two decimal places.
+* The trip_id, agency_id, route_id, from_stop_id, and to_stop_id fields have the GTFS data folder name prepended to the original ID values.  This is in order to distinguish the IDs when multiple GTFS datasets have been used in the network dataset.
+* When Network Analyst solves a Route, the network edge features traversed by that Route can be determined.  However, this traversal result does not contain any information about the actual GTFS trip associated with the transit line that was traversed.  The *Copy Traversed Source Features (with Transit)* tool first calculates the traversal result and then subsequently adds the GTFS information based on the ID of the edge and the time of day it was traversed.  It is conceivable, though unlikely, that there may be more than one trip that traverses the same edge at the same time.  In these cases, both trips will be written to the Edges feature class, even though in reality the passenger could have only used one of the trips.
+* If you are calculating the traversal result from a Closest Facility layer and you are using the time of day as an end time rather than a start time, a wait time will be shown for the last transit leg in each set of transit legs rather than at the beginning.  The solver essentially searches the network in reverse to find the optimal path so the traveler can arrive at the destination at exactly the time you specify, and it assumes they leave their origin at exactly the right time.  Consequently, there is no wait time at the beginning of the transit leg, but a wait time may be applied at the end so they reach their destination at the correct time.
+* If your Network Analysis layer was solved using "Today" as the Day of Week instead of a specific weekday, you might not get correct transit information if you run this tool on a different day of the week from the day of week when your layer was solved.  The tool will output a warning.
+
+
+
+
+
+
 ## <a name="Server"></a>Using your network dataset with ArcGIS Server
 
 Note: The transit evaluator will *not* work with ArcGIS Server on Linux.  It only works with Windows Server.
@@ -374,7 +452,7 @@ First, you should copy the relevant files to the machine running ArcGIS Server. 
 
 These are the relevant files (all in `C:\Program Files (x86)\ArcGIS\Desktop10.6\ArcToolbox\Toolboxes` or equivalent on your machine):
 - EvaluatorFiles folder - This is the critical one because it contains the TransitEvaluator.dll file and some supporting dlls.  This is actually the only one you need in order to run services using an already-created network dataset.
-- Network Analyst Tools.tbx and Transit Analysis Tools.tbx - You only need to copy these toolboxes if you want to run the tools in these toolboxes using ArcGIS Server.
+- Network Analyst Tools.tbx - You only need to copy this toolbox if you want to run the tools in these toolboxes using ArcGIS Server.
 - scripts folder - You only need to copy this if you're also copying the toolboxes.
 
 Next, you need to register the transit evaluator with ArcGIS Server.  To do this, open a command window as an administrator.  Type the following command:

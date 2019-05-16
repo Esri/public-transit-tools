@@ -2,6 +2,10 @@
 
 *Add GTFS to a Network Dataset* allows you to put GTFS public transit data into an ArcGIS network dataset so you can run schedule-aware analyses using the Network Analyst tools, like Service Area, OD Cost Matrix, and Location-Allocation.
 
+**This tool is deprecated.** The tool author will no longer be making further enhancements or fixing major bugs. Instead, you can create and use transit-enabled network datasets in ArcGIS Pro 2.4 or higher without the need to download any additional tools. [Learn more about network analysis with public transit in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm)
+
+The supplemental "Transit Analysis Tools.tbx" toolbox was formerly part of this toolset, but it is now [separate](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
+
 ## Features
 * Use schedule-based transit data with the ArcGIS Network Analyst tools.
 * Create transit service areas (transitsheds).
@@ -11,9 +15,9 @@
 
 ## Instructions
 
-If you just want to run this tool in a ready-to-use format, don't use this GitHub version.  Instead, [download it from ArcGIS Online](http://www.arcgis.com/home/item.html?id=0fa52a75d9ba4abcad6b88bb6285fae1) and follow the instructions in the [User's Guide](http://transit.melindamorang.com/UsersGuides/AddGTFStoaNetworkDataset/AddGTFStoND_UsersGuide.html).
+If you just want to run this tool in a ready-to-use format, don't use this GitHub version.  Instead, [download it from ArcGIS Online](http://arcg.is/10jXez) and follow the instructions in the [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md).
 
-This GitHub repo is meant primiarily for my own development and for those rare brave souls who actually want to look at the transit evaluator's ArcObjects code.
+This GitHub repo is meant primarily for the author's own development and for those rare brave souls who actually want to look at the transit evaluator's ArcObjects code.
 
 If you want to play with the code, fork it and have fun.  In addition to grabbing everything from GitHub, you also need to download and set up the correct version of [System.Data.SQLite](https://system.data.sqlite.org/index.html/doc/trunk/www/downloads.wiki).
   - The one you want is sqlite-netFx20-binary-Win32-2005-1.0.98.0.zip.  Download this.
@@ -26,7 +30,8 @@ To build the GetEIDs tool, you will need to do the same thing with the System.Da
 
 ## Requirements
 
-* ArcMap 10.1 or higher with a Desktop Standard (ArcEditor) license. (You can still use it if you have a Desktop Basic license, but you will have to find an alternate method for one of the pre-processing tools.) ArcMap 10.6 or higher is recommended because you will be able to construct your network dataset much more easily using a template rather than having to do it manually step by step. This tool does not work in ArcGIS Pro.
+* ArcMap 10.1 or higher with a Desktop Standard (ArcEditor) license. (You can still use it if you have a Desktop Basic license, but you will have to find an alternate method for one of the pre-processing tools.) ArcMap 10.6 or higher is recommended because you will be able to construct your network dataset much more easily using a template rather than having to do it manually step by step.
+  * This tool does not work in ArcGIS Pro. You can create and use transit-enabled network datasets in ArcGIS Pro 2.4 or higher without the need to download any additional tools. [Learn more about network analysis with public transit in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm)
 * Network Analyst extension.
 * Street data for the area covered by your transit system, preferably data including pedestrian attributes.
 * A valid GTFS dataset. If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool.
@@ -36,7 +41,6 @@ To build the GetEIDs tool, you will need to do the same thing with the System.Da
 
 * [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md)
 * [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md)
-* [Supplemental tools user's guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md)
 * [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues
@@ -48,7 +52,7 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing).
 
 ## Licensing
-Copyright 2018 Esri
+Copyright 2019 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
