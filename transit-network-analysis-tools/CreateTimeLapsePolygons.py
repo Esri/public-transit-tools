@@ -33,7 +33,12 @@ def runTool(input_network_analyst_layer, output_feature_class,
 
     try:
 
-        arcpy.CheckOutExtension("Network")
+        #Check out the Network Analyst extension license
+        if arcpy.CheckExtension("Network") == "Available":
+            arcpy.CheckOutExtension("Network")
+        else:
+            arcpy.AddError("You must have a Network Analyst license to use this tool.")
+            raise CustomError
 
         # ----- Get and process inputs -----
 
