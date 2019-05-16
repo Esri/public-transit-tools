@@ -1,6 +1,6 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
-## Created by: Melinda Morang, Esri, mmorang@esri.com
+## Created by: Melinda Morang, Esri
 ## Last updated: 6 December 2017
 ############################################################################
 ''' Python toolbox that defines all the tools in the BetterBusBuffers tool
