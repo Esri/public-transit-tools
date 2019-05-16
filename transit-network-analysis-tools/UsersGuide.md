@@ -1,21 +1,36 @@
-# Transit Analysis Tools User's Guide
+# Transit Network Analysis Tools User's Guide
 
 Created by Melinda Morang, Esri
 
 Contributors:
 David Wasserman, Fehr & Peers
 
-Copyright 2018 Esri  
+Copyright 2019 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
-## What are the Transit Analysis Tools?
-These instructions explain how to use the supplemental Transit Analysis Tools with the transit network dataset you created using Add GTFS to a Network Dataset.  These tools, located in the Transit Analysis Tools.tbx toolbox, are designed to help you explore your data and understand the results of network analysis using transit.
+## What are the Transit Network Analysis Tools?
+The Transit Network Analysis Tools are a set of tools for performing transit-specific network analysis. They are intended to supplement the ArcGIS Network Analyst extension by accounting for the time-dependent nature of public transit and to assist with analyses commonly needed by those working with public transit.  For example, the tools provided here can help you perform accessibility calculations and show how the area reachable by transit changes throughout the day.
+
+The Transit Network Analysis Tools must be used with a transit-enabled network dataset created either with the downloadable [Add GTFS to a Network Dataset toolset](http://arcg.is/10jXez) in ArcMap or using the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+
+The Transit Network Analysis Tools download includes the Transit Analysis Tools.tbx toolbox. You can add this to ArcToolbox or simply access it in the folder tree in the Catalog pane.
+
+The tools included are:
 - [Calculate Accessibility Matrix](#AccessibilityMatrix)
 - [Calculate Travel Time Statistics](#Stats)
-- [Copy Traversed Source Features (with Transit)](#CopyTraversed)
 - [Create Percent Access Polygons](#PercentAccess)
 - [Prepare Time Lapse Polygons](#TimeLapse)
-- [Transit Identify](#TransitIdentify)
+
+
+## Software requirements
+* ArcMap 10.1 or higher with a Desktop Standard (ArcEditor) license. (You can still use it if you have a Desktop Basic license, but you will have to find an alternate method for one of the pre-processing tools.) ArcMap 10.6 or higher is recommended because you will be able to construct your network dataset much more easily using a template rather than having to do it manually step by step.
+  * This tool does not work in ArcGIS Pro. You can create and use transit-enabled network datasets in ArcGIS Pro 2.4 or higher without the need to download any additional tools. [Learn more about network analysis with public transit in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm)
+* Network Analyst extension.  Be sure to [enable your Network Analyst license](https://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/configuring-the-network-analyst-extension.htm) if you haven't already.
+* The necessary privileges to install something on your computer.
+
+## Data requirements
+* Street data for the area covered by your transit system, preferably data including pedestrian attributes.  If you need help preparing high-quality street data for your network, please review [this tutorial](http://support.esri.com/en/technical-article/000012743).
+* A valid GTFS dataset. If your GTFS dataset has blank values for arrival_time and departure_time in stop_times.txt, you will not be able to run this tool. You can download and use the [Interpolate Blank Stop Times](http://www.arcgis.com/home/item.html?id=040da6b55503489b90fa51eea6483932) tool to estimate blank arrival_time and departure_time values for your dataset if you still want to use it.
 
 
 
@@ -34,11 +49,17 @@ Running this tool involves three steps:
 
 ### 1. Prepare your Origin and Destination data
 
-Your origins and destinations must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the [Feature to Point](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/feature-to-point.htm) tool to do this.
+Your origins and destinations must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the Feature to Point tool to do this.
+- [Feature to Point - ArcMap](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/feature-to-point.htm)
+- [Feature to Point - ArcGIS Pro](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/feature-to-point.htm)
 
 ### 2. Prepare an Origin-Destination Cost Matrix layer to use as input to the tool
 
-After creating your GTFS-enabled network dataset using the *Add GTFS to a Network Dataset* toolbox, [create an Origin-Destination (OD) Cost Matrix](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm) network analysis layer in the map, and configure the layer with the [correct analysis settings](./AddGTFStoND_UsersGuide.html#Step7).  You do not need to set a time of day for your analysis because you will choose the time window when you run the *Calculate Accessibility Matrix* tool.
+After creating your GTFS-enabled network dataset using either the downloadable [*Add GTFS to a Network Dataset* toolset](http://arcg.is/10jXez) in ArcMap or the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm)
+
+
+
+, [create an Origin-Destination (OD) Cost Matrix](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm) network analysis layer in the map, and configure the layer with the [correct analysis settings](./AddGTFStoND_UsersGuide.html#Step7).  You do not need to set a time of day for your analysis because you will choose the time window when you run the *Calculate Accessibility Matrix* tool.
 
 In addition to the settings above, you should **set a travel time limit**.  The tool will count the number of destinations reachable within this travel time limit, like 30 minutes or 60 minutes.  To do this, in the OD Cost Matrix layer properties, on the Analysis Settings tab, enter the travel time limit in minutes in the "Default Cutoff Value" box.
 
@@ -160,39 +181,6 @@ The tool will run slower if you have chosen to save the combined network analysi
 
 
 
-## <a name="CopyTraversed"></a>Copy Traversed Source Features (with Transit)
-The ArcGIS Network Analyst tool *Copy Traversed Source Features* produces feature classes showing the network edges, junctions, and turns that were traversed when solving a network analysis layer.  It shows the actual network features that were used.  The *Copy Traversed Source Features (with Transit)* tool is an extension of the ArcGIS tool designed for use with transit network datasets.  It adds GTFS transit information to the traversal result produced by the ArcGIS *Copy Traversed Source Features* tool.  GTFS stop information is added to the output Junctions. GTFS route information, trip_id, arrive and depart time and stop names, and the transit time and wait time are added to the output Edges for each transit leg.  An additional feature class is produced containing only the transit edges.
-
-Learn more about the original [Copy Traversed Source Features](http://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/copy-traversed-source-features.htm) tool and the [output](http://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/copy-traversed-source-features-output.htm) from that tool in the ArcGIS documentation.
-
-![Screenshot of tool dialog](./images/Screenshot_CopyTraversedSourceFeaturesWithTransit_Dialog.png)
-
-### Inputs
-* **Input Network Analysis Layer**: The network analysis layer created using your transit network dataset for which you want to produce the traversal result. At this time, only network analysis layers of type Route and Closest Facility are supported.
-* **Output Location**: A file geodatabase where the output feature classes will be written.
-* **Edge Feature Class Name**: The name for the output Edge feature class.  This feature class will show the network edges (streets, connector lines, transit lines, etc.) that were traversed and will include GTFS information for all transit lines.
-* **Junction Feature Class Name**: The name for the output Junctions feature class.  This feature class will show the network junctions (including GTFS stops) that were traversed and will include GTFS stop information.
-* **Turn Table Name**: The name for the output Turns table. This table will show any network Turns that were traversed.
-* **Transit Edge Feature Class Name**: The name for the output Transit Edge feature class.  This feature class will show the transit edges that were traversed and will include GTFS information for all the transit lines.
-
-### Outputs
-All output will be created in the file geodatabase you specified in the tool inputs.
-* **[Edge Feature Class Name]**: This feature class shows the network edges (streets, connector lines, transit lines, etc.) that were traversed in the Route.  GTFS information for all transit lines is included.  The edges are sorted in the order traversed.
-* **[Junction Feature Class Name]**: This feature class shows the network junctions (including GTFS stops) that were traversed.  GTFS stop information is included for all GTFS stops.
-* **[Turn Table Name]**: This table shows any network Turns that were traversed.  If your network did not use Turns, this table will be empty.
-* **[Transit Edge Feature Class Name]**: This feature class is a subset of the Edge feature class and contains only the transit edges lines that were traversed, including the GTFS information
-
-### Notes about the Edge output
-* The edges are sorted first by the Network Analyst RouteID (if there is more than one Route in your input layer), and second by the order traversed.
-* The wait_time and transit_time fields are given in units of minutes and rounded to two decimal places.
-* The trip_id, agency_id, route_id, from_stop_id, and to_stop_id fields have the GTFS data folder name prepended to the original ID values.  This is in order to distinguish the IDs when multiple GTFS datasets have been used in the network dataset.
-* When Network Analyst solves a Route, the network edge features traversed by that Route can be determined.  However, this traversal result does not contain any information about the actual GTFS trip associated with the transit line that was traversed.  The *Copy Traversed Source Features (with Transit)* tool first calculates the traversal result and then subsequently adds the GTFS information based on the ID of the edge and the time of day it was traversed.  It is conceivable, though unlikely, that there may be more than one trip that traverses the same edge at the same time.  In these cases, both trips will be written to the Edges feature class, even though in reality the passenger could have only used one of the trips.
-* If you are calculating the traversal result from a Closest Facility layer and you are using the time of day as an end time rather than a start time, a wait time will be shown for the last transit leg in each set of transit legs rather than at the beginning.  The solver essentially searches the network in reverse to find the optimal path so the traveler can arrive at the destination at exactly the time you specify, and it assumes they leave their origin at exactly the right time.  Consequently, there is no wait time at the beginning of the transit leg, but a wait time may be applied at the end so they reach their destination at the correct time.
-* If your Network Analysis layer was solved using "Today" as the Day of Week instead of a specific weekday, you might not get correct transit information if you run this tool on a different day of the week from the day of week when your layer was solved.  The tool will output a warning.
-
-
-
-
 ## <a name="PercentAccess"></a>Create Percent Access Polygons
 We often want to analyze "accessibility" in a city, how much access people or places have to certain types of facilities or opportunities. For example, we might want to know how many jobs people in different neighborhoods of a city have access to within a reasonable commute time.  To do this type of analysis, we often want to create a service area (transitshed or isochrone) representing the area reachable by transit from a given facility within a travel time limit; we consider the area within this service area polygon to be accessible to the facility.
 
@@ -285,33 +273,6 @@ After you have done this, you can follow the steps in the ArcMap documentation f
 #### ArcGIS Pro
 Although you cannot use ArcGIS Pro to create your GTFS-enabled network dataset or run analyses with it, you can use the feature class created with the *Prepare Time Lapse Polygons* tool make your time lapse video in ArcGIS Pro.  Please check out the [ArcGIS Pro documentation](https://pro.arcgis.com/en/pro-app/help/mapping/animation/animate-through-time.htm) for how to do this.
 
-
-
-
-
-## <a name="TransitIdentify"></a>Transit Identify
-The *Transit Identify* tool is a network debugging utility that will print the transit schedule for the selected transit line in the network.  If you make a selection on the TransitLines feature class that participates in your network dataset, the *Transit Identify* tool will print a list of the times of day and days of week the selected line feature is traveled across.
-
-You can use this information when testing that your network is working correctly.  For instance, if you suspect that the transit lines are ever being used in your analysis and you want to make sure your network connectivity is correct, you can use this tool to help you check the behavior of your network.
-
-### Debugging procedure
-* Select any transit line.
-* Create a Route layer.
-* Place two stops on the street features on either end of the selected transit line.
-* Run Transit Identify to find a time of day and day of week when the selected transit line is used.
-* Set your Route's time of day to correspond with the time of day when you know the transit line is used.  You should set the time of day to a minute or two before the transit trip starts to account for a small amount of walking time from the origin point to the transit stop.
-* Solve the Route layer.  If the resulting route uses the transit line as expected, your network is working correctly. 
-
-This tool is *not* meant to be used to extract schedule information from the entire network; consequently, the tool will only run if the number of selected features is 5 or fewer.
-
-![Screenshot of tool dialog](./images/Screenshot_TransitIdentify_Dialog.png)
-
-### Inputs
-* **TransitLines (with selected features)**: The only valid input for this tool is a feature layer of your TransitLines feature class with 1-5 transit line features selected.  In other words, you should add your TransitLines feature class to the map, select up to five transit lines manually or using Select by Attributes or Select by Location, and use the TransitLines map layer as the input.
-* **Save schedule info to this text file (optional)**: The schedule information for the selected transit lines will be printed to the ArcMap geoprocessing dialog.  If you would like to additionally save that information to a text file for easier reading or future reference, you may optionally indicate a text file path here.
-
-### Outputs
-* **\[Text file\] (optional)**: A text file containing the schedule information for the selected transit line(s).
 
 ## Questions or problems?
 Check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md).  If you're still having trouble, search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
