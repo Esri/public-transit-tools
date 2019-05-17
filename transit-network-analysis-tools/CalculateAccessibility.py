@@ -1,5 +1,5 @@
 ################################################################################
-## Toolbox: Transit Analysis Tools
+## Toolbox: Transit Network Analysis Tools
 ## Tool name: Calculate Accessibility Matrix
 ## Created by: Melinda Morang, Esri
 ## Last updated: 17 May 2019

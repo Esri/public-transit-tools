@@ -1,11 +1,11 @@
 ################################################################################
-## Toolbox: Add GTFS to a Network Dataset / Transit Analysis Tools
-## Created by: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 6 September 2018
+## Toolbox: Transit Network Analysis Tools
+## Created by: Melinda Morang, Esri
+## Last updated: 17 May 2019
 ################################################################################
 '''Helper methods for analysis tools.'''
 ################################################################################
-'''Copyright 2018 Esri
+'''Copyright 2019 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
