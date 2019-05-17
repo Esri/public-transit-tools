@@ -244,7 +244,7 @@ If you are running this tool in ArcMap, you may also run into out-of-memory erro
 
 
 ## <a name="TimeLapse"></a>Prepare Time Lapse Polygons
-The results of analyses performed using your GTFS-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis.  An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.
+The results of analyses performed using your transit-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis.  An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.
 
 A demonstration of this time dependency can be seen in [this video](https://youtu.be/tTSd6qJlans).  The video is a time lapse showing the area reachable within 15 minutes of travel time by walking and public transit from a point in Atlanta. Because the available transit service changes throughout the day, the area reachable changes significantly depending on the time of day you leave on your journey. For this video, I incremented the start time in one-minute intervals for each minute between 10:00 AM and 11:00 AM on a typical weekday and put the results in a time lapse.
 
@@ -258,9 +258,20 @@ If you'd prefer to create a static output summarizing the results instead of or 
 
 ### 1. Prepare a Service Area layer in the map
 
-After creating your GTFS-enabled network dataset using the *Add GTFS to a Network Dataset* toolbox, [create a Service Area](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm) network analysis layer in the map for the facility or facilities you want to analyze, and configure the layer with the [correct analysis settings](./AddGTFStoND_UsersGuide.html#Step7).  Solve it for a few different times of day to make sure it works and that you get the results you want.
+All Network Analyst layers, such as a Service Area analysis layer, must reference a network data source. To run this tool, you must create and configure an Origin-Destination Cost Matrix analysis layer referencing a transit-enabled network dataset created with either the downloadable [*Add GTFS to a Network Dataset* toolset](http://arcg.is/10jXez) in ArcMap or the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
-You can also [save your Service Area layer as a .lyr file](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm) to use as input for the tool.  This will be particularly useful is you want to run this tool in a python script outside of ArcMap.
+- [Learn how to create and configure a Service Area analysis layer in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm)
+- [Learn how to create and configure a Service Area analysis layer in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/service-area-tutorial.htm)
+- [Learn how to configure Service Area properties in ArcMap.](https://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/service-area.htm#GUID-21ADEC62-F784-4180-8D4D-547FB50621FD)
+- [Learn how to configure Service Area properties in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/service-area-analysis-layer.htm#ESRI_SECTION1_D36A18B15D704F0DBA9B4C766A4A2719)
+
+If you're using ArcMap, first make sure to [configure your analysis layer with correct settings](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step8) according to the *Add GTFS to a Network Dataset* tool's user's guide.
+
+You can also save your Service Area analysis layer to a layer file to use as input for the tool.  This is useful if you want to run this tool in a standalone python script.
+
+- [Learn how to save a Network Analyst layer to a layer file in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm)
+- [Learn how to save a Network Analyst layer to a layer file in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/save-to-layer-file.htm)
+
 
 ### 2. Run the *Prepare Time Lapse Polygons* tool
 Once your Service Area layer is prepared, run the *Prepare Time Lapse Polygons* tool to solve the service area for a range of start times and save the output polygons to a feature class.  You can use this feature class to make a time lapse video.
@@ -268,7 +279,7 @@ Once your Service Area layer is prepared, run the *Prepare Time Lapse Polygons* 
 ![Screenshot of tool dialog](./images/Screenshot_PrepareTimeLapsePolygons_Dialog.png)
 
 #### Inputs
-* **Service Area Layer**: A ready-to-solve Service Area layer in your map or saved as a .lyr file (see previous section on how to set this up).
+* **Service Area Layer**: A ready-to-solve Service Area layer in your map or saved as a layer file (see previous section on how to set this up).
 * **Output Polygons Feature Class**: A feature class that will be the output of this tool, which you will use to create your time lapse video.
 * **Start Day (Weekday or YYYYMMDD date)**: Day of the week or YYYYMMDD date for the first start time of your analysis.  [Learn when to use a generic weekday or a specific date.](#Dates)
 * **Start Time (HH:MM) (24 hour time)**: The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2 AM is 02:00, and 2 PM is 14:00.
@@ -292,7 +303,7 @@ First, enable time on the output polygons layer.  Open the layer properties, go 
 After you have done this, you can follow the steps in the ArcMap documentation for [exporting a time visualization to a video](http://desktop.arcgis.com/en/arcmap/latest/map/time/exporting-a-time-visualization-to-a-video.htm).  For some help using the Time Slider to prepare your video, check out [this documentation](http://desktop.arcgis.com/en/arcmap/latest/map/time/using-the-time-slider.htm).
 
 #### ArcGIS Pro
-Although you cannot use ArcGIS Pro to create your GTFS-enabled network dataset or run analyses with it, you can use the feature class created with the *Prepare Time Lapse Polygons* tool make your time lapse video in ArcGIS Pro.  Please check out the [ArcGIS Pro documentation](https://pro.arcgis.com/en/pro-app/help/mapping/animation/animate-through-time.htm) for how to do this.
+[Learn how to create an animation in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/mapping/animation/animate-through-time.htm)
 
 
 ## <a name="Dates"></a>When to use a specific date or a generic weekday in your analysis
