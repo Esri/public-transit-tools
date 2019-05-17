@@ -17,7 +17,7 @@ The *Transit Network Analysis Tools* must be used with a transit-enabled network
 
 ## Requirements
 
-* ArcMap 10.1 or higher or ArcGIS Pro 2.4 or higher. A Desktop Basic license is sufficient.
+* ArcMap 10.2 or higher or ArcGIS Pro 2.4 or higher. A Desktop Basic license is sufficient.
 * Network Analyst extension.
 * A transit-enabled network dataset created either with the downloadable [Add GTFS to a Network Dataset toolset](http://arcg.is/10jXez) in ArcMap or using the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 

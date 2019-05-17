@@ -14,7 +14,7 @@ BetterBusBuffers is a toolset to help you quantitatively measure access to publi
 
 ## Requirements
 
-* ArcGIS 10.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher.
+* ArcGIS 10.2 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher.
 * The *Count High Frequency Routes at Stops* tool requires ArcGIS 10.4 or higher or ArcGIS Pro 1.2 or higher.
 * You need the Desktop Advanced (ArcInfo) license in order to run the *Count Trips in Polygon Buffers around Stops* tool.
 * All tools except *Count Trips at Stops*, *Count Trips at Points Online*, *Count High Frequency Routes at Stops*, and those in the *Count Trips on Lines* toolset require the Network Analyst extension.
