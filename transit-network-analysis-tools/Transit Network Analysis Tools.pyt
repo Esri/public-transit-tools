@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 16 May 2019
+## Last updated: 17 May 2019
 ############################################################################
 ''' Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
 suite.'''
@@ -32,7 +32,7 @@ class Toolbox(object):
         # List of tool classes associated with this toolbox
         self.tools = [
             PrepareTimeLapsePolygons,
-            # CalculateAccessibilityMatrix,
+            CalculateAccessibilityMatrix,
             CalculateTravelTimeStatistics,
             # CreatePercentAccessPolygons
             ]
@@ -279,6 +279,139 @@ class CalculateTravelTimeStatistics(object):
             combinedOutFC
             )
         return
+
+
+
+
+class CalculateAccessibilityMatrix(object):
+    def __init__(self):
+        """Define the tool (tool name is the name of the class)."""
+        self.label = "Calculate Accessibility Matrix"
+        self.description = (
+            "Count the number of destinations reachable from each origin by transit and walking. The tool calculates ",
+            "an Origin-Destination Cost Matrix for each start time within a time window because the reachable ",
+            "destinations change depending on the time of day because of the transit schedules. The output gives the ",
+            "total number of destinations reachable at least once as well as the number of destinations reachable at ",
+            "least 10%, 20%, ...90% of start times during the time window. The number of reachable destinations can ",
+            "be weighted based on a field, such as the number of jobs available at each destination. The tool also ",
+            "calculates the percentage of total destinations reachable."
+        )
+        self.canRunInBackground = True
+
+    def getParameterInfo(self):
+        """Define parameter definitions"""
+
+        params = [
+
+            arcpy.Parameter(
+                displayName="OD Cost Matrix Layer",
+                name="OD_Cost_Matrix_Layer",
+                datatype="GPNALayer",
+                parameterType="Required",
+                direction="Input"),
+
+            arcpy.Parameter(
+                displayName="Origins",
+                name="Origins",
+                datatype="GPFeatureLayer",
+                parameterType="Required",
+                direction="Input"),
+
+            arcpy.Parameter(
+                displayName="Destinations",
+                name="Destinations",
+                datatype="GPFeatureLayer",
+                parameterType="Required",
+                direction="Input"),
+
+            arcpy.Parameter(
+                displayName="Destinations Weight Field",
+                name="Destinations_Weight_Field",
+                datatype="Field",
+                parameterType="Optional",
+                direction="Input"),
+
+            make_parameter(param_startday),
+            make_parameter(param_starttime),
+            make_parameter(param_endday),
+            make_parameter(param_endtime),
+            make_parameter(param_timeinc)
+        ]
+
+        params[1].filter.list = ["Point"]
+        params[2].filter.list = ["Point"]
+        params[3].filter.list = ["Short", "Long", "Double"]
+        params[3].parameterDependencies = [params[2].name]
+
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        if not arcpy.CheckExtension("network"):
+            return False
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
+        return
+
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal validation for each tool
+        parameter.  This method is called after internal validation."""
+        start_day = parameters[4]
+        end_day = parameters[6]
+        start_time = parameters[5]
+        end_time = parameters[7]
+        increment = parameters[8]
+
+        # Show a filter list of weekdays but also allow YYYYMMDD dates
+        ToolValidator.allow_YYYYMMDD_day(start_day)
+        ToolValidator.validate_day(end_day)
+
+        ToolValidator.set_end_day(start_day, end_day)
+
+        # Make sure time of day format is correct and time window is valid
+        ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+
+        # Make sure time increment is good
+        ToolValidator.validate_time_increment(increment)
+
+        return
+
+    def execute(self, parameters, messages):
+        """The source code of the tool."""
+        import CalculateAccessibility
+        NALayer = parameters[0].value
+        origins = parameters[1].value
+        destinations = parameters[2].value
+        weight_field = parameters[3].valueAsText
+        start_day = parameters[4].valueAsText
+        start_time = parameters[5].valueAsText
+        end_day = parameters[6].valueAsText
+        end_time = parameters[7].valueAsText
+        increment = parameters[8].value
+
+        # For some reason there are problems passing layer objects through in ArcMap when the input is a map layer,
+        # so create a fresh layer object from it.
+        if not ToolValidator.ispy3:
+            if not isinstance(NALayer, (unicode, str)):
+                NALayer = arcpy.mapping.Layer(NALayer.name)
+
+        CalculateAccessibility.runTool(
+            NALayer,
+            origins,
+            destinations,
+            weight_field,
+            start_day,
+            start_time,
+            end_day,
+            end_time,
+            increment
+            )
+        return
+
 
 
 
