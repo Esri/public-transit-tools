@@ -18,6 +18,7 @@ suite.'''
    limitations under the License.'''
 ################################################################################
 
+import os
 import arcpy
 import ToolValidator
 
@@ -34,8 +35,8 @@ class Toolbox(object):
             PrepareTimeLapsePolygons,
             CalculateAccessibilityMatrix,
             CalculateTravelTimeStatistics,
-            # CreatePercentAccessPolygons
-            ]
+            CreatePercentAccessPolygons
+        ]
 
 
 class PrepareTimeLapsePolygons(object):
@@ -136,6 +137,173 @@ class PrepareTimeLapsePolygons(object):
             end_day,
             end_time,
             increment
+            )
+        return
+
+
+class CreatePercentAccessPolygons(object):
+    def __init__(self):
+        """Define the tool (tool name is the name of the class)."""
+        self.label = "Create Percent Access Polygons"
+        self.description = (
+            "This script will compute the percentage of times an isochrone represents an areas transit access based ",
+            "on the union of time lapsed polygons. It will provide a polyon representation of transit's range of ",
+            "access that can be used for weighted accessibiilty calculations."
+        )
+        self.canRunInBackground = True
+
+    def getParameterInfo(self):
+        """Define parameter definitions"""
+
+        params = [
+
+            arcpy.Parameter(
+                displayName="Input time lapse polygons feature class",
+                name="Input_time_lapse_polygons_feature_class",
+                datatype="GPFeatureLayer",
+                parameterType="Required",
+                direction="Input"),
+
+            arcpy.Parameter(
+                displayName="Output percent access polygons feature class",
+                name="Output_percent_access_polygons_feature_class",
+                datatype="DEFeatureClass",
+                parameterType="Required",
+                direction="Output"),
+
+            arcpy.Parameter(
+                displayName="Cell size",
+                name="Cell_size",
+                datatype="GPDouble",
+                parameterType="Required",
+                direction="Input"),
+
+            arcpy.Parameter(
+                displayName="Cell size units",
+                name="Cells_size_units",
+                datatype="GPString",
+                parameterType="Optional",
+                direction="Input"),
+
+            arcpy.Parameter(
+                displayName="Output threshold percentage feature class",
+                name="Output_threshold_percentage_feature_class",
+                datatype="DEFeatureClass",
+                parameterType="Optional",
+                direction="Output"),
+
+            arcpy.Parameter(
+                displayName="Percentage thresholds",
+                name="Percentage_thresholds",
+                datatype="GPDouble",
+                parameterType="Optional",
+                direction="Input",
+                multiValue=True)
+        ]
+
+        params[0].filter.list = ["Polygon"]
+        params[1].symbology = os.path.join(os.path.dirname(__file__), 'Symbology_Cells.lyr')
+        params[2].value = 100
+        params[3].enabled = False
+        params[5].filter.type = "Range"
+        params[5].filter.list = [0, 100]
+
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        if not arcpy.CheckExtension("network"):
+            return False
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
+
+        param_in_time_lapse_polys = parameters[0]
+        param_cell_size_units = parameters[3]
+        param_fc2 = parameters[4]
+        param_percents = parameters[5]
+
+        if param_in_time_lapse_polys.altered and param_in_time_lapse_polys.value:
+            in_polys = param_in_time_lapse_polys.valueAsText
+            if arcpy.Exists(in_polys):
+                SR = arcpy.Describe(in_polys).spatialReference
+                # Populate the cell size units box with the linear units of the spatial reference
+                param_cell_size_units.value = SR.linearUnitName
+
+        # Disable the percent list if no output feature class has been selected
+        if param_fc2.value:
+            param_percents.enabled = True
+        else:
+            param_percents.enabled = False
+
+        return
+
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal validation for each tool
+        parameter.  This method is called after internal validation."""
+
+        param_in_time_lapse_polys = parameters[0]
+        param_cell_size = parameters[2]
+        param_cell_size_units = parameters[3]
+        param_fc2 = parameters[4]
+        param_percents = parameters[5]
+        required_input_fields = set(["FacilityID", "Name", "FromBreak", "ToBreak", "TimeOfDay"])
+        unit_limits = {
+            "Meter": 5,
+            "Foot": 16.4,
+            "Foot_US": 16.4
+        }
+
+        # Make sure the input time lapse polygons are projected and have the correct fields
+        if param_in_time_lapse_polys.altered and param_in_time_lapse_polys.value:
+            in_polys = param_in_time_lapse_polys.valueAsText
+            if arcpy.Exists(in_polys):
+                desc = arcpy.Describe(in_polys)
+                SR = desc.spatialReference
+                if SR.type != "Projected":
+                    param_in_time_lapse_polys.setErrorMessage(
+                        "Input time lapse polygons must be in a projected coordinate system."
+                        )
+                fields = set([f.name for f in desc.fields])
+                if not required_input_fields.issubset(fields):
+                    param_in_time_lapse_polys.setErrorMessage(
+                        "Input time lapse polygons are missing one or more required fields. Required: " + \
+                        str(required_input_fields)
+                        )
+
+        # Make sure the cell size is reasonable
+        if param_cell_size.altered and param_cell_size_units.value in unit_limits:
+            if float(param_cell_size.value) < unit_limits[param_cell_size_units.value]:
+                param_cell_size.setWarningMessage(
+                    "Your chosen cell size is very small. The tool may run slowly or run out of memory."
+                )
+
+        if param_fc2.value and not param_percents.value:
+            param_percents.setWarningMessage(
+                    "You designated an output threshold percentage feature class but did not set any percentage " +
+                    "thresholds. No output threshold percentage feature class will be created."
+                )
+
+        return
+
+    def execute(self, parameters, messages):
+        """The source code of the tool."""
+        import CreatePercentAccessPolygon
+        in_time_lapse_polys = parameters[0].value
+        outfc = parameters[1].valueAsText
+        cell_size = parameters[2].value
+        fc2 = parameters[4].valueAsText
+        percents = parameters[5].values
+
+        CreatePercentAccessPolygon.main(
+            in_time_lapse_polys,
+            outfc,
+            cell_size,
+            fc2,
+            percents
             )
         return
 
@@ -281,8 +449,6 @@ class CalculateTravelTimeStatistics(object):
         return
 
 
-
-
 class CalculateAccessibilityMatrix(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -411,8 +577,6 @@ class CalculateAccessibilityMatrix(object):
             increment
             )
         return
-
-
 
 
 # region parameters

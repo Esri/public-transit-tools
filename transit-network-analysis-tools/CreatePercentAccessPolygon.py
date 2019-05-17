@@ -3,7 +3,7 @@
 ## Tool name: Create Percent Access Polygons
 ## Created by: David Wasserman, Fehr & Peers, https://github.com/d-wasserman
 ##        and: Melinda Morang, Esri
-## Last updated: 8 September 2018
+## Last updated: 17 May 2019
 ################################################################################
 ''''''
 ################################################################################
@@ -19,7 +19,7 @@
    limitations under the License.'''
 ################################################################################
 ################################################################################
-'''Copyright 2018 Esri
+'''Copyright 2019 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -31,6 +31,7 @@
    limitations under the License.'''
 ################################################################################
 
+import sys
 import os
 import time
 import uuid
@@ -187,24 +188,15 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
         arcpy.management.Delete(temp_out_dissolve_fc)
 
 
-def main():
+def main(in_time_lapse_polys, out_cell_counts_fc, cell_size, out_percents_fc, percents=[]):
 
     arcpy.env.overwriteOutput = True
     # Use the scratchGDB as a holder for temporary output
     scratchgdb = arcpy.env.scratchGDB
 
-    # Feature class of polygons created by the Prepare Time Lapse Polygons tool
-    # The feature class must be in a projected coordinate system, but this is checked in tool validation
-    in_time_lapse_polys = arcpy.GetParameterAsText(0)
-    out_cell_counts_fc = arcpy.GetParameterAsText(1)
-    # Raster cell size for output (length or width of cell, not area)
-    cell_size = float(arcpy.GetParameterAsText(2))
-    out_percents_fc = arcpy.GetParameterAsText(4)
     # List of percent of times accessed to summarize in results
     if not out_percents_fc:
         percents = []
-    else:
-        percents = arcpy.GetParameter(5)
 
     # Hard-coded "options"
     # Field names that must be in the input time lapse polygons
@@ -307,4 +299,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Feature class of polygons created by the Prepare Time Lapse Polygons tool
+    # The feature class must be in a projected coordinate system, but this is checked in tool validation
+    in_time_lapse_polys = sys.argv[1]
+    out_cell_counts_fc = sys.argv[2]
+    # Raster cell size for output (length or width of cell, not area)
+    cell_size = sys.argv[3]
+    out_percents_fc = sys.argv[4]
+    # List of percent of times accessed to summarize in results
+    percents = sys.argv[5]
+    main(in_time_lapse_polys, out_cell_counts_fc, cell_size, out_percents_fc, percents)
