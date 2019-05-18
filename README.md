@@ -2,6 +2,7 @@
 This project contains tools for working with public transit data in ArcGIS.  Each folder contains a different tool with documentation.
 
 - [add-GTFS-to-a-network-dataset](add-GTFS-to-a-network-dataset/README.md)
+- [transit-network-analysis-tools](transit-network-analysis-tools/README.md)
 - [better-bus-buffers](better-bus-buffers/README.md)
 - [display-GTFS-in-ArcGIS](display-GTFS-in-ArcGIS/README.md)
 - [edit-GTFS-stop-locations](edit-GTFS-stop-locations/README.md)
@@ -21,7 +22,7 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing).
 
 ## Licensing
-Copyright 2018 Esri
+Copyright 2019 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
