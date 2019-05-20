@@ -319,4 +319,4 @@ Inside the calendar.txt file, the weekday fields (monday, tuesday, etc.) define 
 The same principles apply if you created your network dataset from some other, non-GTFS public transit source data.
 
 ## Questions or problems?
-Check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md).  If you're still having trouble, search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
