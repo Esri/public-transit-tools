@@ -314,7 +314,7 @@ Before running your analysis, make sure to tell it to run at a particular time o
 
 ![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_TimeOfDay.png)
 
-Note that the results of your analysis will be heavily dependent on the time of day. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.  A demonstration of this can be seen in [this video](https://youtu.be/tTSd6qJlans) (if you like this video, instructions to make one like it are in the [Transit Analysis Tools user's guide](./TransitAnalysisTools_UsersGuide.html#TimeLapse)).
+Note that the results of your analysis will be heavily dependent on the time of day. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.  A demonstration of this can be seen in [this video](https://youtu.be/tTSd6qJlans) (if you like this video, instructions to make one like it are in the [Transit Analysis Tools user's guide](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools/UsersGuide.md#TimeLapse)).
 
 ### <a name="Dates"></a>Specific vs. generic dates
 
@@ -358,7 +358,7 @@ To do this, you first need to create the appropriate parameters on your transit 
 
 ![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_ExcludeRoutes.png)
 
-The value for these parameters can be a list of one or more GTFS route_ids or trip_ids, which you can look up in your original GTFS text files.  You can also use the Transit Identify tool (in the Transit Analysis Tools toolbox included with the Add GTFS to a Network Dataset download) to determine which routes and trips serve a particular network transit line.
+The value for these parameters can be a list of one or more GTFS route_ids or trip_ids, which you can look up in your original GTFS text files.  You can also use the [*Transit Identify*](#TransitIdentify) tool to determine which routes and trips serve a particular network transit line.
 
 The route_id and trip_id values must additionally include a prefix indicating which GTFS dataset they are from (because a network containing data from multiple GTFS datasets may have some routes or trips with the same route_id or trip_id).  In the image shown here, my GTFS dataset was in a folder called "SORTA" (which stands for "Southwest Ohio Regional Transit Authority", in case you're curious), and I am excluding route_id 9501 and route_id 9502, and trip_id 795893.  If you can't remember what your GTFS data's folder name is/was, the quickest way to figure out the correct prefix is to use the *Transit Identify* tool.
 
