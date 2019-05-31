@@ -278,7 +278,7 @@ The input for this tool is just your network dataset.  There is no output.  It s
 
 ## <a name="Step8"></a>8) Choose the correct analysis settings
 
-Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS and the supplemental tools in [Transit Analysis Tools.tbx](./TransitAnalysisTools_UsersGuide.html).  If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
+Congratulations!  Your network dataset is ready to use with the standard Network Analyst tools in ArcGIS and the supplemental tools in [Transit Analysis Tools.tbx](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md).  If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
 
 Recall that the basic workflow for running network analyses is as follows:
 
@@ -303,7 +303,7 @@ Before running your analysis, make sure to tell it to run at a particular time o
 
 ![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_TimeOfDay.png)
 
-Note that the results of your analysis will be heavily dependent on the time of day. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.  A demonstration of this can be seen in [this video](https://youtu.be/tTSd6qJlans) (if you like this video, instructions to make one like it are in the [Transit Analysis Tools user's guide](./TransitAnalysisTools_UsersGuide.html#TimeLapse)).
+Note that the results of your analysis will be heavily dependent on the time of day. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.  A demonstration of this can be seen in [this video](https://youtu.be/tTSd6qJlans) (if you like this video, instructions to make one like it are in the [Transit Analysis Tools user's guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md#TimeLapse)).
 
 ### <a name="Dates"></a>Specific vs. generic dates
 
