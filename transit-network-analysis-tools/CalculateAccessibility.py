@@ -2,7 +2,7 @@
 ## Toolbox: Transit Network Analysis Tools
 ## Tool name: Calculate Accessibility Matrix
 ## Created by: Melinda Morang, Esri
-## Last updated: 17 May 2019
+## Last updated: 17 June 2019
 ################################################################################
 '''Count the number of destinations reachable from each origin by transit and 
 walking. The tool calculates an Origin-Destination Cost Matrix for each start 
@@ -34,8 +34,39 @@ class CustomError(Exception):
     pass
 
 
-def runTool(input_network_analyst_layer, origins_feature_class, destinations_feature_class, destinations_weight_field,
-            start_day_input, start_time_input, end_day_input, end_time_input, increment_input):
+def runTool(input_network_analyst_layer, origins_feature_class, destinations_feature_class,
+            destinations_weight_field=None, start_day_input="Wednesday", start_time_input="08:00",
+            end_day_input="Wednesday", end_time_input="09:00", increment_input=1):
+    """Solves an Origin-Destination Cost Matrix analysis for multiple times of day and summarizes the results.
+    
+    The user specifies a time window, and the tool will run the analysis for each minute within the time window. In
+    addition to counting the total number of destinations reachable at least once during the time window, the tool
+    output also shows the number of destinations reachable at least 10%, 20%, ...90% of start times during the time
+    window.
+
+    Parameters: 
+    input_network_analyst_layer: An OD Cost Matrix layer in your map or saved as a layer file.
+    origins_feature_class: A point feature class representing the locations you want to calculate accessibility measures
+        for. For example, your origins might be census block centroids or the centroids of individual parcels.
+    destinations_feature_class: A point feature class representing the destinations your origins will travel to. For
+        example, if you want to measure your origins' level of accessibility to jobs, your Destinations could be the
+        locations of employment centers.
+    destinations_weight_field: Optionally, choose a field from your destinations_feature_class that will be used as a
+        weight. For example, if your destinations represent employment centers, the weight field could be the number of
+        jobs available at each point. Only integer and double fields can be used for the weight field. If you do not
+        choose a weight field, each destination will be counted as 1.
+    start_day_input: Day of the week or YYYYMMDD date for the first start time of your analysis.
+    start_time_input: The lower end of the time window you wish to analyze. Must be in HH:MM format (24-hour time). For
+        example, 2 AM is 02:00, and 2 PM is 14:00.
+    end_day_input:  If you're using a generic weekday for start_day_input, you must use the same day. If you want to run
+        an analysis spanning multiple days, choose specific YYYYMMDD dates for both start_day_input and end_day_input.
+    end_time_input: The upper end of the time window you wish to analyze. Must be in HH:MM format (24-hour time). The
+        end_time_input is inclusive, meaning that an analysis will be performed for the time of day you enter here.
+    increment_input: Increment the OD Cost Matrix's time of day by this amount between solves. For example, for a
+        increment_input of 1 minute, the OD Cost Matrix will be solved for 10:00, 10:01, 10:02, etc. A increment_input
+        of 2 minutes would calculate the OD Cost Matrix for 10:00, 10:02, 10:04, etc.
+
+    """
 
     try:
 

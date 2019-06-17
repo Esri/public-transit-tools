@@ -2,7 +2,7 @@
 ## Toolbox: Transit Network Analysis Tools
 ## Tool name: Calculate Travel Time Statistics
 ## Created by: Melinda Morang, Esri
-## Last updated: 16 May 2019
+## Last updated: 17 June 2019
 ################################################################################
 '''Solve an OD Cost Matrix or Route iteratively over a time window and output a 
 table of statistics describing the travel time over the time window for each
@@ -34,8 +34,39 @@ class CustomError(Exception):
     pass
 
 def runTool(input_network_analyst_layer, output_table,
-            start_day_input, start_time_input, end_day_input, end_time_input, increment_input,
-            save_combined_output, combined_output):
+            start_day_input="Wednesday", start_time_input="08:00",
+            end_day_input="Wednesday", end_time_input="09:00", increment_input=1,
+            save_combined_output=False, combined_output=None):
+    """Calculates some simple statistics about the total transit travel time between locations over a time window.
+    
+    For each origin-destination pair in an OD Cost Matrix layer or each route in a Route layer, the tool calculates:
+    - Minimum travel time
+    - Maximum travel time
+    - Mean travel time
+    
+    The output is written to a table.
+
+    Parameters:
+    input_network_analyst_layer: A ready-to-solve Origin-Destination Cost Matrix or Route layer in your map or saved as
+        a layer file.
+    output_table: The output geodatabase table, which will contain the travel time statistics.
+    start_day_input: Day of the week or YYYYMMDD date for the first start time of your analysis.
+    start_time_input: The lower end of the time window you wish to analyze. Must be in HH:MM format (24-hour time). For
+        example, 2 AM is 02:00, and 2 PM is 14:00.
+    end_day_input:  If you're using a generic weekday for start_day_input, you must use the same day. If you want to run
+        an analysis spanning multiple days, choose specific YYYYMMDD dates for both start_day_input and end_day_input.
+    end_time_input: The upper end of the time window you wish to analyze. Must be in HH:MM format (24-hour time). The
+        end_time_input is inclusive, meaning that an analysis will be performed for the time of day you enter here.
+    increment_input: Increment the network analysis layer's time of day by this amount between solves. For example, for
+        a increment_input of 1 minute, the output would include results for 10:00, 10:01, 10:02, etc. A increment_input
+        of 2 minutes would generate results for 10:00, 10:02, 10:04, etc.
+    save_combined_output: Boolean indicating whether to save the network analysis layer's output sublayer (Lines for OD
+        Cost Matrix, Routes for Route) for each time slice into a single combined feature class. Using this option slows
+        the tool's performance.
+    combined_output: If save_combined_output, specify the path to an output feature class to store the results. The
+        output must be a feature class in a geodatabase, not a shapefile.
+
+    """
 
     try:
 

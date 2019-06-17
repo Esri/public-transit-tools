@@ -2,7 +2,7 @@
 ## Toolbox: Transit Network Analysis Tools
 ## Tool name: Prepare Time Lapse Polygons
 ## Created by: Melinda Morang, Esri
-## Last updated: 16 May 2019
+## Last updated: 17 June 2019
 ################################################################################
 '''Run a Service Area analysis incrementing the time of day. Save the polygons 
 to a feature class that can be used to generate a time lapse video.'''
@@ -28,8 +28,28 @@ arcpy.env.overwriteOutput = True
 class CustomError(Exception):
     pass
 
-def runTool(input_network_analyst_layer, output_feature_class,
-            start_day_input, start_time_input, end_day_input, end_time_input, increment_input):
+def runTool(input_network_analyst_layer, output_feature_class, start_day_input="Wednesday", start_time_input="08:00",
+            end_day_input="Wednesday", end_time_input="09:00", increment_input=1):
+    """Iteratively calculate Service Area polygons for each time increment within a time window.
+    
+    Creates an output polygon feature class contain one row per Service Area per time of day solved.
+
+    Parameters: 
+    input_network_analyst_layer: A ready-to-solve Service Area layer in your map or saved as a layer file.
+    output_feature_class: The output feature class.
+    start_day_input: Day of the week or YYYYMMDD date for the first start time of your analysis.
+    start_time_input: The lower end of the time window you wish to analyze. Must be in HH:MM format (24-hour time). For
+        example, 2 AM is 02:00, and 2 PM is 14:00.
+    end_day_input:  If you're using a generic weekday for start_day_input, you must use the same day. If you want to run
+        an analysis spanning multiple days, choose specific YYYYMMDD dates for both start_day_input and end_day_input.
+    end_time_input: The upper end of the time window you wish to analyze. Must be in HH:MM format (24-hour time). The
+        end_time_input is inclusive, meaning that a Service Area polygon will be included in the results for the time of
+        day you enter here.
+    increment_input: Increment the Service Area's time of day by this amount between solves (in minutes). For example,
+        for a Time Increment of 1 minute, the results may include a Service Area polygon for 10:00, 10:01, 10:02, etc. A
+            increment_input of 2 minutes would generate Service Area polygons for 10:00, 10:02, 10:04, etc.
+
+    """
 
     try:
 

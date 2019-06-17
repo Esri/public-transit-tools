@@ -3,7 +3,7 @@
 ## Tool name: Create Percent Access Polygons
 ## Created by: David Wasserman, Fehr & Peers, https://github.com/d-wasserman
 ##        and: Melinda Morang, Esri
-## Last updated: 17 May 2019
+## Last updated: 17 June 2019
 ################################################################################
 ''''''
 ################################################################################
