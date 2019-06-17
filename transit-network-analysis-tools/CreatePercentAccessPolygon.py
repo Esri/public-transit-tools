@@ -189,7 +189,12 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
 
 
 def main(in_time_lapse_polys, out_cell_counts_fc, cell_size, out_percents_fc, percents=[]):
-
+    """This function will run the percent access polygon tool given its parameters.
+    :param in_time_lapse_polys - input time lapse polygons
+    :param out_cell_counts_fc - out polygon with percentage access
+    :param cell_size - output cellsize used
+    :param out_percents_fc - output feature class if we have percentage outputs
+    :param percents - percents to determine breaks for percent access"""
     arcpy.env.overwriteOutput = True
     # Use the scratchGDB as a holder for temporary output
     scratchgdb = arcpy.env.scratchGDB
