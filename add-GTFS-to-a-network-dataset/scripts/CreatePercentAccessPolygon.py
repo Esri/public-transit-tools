@@ -187,25 +187,16 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
         arcpy.management.Delete(temp_out_dissolve_fc)
 
 
-def main():
-
+def main(in_time_lapse_polys,out_cell_counts_fc,cell_size,out_percents_fc=None,percents=[]):
+    """This function will run the percent access polygon tool given its parameters.
+    :param in_time_lapse_polys - input time lapse polygons
+    :param out_cell_counts_fc - out polygon with percentage access
+    :param cell_size - output cellsize used
+    :param out_percents_fc - output feature class if we have percentage outputs
+    :param percents - percents to determine breaks for percent access"""
     arcpy.env.overwriteOutput = True
     # Use the scratchGDB as a holder for temporary output
     scratchgdb = arcpy.env.scratchGDB
-
-    # Feature class of polygons created by the Prepare Time Lapse Polygons tool
-    # The feature class must be in a projected coordinate system, but this is checked in tool validation
-    in_time_lapse_polys = arcpy.GetParameterAsText(0)
-    out_cell_counts_fc = arcpy.GetParameterAsText(1)
-    # Raster cell size for output (length or width of cell, not area)
-    cell_size = float(arcpy.GetParameterAsText(2))
-    out_percents_fc = arcpy.GetParameterAsText(4)
-    # List of percent of times accessed to summarize in results
-    if not out_percents_fc:
-        percents = []
-    else:
-        percents = arcpy.GetParameter(5)
-
     # Hard-coded "options"
     # Field names that must be in the input time lapse polygons
     facility_id_field = "FacilityID"
@@ -307,4 +298,16 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Feature class of polygons created by the Prepare Time Lapse Polygons tool
+    # The feature class must be in a projected coordinate system, but this is checked in tool validation
+    in_time_lapse_polys = arcpy.GetParameterAsText(0)
+    out_cell_counts_fc = arcpy.GetParameterAsText(1)
+    # Raster cell size for output (length or width of cell, not area)
+    cell_size = float(arcpy.GetParameterAsText(2))
+    out_percents_fc = arcpy.GetParameterAsText(4)
+    # List of percent of times accessed to summarize in results
+    if not out_percents_fc:
+        percents = []
+    else:
+        percents = arcpy.GetParameter(5)
+    main(in_time_lapse_polys,out_cell_counts_fc,cell_size,out_percents_fc,percents)
