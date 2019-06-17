@@ -188,7 +188,34 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
         arcpy.management.Delete(temp_out_dissolve_fc)
 
 
-def main(in_time_lapse_polys, out_cell_counts_fc, cell_size, out_percents_fc, percents=[]):
+def main(in_time_lapse_polys, out_cell_counts_fc, cell_size, out_percents_fc=None, percents=[]):
+    """Create 'typical access polygons' that represent the area reachable by transit across a time window.
+    
+    The tool attempts to account for the dynamic nature of transit schedules by overlaying service area polygons from
+    multiple times of day and summarizing the results in terms of the number or percentage of the input polygons that
+    cover an area. Areas covered by a larger percentage of input polygons were reached at more start times and are
+    consequently more frequently accessible to travelers.
+
+    The tool output will show you the percentage of times any given area was reached, and you can also choose to
+    summarize these results for different percentage thresholds. For example, you can find out what area can be reached
+    at least 75% of start times.
+
+    Parameters: 
+    in_time_lapse_polys: A polygon feature class created using the Prepare Time Lapse Polygons tool that you wish to
+        summarize. The feature class must be in a projected coordinate system.
+    out_cell_counts_fc: The main output feature class of the tool. Must be in a geodatabase; it cannot be a shapefile.
+    cell_size: This tool rasterizes the input polygons, essentially turning the study area into little squares. This is
+        the size for these squares. The cell size refers to the width or length of the cell, not the area. The units for
+        the cell size are the linear units of the projected coordinate system of the input time lapse polygons.
+    out_percents_fc: Optional output feature class that further summarizes the output percent access polygons feature
+        class. If you specify one or more percentage thresholds, this output contains polygons showing the area reached
+        at least as often as your designated percentage thresholds. There will be a separate feature for each percentage
+        threshold for each unique combination of FacilityID, FromBreak, and ToBreak in the input data.
+    percents: You can choose to summarize the tool's raw output for different percentage thresholds. For example, you
+        can find out what area can be reached at least 75% of start times by setting 75 as one of your percentage
+        thresholds. Specified as a list of percents.
+
+    """
 
     arcpy.env.overwriteOutput = True
     # Use the scratchGDB as a holder for temporary output
