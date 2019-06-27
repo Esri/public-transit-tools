@@ -291,6 +291,7 @@ Congratulations!  Your network dataset is ready to use with the standard Network
 
 If you are new to ArcGIS Network Analyst or need a refresher, please review the [Network Analyst tutorials](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/about-the-network-analyst-tutorial-exercises.htm) before proceeding.
 
+
 Recall that the basic workflow for running network analyses is as follows:
 
 1. Make your network analysis layer (Service Area, OD Cost Matrix, Closest Facility, etc.)
