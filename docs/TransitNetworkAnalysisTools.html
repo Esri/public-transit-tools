@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta content="IE=edge" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, user-scalable=no">
-    <title>Interpolate Blank Stop Times | GTFS in ArcGIS</title>
+    <title>Transit Network Analysis Tools | GTFS in ArcGIS</title>
     <link rel="shortcut icon" href="/img/favicon.ico">
     <!-- get calcite-web css from the cdn (use latest version) -->
     <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/css/calcite-web.min.css">
@@ -38,10 +38,10 @@
       <h1 class="sub-nav-title text-white"><span class="banner-title">Tools</span></h1>
       <select class="phone-show select-full trailer-half js-select-nav">
 <option value="./TransitInArcGISPro.html">Public transit tools in ArcGIS Pro</option>
-<option value="./TransitNetworkAnalysisTools.html">Transit Network Analysis Tools</option>
+<option value="./TransitNetworkAnalysisTools.html" selected>Transit Network Analysis Tools</option>
 <option value="./BetterBusBuffers.html">BetterBusBuffers</option>
 <option value="./GenerateGTFSShapes.html">Generate GTFS Shapes</option>
-<option value="./InterpolateBlankStopTimes.html" selected>Interpolate Blank Stop Times</option>
+<option value="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</option>
 <option value="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</option>
 <option value="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</option>
 <option value="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</option>
@@ -49,10 +49,10 @@
 </select>
 <nav class="sub-nav-list phone-hide" aria-labelledby="subnav">
 <a class="sub-nav-link" href="./TransitInArcGISPro.html">Public transit tools in ArcGIS Pro</a>
-<a class="sub-nav-link" href="./TransitNetworkAnalysisTools.html">Transit Network Analysis Tools</a>
+<a class="sub-nav-link is-active" href="./TransitNetworkAnalysisTools.html">Transit Network Analysis Tools</a>
 <a class="sub-nav-link" href="./BetterBusBuffers.html">BetterBusBuffers</a>
 <a class="sub-nav-link" href="./GenerateGTFSShapes.html">Generate GTFS Shapes</a>
-<a class="sub-nav-link is-active" href="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</a>
+<a class="sub-nav-link" href="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</a>
 <a class="sub-nav-link" href="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</a>
 <a class="sub-nav-link" href="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</a>
 <a class="sub-nav-link" href="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</a>
@@ -64,12 +64,12 @@
 
   <!-- side bar with image and links -->
   <div class="column-7">
-    <img src="./images/InterpolateBlankStopTimes.png" alt="Interpolate Blank Stop Times screenshot">
-    <a href="http://arcg.is/fWmr9" rel="noopener" target="_blank" class="btn btn-fill leader-half trailer-half">Download</a>
+    <img src="./images/TransitNetworkAnalysisTools.png" alt="Transit Network Analysis Tools screenshot">
+    <a href="http://www.arcgis.com/home/item.html?id=23cc1b720eb0418db4d0e61955b8fe43" rel="noopener" target="_blank" class="btn btn-fill leader-half trailer-half">Download</a>
     <aside class="side-nav" id="sidenav">
       <nav aria-labelledby="sidenav">
-        <a href="https://github.com/Esri/public-transit-tools/tree/master/interpolate-blank-stop-times/UsersGuide.md" rel="noopener" target="_blank" class="side-nav-link">User's guide</a>
-        <a href="https://github.com/Esri/public-transit-tools/tree/master/interpolate-blank-stop-times" rel="noopener" target="_blank" class="side-nav-link">GitHub</a>
+        <a href="https://github.com/Esri/public-transit-tools/tree/master/transit-network-analysis-tools/UsersGuide.md" rel="noopener" target="_blank" class="side-nav-link">User's guide</a>
+        <a href="https://github.com/Esri/public-transit-tools/tree/master/transit-network-analysis-tools" rel="noopener" target="_blank" class="side-nav-link">GitHub</a>
       </nav>
     </aside>
   </div>
@@ -78,11 +78,23 @@
   <!-- main content -->
   <div class="column-16 pre-1">
 
-    <h2 class="leader-1">Interpolate Blank Stop Times</h2>
+    <h2 class="leader-1">Transit Network Analysis Tools</h2>
 
-    <p><strong>Use Interpolate Blank Stop Times to fill in blank arrival_time and departure_time values in your stop_times.txt file with reasonable estimates.</strong></p>
+    <p><strong>Perform transit-specific network analysis such as calculating accessibility and visualizing service areas over time using transit-enabled network datasets created in ArcMap or ArcGIS Pro.</strong></p>
 
-    <p>The Interpolate Blank Stop Times toolset is a utility for estimating arrival_time and departure_time values that have been left blank in the stop_times.txt GTFS file. Although blank values are allowed in valid GTFS datasets, actual or estimated times are required for certain types of analysis, particularly if you intend to use the <a href="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</a> or <a href="./BetterBusBuffers.html">BetterBusBuffers</a> tools.  You can use this tool to create a new stop_times.txt file with the blank values filled in with estimates.</p>
+    <p>The Transit Network Analysis Tools are a set of tools for performing transit-specific network analysis. They are intended to supplement the ArcGIS Network Analyst extension by accounting for the time-dependent nature of public transit and to assist with analyses commonly needed by those working with public transit.  For example, the tools provided here can help you perform accessibility calculations and show how the area reachable by transit changes throughout the day.</p>
+
+    <p>The Transit Network Analysis Tools must be used with a transit-enabled network dataset created either with the downloadable <a href="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</a> toolbox in ArcMap or using the <a href="https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm" target="_blank" rel="noopener">tools available natively in ArcGIS Pro</a>.</p>
+
+    <p>The <em>Calculate Travel Time Statistics</em> tool calculates some simple statistics about the total transit travel time between locations over a time window and writes the output to a table.</p>
+
+    <p>The <em>Calculate Accessibility Matrix</em> tool attempts to account for the dynamic nature of transit schedules by solving an Origin-Destination Cost Matrix analysis for multiple times of day and summarizing the results.  The user specifies a time window, and the tool will run the analysis for each minute within the time window.  In addition to counting the total number of destinations reachable at least once during the time window, the tool output also shows the number of destinations reachable at least 10%, 20%, ...90% of start times during the time window.  More detail on the tool output is available below.</p>
+
+    <p>The <em>Prepare Time Lapse Polygons</em> tool solves a Service Area analysis for multiple times of day and stores the results in a feature class that can be used to generate a time lapse video or as input to the Create Percent Access Polygons tool.</p>
+
+    <p>The <em>Create Percent Access Polygons</em> tool helps you create "typical access polygons" that better represent the area reachable by transit across a time window. The tool attempts to account for the dynamic nature of transit schedules by overlaying service area polygons from multiple times of day and summarizing the results in terms of the number or percentage of the input polygons that cover an area. Areas covered by a larger percentage of input polygons were reached at more start times and are consequently more frequently accessible to travelers.</p>
+
+    <p>These tools were formerly included in the Add GTFS to a Network Dataset download, but they are now separate.</p>
 
   </div>
 

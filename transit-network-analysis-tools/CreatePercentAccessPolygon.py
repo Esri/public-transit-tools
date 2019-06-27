@@ -1,9 +1,9 @@
 ################################################################################
-## Toolbox: Transit Analysis Tools
+## Toolbox: Transit Network Analysis Tools
 ## Tool name: Create Percent Access Polygons
 ## Created by: David Wasserman, Fehr & Peers, https://github.com/d-wasserman
 ##        and: Melinda Morang, Esri
-## Last updated: 8 September 2018
+## Last updated: 17 June 2019
 ################################################################################
 ''''''
 ################################################################################
@@ -19,7 +19,7 @@
    limitations under the License.'''
 ################################################################################
 ################################################################################
-'''Copyright 2018 Esri
+'''Copyright 2019 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -31,6 +31,7 @@
    limitations under the License.'''
 ################################################################################
 
+import sys
 import os
 import time
 import uuid
@@ -187,24 +188,42 @@ def create_percent_access_polys(raw_cell_counts, percents, out_fc, fields_to_pre
         arcpy.management.Delete(temp_out_dissolve_fc)
 
 
-def main():
+def main(in_time_lapse_polys, out_cell_counts_fc, cell_size, out_percents_fc=None, percents=[]):
+    """Create 'typical access polygons' that represent the area reachable by transit across a time window.
+    
+    The tool attempts to account for the dynamic nature of transit schedules by overlaying service area polygons from
+    multiple times of day and summarizing the results in terms of the number or percentage of the input polygons that
+    cover an area. Areas covered by a larger percentage of input polygons were reached at more start times and are
+    consequently more frequently accessible to travelers.
+
+    The tool output will show you the percentage of times any given area was reached, and you can also choose to
+    summarize these results for different percentage thresholds. For example, you can find out what area can be reached
+    at least 75% of start times.
+
+    Parameters: 
+    in_time_lapse_polys: A polygon feature class created using the Prepare Time Lapse Polygons tool that you wish to
+        summarize. The feature class must be in a projected coordinate system.
+    out_cell_counts_fc: The main output feature class of the tool. Must be in a geodatabase; it cannot be a shapefile.
+    cell_size: This tool rasterizes the input polygons, essentially turning the study area into little squares. This is
+        the size for these squares. The cell size refers to the width or length of the cell, not the area. The units for
+        the cell size are the linear units of the projected coordinate system of the input time lapse polygons.
+    out_percents_fc: Optional output feature class that further summarizes the output percent access polygons feature
+        class. If you specify one or more percentage thresholds, this output contains polygons showing the area reached
+        at least as often as your designated percentage thresholds. There will be a separate feature for each percentage
+        threshold for each unique combination of FacilityID, FromBreak, and ToBreak in the input data.
+    percents: You can choose to summarize the tool's raw output for different percentage thresholds. For example, you
+        can find out what area can be reached at least 75% of start times by setting 75 as one of your percentage
+        thresholds. Specified as a list of percents.
+
+    """
 
     arcpy.env.overwriteOutput = True
     # Use the scratchGDB as a holder for temporary output
     scratchgdb = arcpy.env.scratchGDB
 
-    # Feature class of polygons created by the Prepare Time Lapse Polygons tool
-    # The feature class must be in a projected coordinate system, but this is checked in tool validation
-    in_time_lapse_polys = arcpy.GetParameterAsText(0)
-    out_cell_counts_fc = arcpy.GetParameterAsText(1)
-    # Raster cell size for output (length or width of cell, not area)
-    cell_size = float(arcpy.GetParameterAsText(2))
-    out_percents_fc = arcpy.GetParameterAsText(4)
     # List of percent of times accessed to summarize in results
     if not out_percents_fc:
         percents = []
-    else:
-        percents = arcpy.GetParameter(5)
 
     # Hard-coded "options"
     # Field names that must be in the input time lapse polygons
@@ -307,4 +326,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Feature class of polygons created by the Prepare Time Lapse Polygons tool
+    # The feature class must be in a projected coordinate system, but this is checked in tool validation
+    in_time_lapse_polys = sys.argv[1]
+    out_cell_counts_fc = sys.argv[2]
+    # Raster cell size for output (length or width of cell, not area)
+    cell_size = sys.argv[3]
+    out_percents_fc = sys.argv[4]
+    # List of percent of times accessed to summarize in results
+    percents = sys.argv[5]
+    main(in_time_lapse_polys, out_cell_counts_fc, cell_size, out_percents_fc, percents)
