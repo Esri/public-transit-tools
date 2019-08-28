@@ -189,7 +189,7 @@ If you want to visualize the estimated Bearing calculated for each stop, you can
 
 ### <a name="ShapeProblems"></a>Common Shape problems and how to fix them
 
-#### The route makes small diversions into side streets####
+#### The route makes small diversions into side streets
 
 The stop is actually along the main road, but the stop latitute and longitude is actually slightly closer to a side road. Consequently, the stop snapped to the side road, and the bus had to turn into the side road to visit the stop and then make a U-turn or drive around the block to return to the main road.  You can edit these out easily using the Reshape Features Tool.
 
@@ -197,7 +197,7 @@ If this is a widespread problem in your data, see the [How to get the best resul
 
 ![Editing tips](./images/EditingTips_UTurns.png)
 
-#### The route doubles back on itself####
+#### The route doubles back on itself
 
 Although the stop should be on the right side of the road, the GTFS stop lat/lon location or the network dataset street location is slightly off, putting the stop on the wrong (left) side of the road.  This means that the bus had to make a U-turn to reach the stop, so the shape doubled back on itself.  Alternatively, the bus might have had to travel around the block in a big loop to turn around and visit the stop.
 
@@ -209,7 +209,7 @@ Sometimes, the bus legitimately travels the same road in both directions.  When 
 
 ![Editing tips](./images/EditingTips_Overlaps.png)
 
-#### The route diverts wildly from the expected path####
+#### The route diverts wildly from the expected path
 
 Sometimes the route will take a completely different path than expected. If you're using the Network Analyst version of Step 1, it could be that your network dataset isn't well connected or the street data isn't good in this area.
 
