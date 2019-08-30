@@ -23,7 +23,6 @@ stop_times.txt files are updated.'''
 import os, csv, sqlite3, codecs
 from operator import itemgetter
 import arcpy
-import DetermineUTMProjection
 
 class CustomError(Exception):
     pass
@@ -72,24 +71,6 @@ def write_SQL_table_to_text_file(tablename, csvfile, columns):
             WriteFile(f)
 
 
-def get_trips_with_shape_id(shape):
-    tripsfetch = '''SELECT trip_id FROM trips where shape_id="%s";''' % shape
-    c.execute(tripsfetch)
-    trips = c.fetchall()
-    return [trip[0] for trip in trips]
-
-
-def convert_meters_to_other_units(meters, units):
-    if units == "miles":
-        return meters * 0.000621371
-    elif units == "kilometers":
-        return meters / 1000.0
-    elif units == "feet":
-        return meters * 3.28084
-    elif units == "yards":
-        return meters * 1.09361
-
-
 try:
 
 # ----- Define variables -----
@@ -108,20 +89,13 @@ try:
     SQLDbase = os.path.join(inStep1GDB, "SQLDbase.sql")
     inShapes = os.path.join(inStep1GDB, "Shapes")
     inStops_wShapeIDs = os.path.join(inStep1GDB, "Stops_wShapeIDs")
-    inShapes_vertices_name = "Shapes_vertices"
-    inShapes_vertices = os.path.join(inStep1GDB, inShapes_vertices_name)
 
     # Important user output
     outShapesFile = os.path.join(outDir, 'shapes_new.txt')
     outTripsFile = os.path.join(outDir, 'trips_new.txt')
     outStopTimesFile = os.path.join(outDir, 'stop_times_new.txt')
 
-    # GTFS stops are in WGS coordinates
-    # WGSCoords = "GEOGCS['GCS_WGS_1984',DATUM['D_WGS_1984', \
-    # SPHEROID['WGS_1984',6378137.0,298.257223563]], \
-    # PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]]; \
-    # -400 -400 1000000000;-100000 10000;-100000 10000; \
-    # 8.98315284119522E-09;0.001;0.001;IsHighPrecision"
+    # GTFS is in WGS coordinates
     WGSCoords = arcpy.SpatialReference(4326)
 
 
@@ -151,7 +125,7 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
 
 # ----- Generate new trips.txt with shape_id populated -----
 
-    # We don't need to modify the trips.txt file is we're just updating existing shapes.
+    # We don't need to modify the trips.txt file if we're just updating existing shapes.
     if not update_existing:
         try:
             arcpy.AddMessage("Generating new trips.txt file...")
@@ -193,7 +167,7 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
                 else:
                     # Create a line segment between the previous vertex and this one so we can calculate geodesic length
                     line_segment = arcpy.Polyline(arcpy.Array([previous_point, current_point]), WGSCoords))
-                    shape_dist_traveled += line_segment.getLength("GEODESIC", "KILOMETERS")
+                    shape_dist_traveled += line_segment.getLength("GEODESIC", units.upper())
  
                 # Write row to shapes.txt file
                 if not update_existing:
@@ -212,11 +186,9 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
 
 
         if update_existing:
-    
             # Delete previous entries for these shapes from SQL table
-            for line in linetable:
-                shape_id = line[1]
-                delete_stmt = "DELETE FROM shapes WHERE shape_id='%s'" % shape_id
+            for row in arcpy.da.SearchCursor(inShapes, ["shape_id"]):
+                delete_stmt = "DELETE FROM shapes WHERE shape_id='%s'" % row[0]
                 c.execute(delete_stmt)
             
             # Save some info about column order for later
@@ -232,11 +204,9 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
         
             # We'll append the updated shapes to the existing original shapes
             mode = "ab"
-            
         else:
             mode = "wb"
 
-        shapes_with_warnings = []
         shapes_with_no_geometry = []
         # Open the new shapes.txt file and write output.
         if ProductName == "ArcGISPro":
@@ -247,16 +217,6 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
                 WriteShapesFile(f)
 
         # Add warnings for shapes that have them.
-        if shapes_with_warnings:
-            arcpy.AddWarning("Warning! For some Shapes, the order of the measured \
-shape_dist_traveled for vertices along the shape does not match the correct \
-sequence of the vertices. This likely indicates a problem with the geometry of \
-your shapes.  Your new shapes.txt file will be generated, and the shapes may \
-look correct, but the shape_dist_traveled value may be incorrect. \
-Please review and fix your shape geometry, then run this tool \
-again.  See the user's guide for more information.  shape_ids affected: " + \
-str(shapes_with_warnings))
-
         if shapes_with_no_geometry:
             arcpy.AddWarning("Warning! Some shapes had no geometry or 0 length. \
 These shapes will be written to shapes.txt, and shape_dist_traveled values will \
@@ -278,15 +238,18 @@ str(shapes_with_no_geometry))
 
     # Find the location of each stop along the line
     try:
-        # Project the Stops feature class so that the measures come out correctly
-        # inStops_wShapeIDs_projected = os.path.join(inStep1GDB, "Stops_Projected")
-        # arcpy.management.Project(inStops_wShapeIDs, inStops_wShapeIDs_projected, UTMCoords)
+        # Use linear referencing to find the measure along the line shape of each stop, for each shape
+        lr_table = os.path.join(inStep1GDB, "LRTable")
+        measure_field = "MEAS"
+        arcpy.lr.LocateFeaturesAlongRoutes(inStops_wShapeIDs, inShapes, "shape_id", "100 Meters",
+            lr_table, f"shape_id Point {measure_field}", "FIRST", "NO_DISTANCE", in_fields="FIELDS")
 
+        # Loop through each shape and calculate the shape_dist_traveled using geodesic distance for each stop
         shapes_with_warnings = []
         progress = 0
         perc = 10
         final_stoptimes_tabledata = {} # {shape_id: {stop_id: shape_dist_traveled}
-        for line in linetable:
+        for line in arcpy.da.SearchCursor(inShapes, ["SHAPE@", "shape_id"]):
             # Print some progress indicators
             progress += 1
             if progress >= tenperc:
@@ -296,36 +259,26 @@ str(shapes_with_no_geometry))
             lineGeom = line[0]
             shape_id = line[1]
             where = """"shape_id" = '%s'""" % str(shape_id)
-            StopsLayer = arcpy.management.MakeFeatureLayer(inStops_wShapeIDs_projected, "StopsLayer", where)
-            with arcpy.da.SearchCursor(StopsLayer, ["SHAPE@", "stop_id", "sequence"]) as ptcur:
-                shape_rows = []
-                shape_dist_dict_item = {} # {stop_id: shape_dist_traveled}
-                for point in ptcur:
-                    ptGeom = point[0]
-                    stop_id = point[1]
-                    sequence = point[2]
-                    # If the line has no geometry, default to 0
-                    if not lineGeom:
-                        shape_dist_traveled = 0.0
-                    # Find the distance along the line the stop occurs
-                    else:
-                        # measureOnLine returns result as either a percent along the line or in the units of the line geometry (meters, in our case)
-                        if units == "percent":
-                            # Even though the parameter is called used_percentage, it returns a proportion between 0 and 1, so multiply by 100 to convert to a true percentage
-                            shape_dist_traveled = 100.0 * lineGeom.measureOnLine(ptGeom, use_percentage=True)
-                        else:
-                            shape_dist_traveled = lineGeom.measureOnLine(ptGeom, use_percentage=False)
-                            if units != "meters":
-                                # Do a unit conversion if the user wants it
-                                shape_dist_traveled = convert_meters_to_other_units(shape_dist_traveled, units)
-                    # Data to be added to stop_times.txt
-                    shape_rows.append([sequence, shape_dist_traveled])
-                    if ProductName == "ArcGISPro":
-                        shape_dist_dict_item[str(stop_id)] = shape_dist_traveled
-                    else:
-                        shape_dist_dict_item[unicode(stop_id)] = shape_dist_traveled
-                    sequence += 1
-                final_stoptimes_tabledata[str(shape_id)] = shape_dist_dict_item
+            measures = arcpy.management.MakeTableView(lr_table, "LR for shape", where)
+            shape_rows = []
+            shape_dist_dict_item = {} # {stop_id: shape_dist_traveled}
+            for row in arcpy.da.SearchCursor(measures, ["stop_id", "sequence", measure_field]):
+                stop_id = row[0]
+                sequence = row[1]
+                dist_along = row[2]
+                
+                # Grab the line segment from the beginning of the line up until the measure where this stop is located.
+                # Then get the geodesic length.
+                shape_dist_traveled = lineGeom.segmentAlongLine(0, dist_along, False).getLength("GEODESIC", units.upper())
+
+                # Data to be added to stop_times.txt
+                shape_rows.append([sequence, shape_dist_traveled])
+                if ProductName == "ArcGISPro":
+                    shape_dist_dict_item[str(stop_id)] = shape_dist_traveled
+                else:
+                    shape_dist_dict_item[unicode(stop_id)] = shape_dist_traveled
+
+            final_stoptimes_tabledata[str(shape_id)] = shape_dist_dict_item
             # Check if the stops came out in the right order. If they
             # didn't, something is wrong with the user's input shape.
             sortedList_sequence = sorted(shape_rows, key=itemgetter(0,1))
@@ -334,7 +287,7 @@ str(shapes_with_no_geometry))
                 shapes_with_warnings.append(shape_id)
 
         # Clean up
-        arcpy.management.Delete(inStops_wShapeIDs_projected)
+        arcpy.management.Delete(lr_table)
 
         # Add warnings for shapes that have them.
         if shapes_with_warnings:
@@ -419,8 +372,6 @@ will show up as blank values in the stop_times.txt table.")
 
 
 # ----- Finish up -----
-    arcpy.management.Delete(inShapes_vertices)
-    arcpy.management.Delete(outShapes)
     arcpy.AddMessage("Finished! Your new GTFS files are:")
     if not update_existing:
         arcpy.AddMessage("- " + outTripsFile)
