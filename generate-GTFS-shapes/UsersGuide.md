@@ -19,7 +19,7 @@ The tools will not overwrite any existing GTFS files.  You can choose the output
 
 
 ## Software requirements
-* ArcGIS 10.2.1 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher. (To run the ArcGIS Online version of Step 1, you will need ArcGIS 10.3 or higher or ArcGIS Pro.  Results with the Network Analyst version of Step 1 will be best with ArcMap 10.3 or higher or ArcGIS Pro 2.0 or higher.)
+* ArcGIS 10.3 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher. Results with the Network Analyst version of Step 1 will be best with ArcMap or with ArcGIS Pro 2.0 or higher.
 * If you want to generate on-street route shapes (as opposed to straight lines connecting stops), you will need either a Network Analyst extension and a network dataset or an ArcGIS Online account with routing privileges and sufficient credits for your analysis.
 
 

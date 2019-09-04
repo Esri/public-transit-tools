@@ -112,8 +112,8 @@ try:
     ArcVersionInfo = arcpy.GetInstallInfo("desktop")
     ArcVersion = ArcVersionInfo['Version']
     ProductName = ArcVersionInfo['ProductName']
-    if ArcVersion in ["10.0", "10.1", "10.2"]:
-        arcpy.AddError("You must have ArcGIS 10.2.1 or higher to run this tool.\
+    if ArcVersion in ["10.0", "10.1", "10.2", "10.2.1", "10.2.2"]:
+        arcpy.AddError("You must have ArcGIS 10.3 or higher to run this tool.\
 You have ArcGIS version %s." % ArcVersion)
         raise CustomError
     if ProductName == "ArcGISPro" and ArcVersion in ["1.0", "1.1", "1.1.1"]:
