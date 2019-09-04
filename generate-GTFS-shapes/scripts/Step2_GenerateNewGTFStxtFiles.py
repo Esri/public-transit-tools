@@ -1,14 +1,14 @@
 ###############################################################################
 ## Tool name: Generate GTFS Route Shapes
 ## Step 2: Generate new GTFS text files
-## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 25 September 2017
+## Creator: Melinda Morang, Esri
+## Last updated: 4 September 2019
 ###############################################################################
 '''Using the GDB created in Step 1, this tool adds shape information to the
 user's GTFS dataset.  A shapes.txt file is created, and the trips.txt and
 stop_times.txt files are updated.'''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2019 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -36,6 +36,13 @@ def get_table_columns(tablename):
     for col in table_info:
         columns = columns + (col[1],)
     return columns
+
+
+def get_trips_with_shape_id(shape):
+    tripsfetch = '''SELECT trip_id FROM trips where shape_id="%s";''' % shape
+    c.execute(tripsfetch)
+    trips = c.fetchall()
+    return [trip[0] for trip in trips]
 
 
 def write_SQL_table_to_text_file(tablename, csvfile, columns):
@@ -122,6 +129,21 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
     conn = sqlite3.connect(SQLDbase)
     c = conn.cursor()
 
+    # Store some useful information
+    trip_shape_dict = {} # {trip_id: shape_id}
+    if update_existing:
+        for line in arcpy.da.SearchCursor(inShapes, ["shape_id"]):
+            for trip in get_trips_with_shape_id(line[0]):
+                trip_shape_dict[trip] = line[0]
+    else:
+        cts = conn.cursor()
+        tripsfetch = '''SELECT trip_id, shape_id FROM trips;'''
+        cts.execute(tripsfetch)
+        for trip in cts:
+            trip_shape_dict[trip[0]] = trip[1]
+
+    numshapes = int(arcpy.management.GetCount(inShapes)[0])
+    tenperc = 0.1 * numshapes
 
 # ----- Generate new trips.txt with shape_id populated -----
 
@@ -166,7 +188,7 @@ tool. You have ArcGIS Pro version %s." % ArcVersion)
                     shape_dist_traveled = 0
                 else:
                     # Create a line segment between the previous vertex and this one so we can calculate geodesic length
-                    line_segment = arcpy.Polyline(arcpy.Array([previous_point, current_point]), WGSCoords))
+                    line_segment = arcpy.Polyline(arcpy.Array([previous_point, current_point]), WGSCoords)
                     shape_dist_traveled += line_segment.getLength("GEODESIC", units.upper())
  
                 # Write row to shapes.txt file
@@ -236,15 +258,7 @@ str(shapes_with_no_geometry))
     arcpy.AddMessage("Creating new stop_times.txt file...")
     arcpy.AddMessage("(This may take some time for large datasets.)")
 
-    # Find the location of each stop along the line
     try:
-        # Use linear referencing to find the measure along the line shape of each stop, for each shape
-        lr_table = os.path.join(inStep1GDB, "LRTable")
-        measure_field = "MEAS"
-        arcpy.lr.LocateFeaturesAlongRoutes(inStops_wShapeIDs, inShapes, "shape_id", "100 Meters",
-            lr_table, f"shape_id Point {measure_field}", "FIRST", "NO_DISTANCE", in_fields="FIELDS")
-
-        # Loop through each shape and calculate the shape_dist_traveled using geodesic distance for each stop
         shapes_with_warnings = []
         progress = 0
         perc = 10
@@ -259,35 +273,39 @@ str(shapes_with_no_geometry))
             lineGeom = line[0]
             shape_id = line[1]
             where = """"shape_id" = '%s'""" % str(shape_id)
-            measures = arcpy.management.MakeTableView(lr_table, "LR for shape", where)
-            shape_rows = []
-            shape_dist_dict_item = {} # {stop_id: shape_dist_traveled}
-            for row in arcpy.da.SearchCursor(measures, ["stop_id", "sequence", measure_field]):
-                stop_id = row[0]
-                sequence = row[1]
-                dist_along = row[2]
-                
-                # Grab the line segment from the beginning of the line up until the measure where this stop is located.
-                # Then get the geodesic length.
-                shape_dist_traveled = lineGeom.segmentAlongLine(0, dist_along, False).getLength("GEODESIC", units.upper())
-
-                # Data to be added to stop_times.txt
-                shape_rows.append([sequence, shape_dist_traveled])
-                if ProductName == "ArcGISPro":
-                    shape_dist_dict_item[str(stop_id)] = shape_dist_traveled
-                else:
-                    shape_dist_dict_item[unicode(stop_id)] = shape_dist_traveled
-
-            final_stoptimes_tabledata[str(shape_id)] = shape_dist_dict_item
+            StopsLayer = arcpy.management.MakeFeatureLayer(inStops_wShapeIDs, "StopsLayer", where)
+            with arcpy.da.SearchCursor(StopsLayer, ["SHAPE@", "stop_id", "sequence"]) as ptcur:
+                shape_rows = []
+                shape_dist_dict_item = {} # {stop_id: shape_dist_traveled}
+                for point in ptcur:
+                    ptGeom = point[0]
+                    stop_id = point[1]
+                    sequence = point[2]
+                    # If the line has no geometry, default to 0
+                    if not lineGeom:
+                        shape_dist_traveled = 0.0
+                    # Find the distance along the line the stop occurs
+                    else:
+                        # Find the distance along the line using the line's M values
+                        dist_along = lineGeom.measureOnLine(ptGeom, use_percentage=False)
+                        # Grab the line segment from 0 to the current location
+                        segment = lineGeom.segmentAlongLine(0, dist_along, use_percentage=False)
+                        # Get the geodesic length of the line segment in the correct units
+                        shape_dist_traveled = segment.getLength("GEODESIC", units.upper())
+                    # Data to be added to stop_times.txt
+                    shape_rows.append([sequence, shape_dist_traveled])
+                    if ProductName == "ArcGISPro":
+                        shape_dist_dict_item[str(stop_id)] = shape_dist_traveled
+                    else:
+                        shape_dist_dict_item[unicode(stop_id)] = shape_dist_traveled
+                    sequence += 1
+                final_stoptimes_tabledata[str(shape_id)] = shape_dist_dict_item
             # Check if the stops came out in the right order. If they
             # didn't, something is wrong with the user's input shape.
             sortedList_sequence = sorted(shape_rows, key=itemgetter(0,1))
             sortedList_dist = sorted(shape_rows, key=itemgetter(1,0))
             if sortedList_dist != sortedList_sequence:
                 shapes_with_warnings.append(shape_id)
-
-        # Clean up
-        arcpy.management.Delete(lr_table)
 
         # Add warnings for shapes that have them.
         if shapes_with_warnings:
@@ -303,6 +321,7 @@ str(shapes_with_warnings))
     except:
         arcpy.AddError("Error linear referencing stops.")
         raise
+
 
     # Write the new stop_times.txt file
     try:
