@@ -2,7 +2,7 @@
 
 Created by Melinda Morang, Esri  
 
-Copyright 2018 Esri  
+Copyright 2019 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 
@@ -267,7 +267,7 @@ This tool will run very quickly for small GTFS datasets or if you are only updat
 ### Inputs
 * **Geodatabase created in Step 1**:  The file geodatabase that was created when you ran Step 1 of this tool.  It must contain the Shapes feature class as well as Stops_wShapeIDs and SQLDbase.sql.
 * **Directory for output GTFS text files**: Designate an output directory where the new GTFS files will be written. 
-* **Units for shape_dist_traveled**: Select the unit of measurement to use for the shape_dist_traveled fields in shapes.txt and stop_times.txt.  The values in the shape_dist_traveled field describe the distance along the shape the stop (for stop_times.txt) or the shape vertex (for shapes.txt) is located and is used for rendering partial shapes in the map in trip planning applications.  The GTFS specification does not specify the units to be used.  You can select a real unit of measurement, or use the "percent" option to use the percentage along the line's length.  Valid values are: percent, meters, kilometers, miles, feet, yards.
+* **Units for shape_dist_traveled**: Select the unit of measurement to use for the shape_dist_traveled fields in shapes.txt and stop_times.txt.  The values in the shape_dist_traveled field describe the distance along the shape the stop (for stop_times.txt) or the shape vertex (for shapes.txt) is located and is used for rendering partial shapes in the map in trip planning applications.  The GTFS specification does not specify the units to be used.  You can select a real unit of your choice.  Valid values are: meters, kilometers, miles, feet, yards.
 * **Update existing shapes**: Check this checkbox if you want to update an existing shapes.txt file (typically if you're just modifying a few shapes and not the whole dataset) instead of creating a new shapes.txt file from scratch.  Note that even if you check on this checkbox, your original shapes.txt file will not be overwritten.  You will have a chance to review the results first.  This option will be disabled if your Step 1 geodatabase does not have the necessary contents for shape updates (you did not create it using the correct [*Step 1: Update Existing Shapes*](#UpdateExisting) tool).
 
 ### Outputs
