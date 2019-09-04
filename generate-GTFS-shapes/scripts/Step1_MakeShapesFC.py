@@ -1,8 +1,8 @@
 ###############################################################################
 ## Tool name: Generate GTFS Route Shapes
 ## Step 1: Generate Shapes on Map
-## Creator: Melinda Morang, Esri, mmorang@esri.com
-## Last updated: 11 January 2018
+## Creator: Melinda Morang, Esri
+## Last updated: 4 September 2019
 ###############################################################################
 ''' This tool generates a feature class of route shapes for GTFS data.
 The route shapes show the geographic paths taken by the transit vehicles along
@@ -13,7 +13,7 @@ feature class shapes as desired.  Then, the user should use this feature class
 and the other associated files in the output GDB as input to Step 2 in order
 to create updated .txt files for use in the GTFS dataset.'''
 ################################################################################
-'''Copyright 2018 Esri
+'''Copyright 2019 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -1039,7 +1039,7 @@ def Generate_Shapes_Straight(Created_Street_Output):
 
     # If we didn't already create the output feature class with the Street-based routes, create it now.
     if not Created_Street_Output or not arcpy.Exists(outRoutesfc):
-        arcpy.management.CreateFeatureclass(outGDB, outRoutesfcName, "POLYLINE", '', '', '', WGSCoords)
+        arcpy.management.CreateFeatureclass(outGDB, outRoutesfcName, "POLYLINE", '', "ENABLED", "DISABLED", WGSCoords)
         arcpy.management.AddField(outRoutesfc, "Name", "TEXT")
         spatial_ref = WGSCoords
     else:
@@ -1078,12 +1078,13 @@ def Generate_Shapes_Straight(Created_Street_Output):
                     continue
                 pt.X = float(stop_lon)
                 pt.Y = float(stop_lat)
+                pt.M = sequence_num - 1 # Insert dummy M value
                 # Add stop sequences to points fc for user to look at.
                 cur.insertRow((float(stop_lon), float(stop_lat), shape_id, sequence_num, stop))
                 sequence_num = sequence_num + 1
                 array.add(pt)
             # Generate a Polyline from the Array of stops
-            polyline = arcpy.Polyline(array, WGSCoords)
+            polyline = arcpy.Polyline(array, WGSCoords, None, True)
             # Project the polyline to the correct output coordinate system.
             if spatial_ref != WGSCoords:
                 polyline.projectAs(spatial_ref)
