@@ -20,7 +20,11 @@ stop_times.txt files are updated.'''
    limitations under the License.'''
 ################################################################################
 
-import os, csv, sqlite3, codecs
+import os
+import csv
+import sqlite3
+import codecs
+import random
 from operator import itemgetter
 import arcpy
 
@@ -270,40 +274,118 @@ str(shapes_with_no_geometry))
                 arcpy.AddMessage(str(perc) + "% finished")
                 perc += 10
                 progress = 0
-            lineGeom = line[0]
+            polyline = line[0]
             shape_id = line[1]
             where = """"shape_id" = '%s'""" % str(shape_id)
             StopsLayer = arcpy.management.MakeFeatureLayer(inStops_wShapeIDs, "StopsLayer", where)
-            with arcpy.da.SearchCursor(StopsLayer, ["SHAPE@", "stop_id", "sequence"]) as ptcur:
-                shape_rows = []
-                shape_dist_dict_item = {} # {stop_id: shape_dist_traveled}
-                for point in ptcur:
-                    ptGeom = point[0]
-                    stop_id = point[1]
-                    sequence = point[2]
-                    # If the line has no geometry, default to 0
-                    if not lineGeom:
-                        shape_dist_traveled = 0.0
-                    # Find the distance along the line the stop occurs
-                    else:
-                        # Find the distance along the line using the line's M values
-                        dist_along = lineGeom.measureOnLine(ptGeom, use_percentage=False)
-                        # Grab the line segment from 0 to the current location
-                        segment = lineGeom.segmentAlongLine(0, dist_along, use_percentage=False)
-                        # Get the geodesic length of the line segment in the correct units
-                        shape_dist_traveled = segment.getLength("GEODESIC", units.upper())
-                    # Data to be added to stop_times.txt
-                    shape_rows.append([sequence, shape_dist_traveled])
-                    if ProductName == "ArcGISPro":
-                        shape_dist_dict_item[str(stop_id)] = shape_dist_traveled
-                    else:
-                        shape_dist_dict_item[unicode(stop_id)] = shape_dist_traveled
-                    sequence += 1
-                final_stoptimes_tabledata[str(shape_id)] = shape_dist_dict_item
+            sequence_stopid_dict = {}  # {sequence: stop_id}
+            pt_geom = {}  # {sequence: geometry object}
+            for row in arcpy.da.SearchCursor(StopsLayer, ["SHAPE@", "stop_id", "sequence"]):
+                sequence_stopid_dict[row[2]] = row[1]
+                pt_geom[row[2]] = row[0]
+
+            # Length of polyline in whatever units it natively has (doesn't matter)
+            max_measure = polyline.length
+
+            sequence_keys = [s for s in pt_geom.keys()]
+            total_pts = len(sequence_keys)
+            pt_LR = {} # {sequence: dist along line}
+            times_attempted = {pt: 0 for pt in sequence_keys}
+
+            # In a random order, linear reference the stops along the line, and try again if they end up out of sequence,
+            # until all have been addressed
+            while sequence_keys:
+                # Randomly choose one of the points in our remaining list that we still need to linear reference
+                random_pt = random.choice(sequence_keys)
+                if times_attempted[random_pt] > total_pts:
+                    # This is to cut off infinite loops.  If we've already tried this point more times than once per item in the list,
+                    # assume it's impossible to get the order correct and just give up.
+                    # Hopefully one day I can come up with a better way to deal with this case.
+                    pt_LR[random_pt] = polyline.measureOnLine(pt_geom[random_pt], use_percentage=False)
+                    sequence_keys.remove(random_pt)
+                    continue
+                times_attempted[random_pt] += 1
+                used_keys = sorted(list(pt_LR.keys()) + [random_pt])
+                this_key_idx = used_keys.index(random_pt)
+                if this_key_idx == 0: # This is in the first position
+                    # Start at the beginning
+                    line_start_dist = 0
+                else:
+                    # Start at the location of the previous point
+                    prior_key = used_keys[this_key_idx - 1]
+                    line_start_dist = pt_LR[prior_key]
+                if this_key_idx == len(used_keys) - 1: # This is in the last position
+                    # Go all the way to the end
+                    line_end_dist = max_measure
+                else:
+                    # End at the location of the next point
+                    next_key = used_keys[this_key_idx + 1]
+                    line_end_dist = pt_LR[next_key]
+
+                # Get the segment of the total polyline to use for linear referencing
+                polyline_segment = polyline.segmentAlongLine(line_start_dist, line_end_dist, use_percentage=False)
+                if polyline_segment.length == 0:
+                    # The line segment we're linear referencing along has 0 length, meaning the start and end distance is the same.
+                    # That's kind of weird and hard to interpret. Throw this point away as well as the prior and next ones and try again later.
+                    print("Found a 0-length segment!")
+                    if this_key_idx > 0:
+                        del pt_LR[prior_key]
+                        sequence_keys.append(prior_key)
+                    if this_key_idx != len(used_keys) - 1:
+                        del pt_LR[next_key]
+                        sequence_keys.append(next_key)
+                    continue
+                measure_along_segment = polyline_segment.measureOnLine(pt_geom[random_pt], use_percentage=False)
+                polyline_segment_length = polyline_segment.length
+                if this_key_idx > 0 and measure_along_segment == 0:
+                    if pt_geom[random_pt].equals(pt_geom[prior_key]):
+                        # Special case where this point is in the same location as the prior point, so this is okay, and we keep it.
+                        pt_LR[random_pt] = pt_LR[prior_key]
+                        sequence_keys.remove(random_pt)
+                        continue
+                    # This linear referenced to the very start of the line, so either this or the prior one is bad.
+                    # Remove the prior one, add it back to the list to process, and don't add this one
+                    del pt_LR[prior_key]
+                    sequence_keys.append(prior_key)
+                    continue
+                if this_key_idx != len(used_keys) - 1 and measure_along_segment == polyline_segment_length:
+                    if pt_geom[random_pt].equals(pt_geom[next_key]):
+                        # Special case where this point is in the same location as the next point, so this is okay, and we keep it.
+                        pt_LR[random_pt] = pt_LR[next_key]
+                        sequence_keys.remove(random_pt)
+                        continue
+                    # This linear referenced to the very end of the line, so either this or the next one is bad
+                    # Remove the next one, add it back to the list to process, and don't add this one
+                    del pt_LR[next_key]
+                    sequence_keys.append(next_key)
+                    continue
+
+                # Preserve the total distance long the line for this point
+                pt_LR[random_pt] = line_start_dist + measure_along_segment
+                
+                # We're done with this point, so remove it from the list to consider
+                sequence_keys.remove(random_pt)
+
+            # Convert measure distance to geodesic shape_dist_traveled for each stop_id
+            shape_dist_dict_item = {} # {stop_id: shape_dist_traveled}
+            check_sorting = []  # List to use to check that linear referencing is in the correct sequence
+            for pt in sorted(pt_LR.keys()):
+                if ProductName == "ArcGISPro":
+                    stop_id = str(sequence_stopid_dict[pt])
+                else:
+                    stop_id = unicode(sequence_stopid_dict[pt])
+                shape_dist_traveled = polyline.segmentAlongLine(0, pt_LR[pt], use_percentage=False).getLength("GEODESIC", units.upper())
+                shape_dist_dict_item[stop_id] = shape_dist_traveled
+                check_sorting.append([pt, shape_dist_traveled])
+
+            # Preserve the linear referencing to the master dictionary
+            final_stoptimes_tabledata[str(shape_id)] = shape_dist_dict_item
+
             # Check if the stops came out in the right order. If they
-            # didn't, something is wrong with the user's input shape.
-            sortedList_sequence = sorted(shape_rows, key=itemgetter(0,1))
-            sortedList_dist = sorted(shape_rows, key=itemgetter(1,0))
+            # didn't, something is wrong with the user's input shape or the way it got linear referenced
+            # A common issue is routes that backtrack on themselves.
+            sortedList_sequence = sorted(check_sorting, key=itemgetter(0,1))
+            sortedList_dist = sorted(check_sorting, key=itemgetter(1,0))
             if sortedList_dist != sortedList_sequence:
                 shapes_with_warnings.append(shape_id)
 
