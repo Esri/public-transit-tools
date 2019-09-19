@@ -1145,21 +1145,21 @@ better output using ArcGIS version 10.3 or higher or ArcGIS Pro 2.0 or higher. Y
 
 
 def get_stop_lat_lon():
-        '''Populate a dictionary of {stop_id: [stop_lat, stop_lon]}'''
-        
-        arcpy.AddMessage("Collecting and processing GTFS stop information...")
-        
-        # Find all stops with lat/lon
-        global stoplatlon_dict
-        stoplatlon_dict = {}
-        cs = conn.cursor()
-        stoplatlonfetch = '''
-            SELECT stop_id, stop_lat, stop_lon FROM stops
-            ;'''
-        cs.execute(stoplatlonfetch)
-        for stop in cs:
-            # Add stop lat/lon to dictionary
-            stoplatlon_dict[stop[0]] = [stop[1], stop[2]]
+    '''Populate a dictionary of {stop_id: [stop_lat, stop_lon]}'''
+    
+    arcpy.AddMessage("Collecting and processing GTFS stop information...")
+    
+    # Find all stops with lat/lon
+    global stoplatlon_dict
+    stoplatlon_dict = {}
+    cs = conn.cursor()
+    stoplatlonfetch = '''
+        SELECT stop_id, stop_lat, stop_lon FROM stops
+        ;'''
+    cs.execute(stoplatlonfetch)
+    for stop in cs:
+        # Add stop lat/lon to dictionary
+        stoplatlon_dict[stop[0]] = [stop[1], stop[2]]
 
 
 def get_stop_geom():
