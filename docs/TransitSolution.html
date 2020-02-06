@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta content="IE=edge" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, user-scalable=no">
-    <title>Display GTFS in ArcGIS | GTFS in ArcGIS</title>
+    <title>ArcGIS Transit Solution | GTFS in ArcGIS</title>
     <link rel="shortcut icon" href="/img/favicon.ico">
     <!-- get calcite-web css from the cdn (use latest version) -->
     <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/css/calcite-web.min.css">
@@ -37,7 +37,7 @@
     <div class="column-24">
       <h1 class="sub-nav-title text-white"><span class="banner-title">Tools</span></h1>
       <select class="phone-show select-full trailer-half js-select-nav">
-<option value="./TransitSolution.html">ArcGIS Transit Solution</option>
+<option value="./TransitSolution.html" selected>ArcGIS Transit Solution</option>
 <option value="./TransitInArcGISPro.html">Public transit tools in ArcGIS Pro</option>
 <option value="./TransitNetworkAnalysisTools.html">Transit Network Analysis Tools</option>
 <option value="./BetterBusBuffers.html">BetterBusBuffers</option>
@@ -45,11 +45,11 @@
 <option value="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</option>
 <option value="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</option>
 <option value="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</option>
-<option value="./DisplayGTFSinArcGIS.html" selected>Display GTFS in ArcGIS</option>
+<option value="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</option>
 <option value="./EditGTFSStopLocations.html">Edit GTFS Stop Locations</option>
 </select>
 <nav class="sub-nav-list phone-hide" aria-labelledby="subnav">
-<a class="sub-nav-link" href="./TransitSolution.html">ArcGIS Transit Solution</a>
+<a class="sub-nav-link is-active" href="./TransitSolution.html">ArcGIS Transit Solution</a>
 <a class="sub-nav-link" href="./TransitInArcGISPro.html">Public transit tools in ArcGIS Pro</a>
 <a class="sub-nav-link" href="./TransitNetworkAnalysisTools.html">Transit Network Analysis Tools</a>
 <a class="sub-nav-link" href="./BetterBusBuffers.html">BetterBusBuffers</a>
@@ -57,7 +57,7 @@
 <a class="sub-nav-link" href="./InterpolateBlankStopTimes.html">Interpolate Blank Stop Times</a>
 <a class="sub-nav-link" href="./GTFSRTConnector.html">GTFS Realtime Connector for GeoEvent</a>
 <a class="sub-nav-link" href="./AddGTFStoaNetworkDataset.html">Add GTFS to a Network Dataset</a>
-<a class="sub-nav-link is-active" href="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</a>
+<a class="sub-nav-link" href="./DisplayGTFSinArcGIS.html">Display GTFS in ArcGIS</a>
 <a class="sub-nav-link" href="./EditGTFSStopLocations.html">Edit GTFS Stop Locations</a>
 </nav>
     </div>
@@ -66,12 +66,11 @@
 
   <!-- side bar with image and links -->
   <div class="column-7">
-    <img src="./images/DisplayGTFSinArcGIS.png" alt="Display GTFS in ArcGIS screenshot">
-    <a href="http://arcg.is/1iuez8" rel="noopener" target="_blank" class="btn btn-fill leader-half trailer-half">Download</a>
+    <img src="./images/TransitSolution.png" alt="ArcGIS Transit Solution screenshot">
     <aside class="side-nav" id="sidenav">
       <nav aria-labelledby="sidenav">
-        <a href="https://github.com/Esri/public-transit-tools/tree/master/display-GTFS-in-ArcGIS/UsersGuide.md" rel="noopener" target="_blank" class="side-nav-link">User's guide</a>
-        <a href="https://github.com/Esri/public-transit-tools/tree/master/display-GTFS-in-ArcGIS" rel="noopener" target="_blank" class="side-nav-link">GitHub</a>
+        <a href="https://solutions.arcgis.com/local-government/transit/" rel="noopener" target="_blank" class="side-nav-link">Download</a>
+        <a href="https://storymaps.arcgis.com/stories/3e62d2d425fc472db12404dfa116c18b" rel="noopener" target="_blank" class="side-nav-link">Learn more</a>
       </nav>
     </aside>
   </div>
@@ -79,15 +78,13 @@
   <!-- main content -->
   <div class="column-16 pre-1">
 
-    <h2 class="leader-1">Display GTFS in ArcGIS</h2>
+    <h2 class="leader-1">ArcGIS Transit Solution</h2>
 
-    <p><strong>DEPRECATED. Use Display GTFS in ArcGIS to visualize your GTFS stops and route shapes in ArcMap.</strong></p>
+    <p><strong>Configurable tools to inform the public of service changes, manage transit safety reports and mitigation plans, monitor the performance of transit agencies, and partner with volunteers to keep transit stops safe and clean.</strong></p>
 
-    <p>The <em>Display GTFS Stops</em> tool makes a feature class of stops using information from the GTFS stops.txt file.</p>
-
-    <p>The <em>Display GTFS Route Shapes</em> tool converts the information from the GTFS routes.txt and shapes.txt files into an ArcGIS feature class, allowing you to view your transit lines on a map.  The output will contain one line feature for each unique shape in your GTFS data.  The attributes for each line contain all the information about the routes represented by the shape.  Lines can be displayed in the color designated in the routes.txt file.</p>
-    
-    <p><i>This tool is deprecated in ArcGIS Pro 2.2 and higher.  To convert your GTFS stops and shapes to feature classes in ArcGIS Pro 2.2 and higher, please use the <a href="http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-stops-to-features.htm" target="_blank" rel="noopener">GTFS Stops To Features</a> and <a href="http://pro.arcgis.com/en/pro-app/tool-reference/conversion/gtfs-shapes-to-features.htm" target="_blank" rel="noopener">GTFS Shapes To Features</a> tools in the Conversion Tools toolbox.</i></p>
+    <p>The ArcGIS Solutions for Local Government's Transit Solution includes a series of focused maps and applications designed to help transit agencies leverage
+      their geographic information and the ArcGIS Platform to improve workflows and enhance services delivered to riders. Configurable apps and templates are available
+      for rider outreach, adopt-a-stop program management, and transit safety management</p>
 
   </div>
 
