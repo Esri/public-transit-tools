@@ -328,8 +328,8 @@ def validate_time_window_prefix_strings(param_value_table, prefix_field_idx):
         for value in values:
             prefix = value[prefix_field_idx]
             prefixes.append(prefix)
-            if len(prefix) > 6:
-                param_value_table.setErrorMessage("Output Field Prefix must be no more than 6 characters.")
+            if len(prefix) > 12:
+                param_value_table.setErrorMessage("Output Field Prefix must be no more than 12 characters.")
         total_prefixes = len(prefixes)
         unique_prefixes = len(list(set(prefixes)))
         if total_prefixes != unique_prefixes:
