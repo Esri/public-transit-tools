@@ -152,11 +152,11 @@ def runTool(outStops, SQLDbase, time_window_value_table):
                 AvgHeadway = round(AvgHeadway / 5.0) * 5
         return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
 
+    # ------ Get input parameters and set things up. -----
     try:
         # Check software version and fail out quickly if it's not sufficient.
         BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
 
-        # ------ Get input parameters and set things up. -----
         # The time_window_value_table will be a list of nested lists of strings like:
         # [[Weekday name or YYYYMMDD date, HH: MM, HH: MM, Departures / Arrivals, Prefix], [], ...]
         analysis_groups = {}
@@ -209,13 +209,12 @@ def runTool(outStops, SQLDbase, time_window_value_table):
     except:
         arcpy.AddError("Error getting inputs.")
         raise
-        # ----- Query the GTFS data to count the trips at each stop -----
 
+    # ----- Query the GTFS data to count the trips at each stop -----
     try:
         arcpy.AddMessage("Calculating the determining trips for route-direction pairs...")
         # Assemble Route and Direction IDS
-        triproutefetch = '''
-                            SELECT DISTINCT route_id,direction_id FROM trips;'''
+        triproutefetch = '''SELECT DISTINCT route_id,direction_id FROM trips;'''
         c.execute(triproutefetch)
         route_dir_list = c.fetchall()
         # Get the service_ids serving the correct days
@@ -224,7 +223,6 @@ def runTool(outStops, SQLDbase, time_window_value_table):
         # Some GTFS datasets use the same route_id to identify trips traveling in
         # either direction along a route. Others identify it as a different route.
         # We will consider each direction separately if there is more than one.
-
         trip_route_warning_counter = 0
         trip_route_dict = {}  # {(route_id, direction_id): [trip_id, trip_id,..]}
         for rtpair in route_dir_list:
@@ -237,7 +235,6 @@ def runTool(outStops, SQLDbase, time_window_value_table):
                 triproutefetch = '''
                         SELECT trip_id, service_id FROM trips
                         WHERE route_id = '{0}' AND direction_id = {1};'''.format(route_id, direction_id)
-                # arcpy.AddMessage(triproutefetch)
             else:
                 triproutefetch = '''
                         SELECT trip_id, service_id FROM trips
@@ -246,16 +243,15 @@ def runTool(outStops, SQLDbase, time_window_value_table):
             triproutelist = c.fetchall()
             if not triproutelist:
                 arcpy.AddWarning("Your GTFS dataset does not contain any trips \
-    corresponding to Route %s and Direction %s. Please ensure that \
-    you have selected the correct GTFS SQL file for this input file or that your \
-    GTFS data is good. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (route_id, str(direction_id)))
+corresponding to Route %s and Direction %s. Please ensure that \
+you have selected the correct GTFS SQL file for this input file or that your \
+GTFS data is good. Output fields will be generated, but \
+the values will be 0 or <Null>." % (route_id, str(direction_id)))
 
             for triproute in triproutelist:
                 # Only keep trips running on the correct day
-
-                if triproute[1] in serviceidlist or triproute[1] in serviceidlist_tom or triproute[
-                    1] in serviceidlist_yest:  # Where FILTERING SHOULD BE happening.
+                if triproute[1] in serviceidlist or triproute[1] in serviceidlist_tom or \
+                    triproute[1] in serviceidlist_yest:
                     trip_route_dict.setdefault(key, []).append(triproute[0])  # {(rtdirpair): [trip_id, trip_id,..]}
 
             if not trip_route_dict:
@@ -266,6 +262,8 @@ def runTool(outStops, SQLDbase, time_window_value_table):
     except:
         arcpy.AddError("Error getting trips associated with route.")
         raise
+
+    # ----- Query the GTFS data to count the trips at each stop for this time period -----
     time_period_id_list = []  # List of Time Period IDs used to generate final fields in FC.
     stop_frequency_route_dir_dict = {}  # Stop ID to nested list{stop_id:{rtdirpair:[route-dir-pair-string,route_id,route_id_num,dir_id,
     # repeated for n time periods->[Period*]NumTrips,[Period*]NumTripsPerHour,[Period*]MaxWaitTime,[Period*]Headway],{...}
@@ -275,16 +273,15 @@ def runTool(outStops, SQLDbase, time_window_value_table):
         start_sec = time_tuple[1]
         end_sec = time_tuple[2]
         TimeWindowLength = time_tuple[3]
-        # ----- Query the GTFS data to count the trips at each stop for this time period -----
+        
         try:
             arcpy.AddMessage(
                 "Calculating the number of transit trips available during the time window of time period ID"
                 " {0}...".format(str(time_period)))
             frequencies_dict = BBB_SharedFunctions.MakeFrequenciesDict()
             stoptimedict_rtedirpair = {}  # #{rtdir tuple:stoptimedict}}
-            ###################################stoptimedict={stop_id: [[trip_id, stop_time]]} Get length of stop_id
             for rtdirpair in trip_route_dict:
-                triplist = trip_route_dict[rtdirpair]  # TODO - Melinda can, you review how this compares to updates?
+                triplist = trip_route_dict[rtdirpair]
                 # Get the stop_times that occur during this time window- Not Causing Issues
                 try:
                     stoptimedict = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr,
@@ -313,16 +310,18 @@ def runTool(outStops, SQLDbase, time_window_value_table):
                 for stop in stoptimedict_tom:
                     stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_tom[stop]
 
-                stoptimedict_rtedirpair[rtdirpair] = stoptimedict  # {rtdir tuple:{stoptimedict}}
+                stoptimedict_rtedirpair[rtdirpair] = stoptimedict  # {rtdir tuple: {stoptimedict}}
+
                 # Add a warning if there is no service.
                 if not stoptimedict:
                     arcpy.AddWarning("There is no service for route %s in direction %s \
-        on %s during the time window you selected. Output fields will be generated, but \
-        the values will be 0 or <Null>." % (rtdirpair[0], str(rtdirpair[1]), dayString))
+on %s during the time window you selected. Output fields will be generated, but \
+the values will be 0 or <Null>." % (rtdirpair[0], str(rtdirpair[1]), dayString))
 
         except:
             arcpy.AddError("Error counting arrivals or departures at stop during time window.")
             raise
+
         try:
             arcpy.AddMessage("Developing Frequency and Trip Statistics for Stop-Route-Direction combinations.")
             for rtdirpair in stoptimedict_rtedirpair:
@@ -359,7 +358,7 @@ def runTool(outStops, SQLDbase, time_window_value_table):
                         frequency_value_index = idx + time_period_start_index + frequency_field_start_index
                         stop_frequency_record[frequency_value_index] = new_frequency_fields[idx]
         except:
-            arcpy.AddError("Error calculating statistics arrivals or departures at stop during time window.")
+            arcpy.AddError("Error calculating statistics for arrivals or departures at stop during time window.")
             raise
             # ----- Write to output -----
 

@@ -804,7 +804,7 @@ def MakeTemporalRouteDirStopsFeatureClass(stopsfc, stop_frequency_dict, period_i
     arcpy.management.AddField(StopsLayer, 'rte_id_num', "LONG")
     arcpy.management.AddField(StopsLayer, 'dir_id', "SHORT")
     # Create Valid Field Names for each time period field.
-    base_field_names = ['NumofTrips', 'NumTripsPerHr', 'MaxWaitTime', 'AvHeadway']
+    base_field_names = ['NumTrips', 'NumTripsPerHr', 'MaxWaitTime', 'AvgHeadway']
     final_frequency_fields = []
 
     for time_period in period_id_list:

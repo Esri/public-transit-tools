@@ -1030,7 +1030,6 @@ class CountTripsAtStopsByRouteAndDirection(object):
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
-
         param_fc = parameters[0]
         param_time_windows = parameters[2]
 
