@@ -205,14 +205,12 @@ def runTool(outStops, SQLDbase, time_window_value_table):
             DepOrArr = BBB_SharedFunctions.CleanUpDepOrArr(DepOrArrChoice)
             # Output File Paths
             output_stop_file = outStops
-            # Output Settings
-            OverwriteOutput = arcpy.env.overwriteOutput  # Get the orignal value so we can reset it.
-            arcpy.env.overwriteOutput = True
 
     except:
         arcpy.AddError("Error getting inputs.")
         raise
         # ----- Query the GTFS data to count the trips at each stop -----
+
     try:
         arcpy.AddMessage("Calculating the determining trips for route-direction pairs...")
         # Assemble Route and Direction IDS
@@ -366,18 +364,21 @@ def runTool(outStops, SQLDbase, time_window_value_table):
             # ----- Write to output -----
 
     try:
+        # Output Settings
+        OverwriteOutput = arcpy.env.overwriteOutput  # Get the orignal value so we can reset it.
+        arcpy.env.overwriteOutput = True
         arcpy.AddMessage("Writing output...")
         BBB_SharedFunctions.MakeTemporalRouteDirStopsFeatureClass(output_stop_file, stop_frequency_route_dir_dict,
                                                                   time_period_id_list)
     except:
         arcpy.AddError("Error writing output to feature class(es).")
         raise
+    finally:
+        # Reset overwriteOutput to what it was originally.
+        arcpy.env.overwriteOutput = OverwriteOutput
+
     # Close Connection
     conn.close()
     arcpy.AddMessage("Finished!")
     arcpy.AddMessage("Calculated trip counts, frequency, max wait time, and \
 headway were written to an output stops file by route-direction pairs.")
-
-    finally:
-        # Reset overwriteOutput to what it was originally.
-        arcpy.env.overwriteOutput = OverwriteOutput
