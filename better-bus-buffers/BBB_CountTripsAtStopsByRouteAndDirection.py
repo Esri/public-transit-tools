@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: BetterBusBuffers - Count Trips at Stops by Route and Direction
 ## Created by: David Wasserman, https://github.com/d-wasserman and Melinda Morang, Esri
-## This Tool deve developed as part of Transit R&D Efforts from Fehr & Peers.
+## This tool was developed as part of Transit R&D Efforts from Fehr & Peers.
 ## Fehr & Peers contributes this tool to the BBB Toolset to further more
 ## informed planning. 
 ## Last updated: 7 August 2020
@@ -80,8 +80,8 @@ def GenerateTimePeriodExtent(start_time_stamp_list, end_time_stamp_list):
 
 def GenerateTimePeriodList(start_time_stamp_list, end_time_stamp_list, alias_list, start_default="00:00",
                            end_default="23:59"):
-    """This function will take alist of string time stamps of start and end times, and return a nested list of the structure.
-    [(Time_period_iD,start_seconds,end_seconds,time_window),...]
+    """This function will take a list of string time stamps of start and end times, and return a nested list of the structure.
+    [(Time_period_iD, start_seconds, end_seconds, time_window),...]
     :param - start_time_stamp_list - list of start times in HH:MM
     :param - end_time_stamp_list - list of end times in HH:MM
     :param - alias_list- list of names to name time period summaries
@@ -122,12 +122,6 @@ def runTool(outStops, SQLDbase, time_window_value_table):
         and return the NumTrips, NumTripsPerHr, MaxWaitTime, and AvgHeadway given a
         specific route_id and direction. If snap to nearest five minutes is true, then
         this function will return headways snapped to the closest 5 minute interval.'''
-        # Figure out what version of ArcGIS they're running
-        BBB_SharedFunctions.DetermineArcVersion()
-        if BBB_SharedFunctions.ProductName == "ArcGISPro" and BBB_SharedFunctions.ArcVersion in ["1.0", "1.1", "1.1.1"]:
-            arcpy.AddError("The BetterBusBuffers toolbox does not work in versions of ArcGIS Pro prior to 1.2.\
-        You have ArcGIS Pro version %s." % BBB_SharedFunctions.ArcVersion)
-            raise BBB_SharedFunctions.CustomError
         try:
             stop_time_dictionaries = stoptimedict_rtedirpair[rtdirtuple]
         except KeyError:
@@ -159,6 +153,9 @@ def runTool(outStops, SQLDbase, time_window_value_table):
         return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
 
     try:
+        # Check software version and fail out quickly if it's not sufficient.
+        BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
+
         # The time_window_value_table will be a list of nested lists of strings like:
         # ------ Get input parameters and set things up. -----
         analysis_groups = {}
