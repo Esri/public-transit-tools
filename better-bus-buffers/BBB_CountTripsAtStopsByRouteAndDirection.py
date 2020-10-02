@@ -185,27 +185,24 @@ def runTool(outStops, SQLDbase, time_window_value_table):
             # Default start time is midnight if they leave it blank.
             if not start_time_list:
                 start_time_list = ["00:00"]
-            # Convert to seconds
-            # start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
-            # Upper end of time window (HH:MM in 24-hour time)\
-
+            # Upper end of time window (HH:MM in 24-hour time)
             end_time_list = [list(i.values())[0][1] for i in alias_hour_pairs]
             # Default end time is 11:59pm if they leave it blank.
             if not end_time_list:
                 end_time_list = ["23:59"]
+
             # Convert to seconds
+            ## TODO: Make this work in ArcMap?
             alias_list = [list(i.keys())[0] for i in alias_hour_pairs]  # Will not work reliably in python 2
             TimePeriodTuples = GenerateTimePeriodList(start_time_list, end_time_list, alias_list)
             Min_Start_Sec, Max_End_Sec = GenerateTimePeriodExtent(start_time_list, end_time_list)
+
             total_frequency_fields = 4 * len(TimePeriodTuples)
             arcpy.AddMessage("Time Period IDs and Tuples created. The inputs provided will lead to the creation of {0} "
                              "frequency fields for {1} time periods.".format(total_frequency_fields,
                                                                              len(TimePeriodTuples)))
             # Does the user want to count arrivals or departures at the stops?
-            if DepOrArrChoice == "Arrivals":
-                DepOrArr = "arrival_time"
-            elif DepOrArrChoice == "Departures":
-                DepOrArr = "departure_time"
+            DepOrArr = BBB_SharedFunctions.CleanUpDepOrArr(DepOrArrChoice)
             # Output File Paths
             output_stop_file = outStops
             # Output Settings
@@ -380,3 +377,7 @@ def runTool(outStops, SQLDbase, time_window_value_table):
     arcpy.AddMessage("Finished!")
     arcpy.AddMessage("Calculated trip counts, frequency, max wait time, and \
 headway were written to an output stops file by route-direction pairs.")
+
+    finally:
+        # Reset overwriteOutput to what it was originally.
+        arcpy.env.overwriteOutput = OverwriteOutput
