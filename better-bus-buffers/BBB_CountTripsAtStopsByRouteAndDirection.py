@@ -156,8 +156,9 @@ def runTool(outStops, SQLDbase, time_window_value_table):
         # Check software version and fail out quickly if it's not sufficient.
         BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
 
-        # The time_window_value_table will be a list of nested lists of strings like:
         # ------ Get input parameters and set things up. -----
+        # The time_window_value_table will be a list of nested lists of strings like:
+        # [[Weekday name or YYYYMMDD date, HH: MM, HH: MM, Departures / Arrivals, Prefix], [], ...]
         analysis_groups = {}
         arcpy.AddMessage("Establishing analysis parameters...")
         for row in time_window_value_table:
@@ -171,18 +172,13 @@ def runTool(outStops, SQLDbase, time_window_value_table):
         conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
         c = BBB_SharedFunctions.c = conn.cursor()
         for period_group_key in analysis_groups:
-            dayString = period_group_key[0]  # "Monday"  # "20160307" #20
+            dayString = period_group_key[0]  # "Monday"  # "20160307"
             DepOrArrChoice = period_group_key[1]  # Departure/Arrival
             arcpy.AddMessage("Evaluting {0} on Date/Day {1}...".format(dayString, DepOrArrChoice))
             # Weekday or specific date to analyze.
             # Note: Datetime format check is in tool validation code
             alias_hour_pairs = analysis_groups[period_group_key]  # [{alias:[hfrom,hto],...}]
-            if dayString in BBB_SharedFunctions.days:  # Generic weekday
-                Specific = False
-                day = dayString
-            else:  # Specific date
-                Specific = True
-                day = datetime.datetime.strptime(dayString, "%Y%m%d")
+            Specific, day = BBB_SharedFunctions.CheckSpecificDate(dayString)
 
             # Lower end of time window (HH:MM in 24-hour time)
             start_time_list = [list(i.values())[0][0] for i in alias_hour_pairs]
