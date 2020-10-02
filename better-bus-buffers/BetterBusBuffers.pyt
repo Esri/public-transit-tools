@@ -1099,7 +1099,8 @@ param_SQLDbase = CommonParameter(
     "sql_database",
     "DEFile",
     "Required",
-    "Input")
+    "Input",
+    filter_list=["sql"])
 
 param_day = CommonParameter(
     "Weekday or YYYYMMDD date",
