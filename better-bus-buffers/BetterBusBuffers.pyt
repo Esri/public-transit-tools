@@ -1014,10 +1014,19 @@ class CountTripsAtStopsByRouteAndDirection(object):
         param_time_windows.filters[3].list = ['Arrivals', 'Departures']
         param_time_windows.values = [['Monday', '00:00', '23:59', 'Departures', 'TW1']]
 
+        param_snap_to_nearest_5_minutes = arcpy.Parameter(
+            displayName="Snap to Nearest 5 Minutes",
+            name="snap_to_nearest_5_minutes",
+            datatype="GPBoolean",
+            parameterType="Required",
+            direction="Input")
+        param_snap_to_nearest_5_minutes.value = True
+
         params = [
             make_parameter(param_output_feature_class),
             make_parameter(param_SQLDbase),
-            param_time_windows
+            param_time_windows,
+            param_snap_to_nearest_5_minutes
             ]
 
         return params
@@ -1061,7 +1070,9 @@ class CountTripsAtStopsByRouteAndDirection(object):
         outStops = parameters[0].valueAsText
         SQLDbase = parameters[1].valueAsText
         time_window_value_table = parameters[2].values
-        BBB_CountTripsAtStopsByRouteAndDirection.runTool(outStops, SQLDbase, time_window_value_table)
+        snap_to_nearest_5 = parameters[3].value
+        BBB_CountTripsAtStopsByRouteAndDirection.runTool(
+            outStops, SQLDbase, time_window_value_table, snap_to_nearest_5)
         return
 #endregion
 
