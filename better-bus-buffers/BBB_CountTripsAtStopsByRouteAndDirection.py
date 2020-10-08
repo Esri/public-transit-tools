@@ -190,7 +190,7 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
     for time_window in time_window_value_table:
         # Prefix/identifier associated with this time window
         prefix = time_window[4]
-        arcpy.AddMessage(f"Calculating statistics for time window {prefix}...")
+        arcpy.AddMessage("Calculating statistics for time window %s..." % prefix)
         # Clean up date and determine whether it's a date or a weekday
         Specific, day = BBB_SharedFunctions.CheckSpecificDate(time_window[0])
         # Convert times to seconds
