@@ -323,8 +323,8 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
             cur3.insertRow(row)
 
         # Insert row for any remaining stops that were not used at all
-        for stop in used_stops:
-            if used_stops[stop]:
+        for stop_id in used_stops:
+            if used_stops[stop_id]:
                 # This one was already inserted
                 continue
             stop_data = stop_dict[stop_id]
