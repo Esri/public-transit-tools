@@ -653,18 +653,19 @@ def CalculateMaxWaitTime(stoptimelist, start_sec, end_sec):
     return maxWaitTime_toReturn
 
 
-def CalculateAvgHeadway(TimeList):
+def CalculateAvgHeadway(TimeList, round_to=None):
     '''Find the average amount of time between all trips in a list. Cannot be calculated if there are fewer than 2 trips.'''
     if len(TimeList) > 1:
-        return int(round(float(sum(abs(x - y) for (x, y) in zip(TimeList[1:], TimeList[:-1]))/(len(TimeList)-1))/60, 0)) # minutes
+        headway = int(round(float(sum(abs(x - y) for (x, y) in zip(TimeList[1:], TimeList[:-1]))/(len(TimeList)-1))/60, 0)) # minutes
+        if round_to:
+            headway = int(round(float(headway) / float(round_to)) * round_to)
+        return headway
     else:
         return None
 
 
-def MakeStopsFeatureClass(stopsfc, stoplist=None):
-    '''Make a feature class of GTFS stops from the SQL table. Returns the path
-    to the feature class and a list of stop IDs.'''
-
+def CreateStopsFeatureClass(stopsfc):
+    '''Make an empty feature class for stops and add fields. Returns the output coordinate system used.'''
     stopsfc_path = os.path.dirname(stopsfc)
     stopsfc_name = os.path.basename(stopsfc)
 
@@ -690,7 +691,10 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
         arcpy.management.AddField(StopsLayer, "location_type", "TEXT")
         arcpy.management.AddField(StopsLayer, "parent_station", "TEXT")
 
-    # Get the stop info from the GTFS SQL file
+    return output_coords
+
+def GetStopsData(stoplist=None):
+    '''Retrieve the data from the stops table for use in populating a feature class.'''
     if stoplist:
         StopTable = []
         for stop_id in stoplist:
@@ -702,6 +706,27 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
         selectstoptablestmt = "SELECT stop_id, stop_code, stop_name, stop_desc, stop_lat, stop_lon, zone_id, stop_url, location_type, parent_station FROM stops;"
         c.execute(selectstoptablestmt)
         StopTable = c.fetchall()
+    return StopTable
+
+def MakeStopGeometry(stop_lat, stop_lon, output_coords):
+    '''Return a PointGeometry for a stop.'''
+    pt = arcpy.Point()
+    pt.X = float(stop_lon)
+    pt.Y = float(stop_lat)
+    # GTFS stop lat/lon is written in WGS1984
+    ptGeometry = arcpy.PointGeometry(pt, WGSCoords)
+    if output_coords != WGSCoords:  # Change projection to match output location
+        ptGeometry = ptGeometry.projectAs(output_coords)
+    return ptGeometry
+
+def MakeStopsFeatureClass(stopsfc, stoplist=None):
+    '''Make a feature class of GTFS stops from the SQL table. Returns the path
+    to the feature class and a list of stop IDs.'''
+    # Create the feature class with desired schema
+    output_coords = CreateStopsFeatureClass(stopsfc)
+
+    # Get the stop info from the GTFS SQL file
+    StopTable = GetStopsData(stoplist)
     possiblenulls = [1, 3, 6, 7, 8, 9]
 
     # Make a list of stop_ids for use later.
@@ -713,13 +738,15 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
         DetermineArcVersion()
 
     # Add the stops table to a feature class.
+    stopsfc_path = os.path.dirname(stopsfc)
+    stopsfc_name = os.path.basename(stopsfc)
     if ".shp" in stopsfc_name:
-        cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@", "stop_id",
+        cur3 = arcpy.da.InsertCursor(stopsfc, ["SHAPE@", "stop_id",
                                                     "stop_code", "stop_name", "stop_desc",
                                                     "zone_id", "stop_url", "loc_type",
                                                     "parent_sta"])
     else:
-        cur3 = arcpy.da.InsertCursor(StopsLayer, ["SHAPE@", "stop_id",
+        cur3 = arcpy.da.InsertCursor(stopsfc, ["SHAPE@", "stop_id",
                                                     "stop_code", "stop_name", "stop_desc",
                                                     "zone_id", "stop_url", "location_type",
                                                     "parent_station"])
@@ -736,18 +763,12 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
     ##   9 - parent_station
     for stopitem in StopTable:
         stop = list(stopitem)
-        pt = arcpy.Point()
-        pt.X = float(stop[5])
-        pt.Y = float(stop[4])
         # Truncate text fields to the field length if needed.
         truncate_idx = [1, 2, 3, 6, 7]
         for idx in truncate_idx:
             if stop[idx]:
                 stop[idx] = stop[idx][:MaxTextFieldLength]
-        # GTFS stop lat/lon is written in WGS1984
-        ptGeometry = arcpy.PointGeometry(pt, WGSCoords)
-        if output_coords != WGSCoords:
-            ptGeometry = ptGeometry.projectAs(output_coords)
+        ptGeometry = MakeStopGeometry(stop[4], stop[5], output_coords)
         # Shapefile output can't handle null values, so make them empty strings.
         if ".shp" in stopsfc_name:
             for idx in possiblenulls:
@@ -758,162 +779,6 @@ def MakeStopsFeatureClass(stopsfc, stoplist=None):
                             stop[7], stop[8], stop[9]))
     del cur3
 
-    return stopsfc, StopIDList
-
-def MakeTemporalRouteDirStopsFeatureClass(stopsfc, stop_frequency_dict, period_id_list, stoplist=None):
-    '''Make a feature class of GTFS stops from the SQL table and computed frequencies for each route direction pair.
-    The end result is a database of overlapping stops with frequencies for each route-dir pair associated with
-    that stop and the selected time period based on the time period lists passed with the dictionary. Assumes the time
-    period list IDs match the order of the lists in the stop frequency dictionary.
-    Parameters
-    ----------
-    stopsfc - feature class
-        output stops feature class
-    stops_frequency_dict - dict
-        dictionary in the form {stop_id:{route-dir-id:[route-dir-pair-string,route_id,route_id_num,dir_id,
-        [TPeriod]NumTrips,[TPeriod]NumTripsPerHour,[TPeriod]MaxWaitTime,[TPeriod]Headway,[TPeriod2]FreqFields...]...}
-    period_dict_list - list
-        list of period aliases from which each new set of frequency fields is made
-    stoplist - list
-        list of stops, if provided, if not get from GTFS DB.
-    Returns
-    ----------
-        path , list - Returns the path to the feature class and a list of stop IDs.'''
-    stopsfc_path = os.path.dirname(stopsfc)
-    stopsfc_name = os.path.basename(stopsfc)
-    # Create a points feature class for the point pairs.
-    desc = arcpy.Describe(stopsfc_path)
-    if hasattr(desc, "spatialReference"):
-        output_coords = desc.spatialReference
-    else:
-        output_coords = WGSCoords
-    StopsLayer = arcpy.management.CreateFeatureclass(stopsfc_path, stopsfc_name, "POINT",
-                                                     spatial_reference=output_coords)
-    arcpy.management.AddField(StopsLayer, "stop_id", "TEXT")
-    arcpy.management.AddField(StopsLayer, "stop_code", "TEXT")
-    arcpy.management.AddField(StopsLayer, "stop_name", "TEXT")
-    arcpy.management.AddField(StopsLayer, "stop_desc", "TEXT")
-    arcpy.management.AddField(StopsLayer, "zone_id", "TEXT")
-    arcpy.management.AddField(StopsLayer, "stop_url", "TEXT")
-    location_type = arcpy.ValidateFieldName("location_type", stopsfc_path)
-    parent_station = arcpy.ValidateFieldName("parent_station", stopsfc_path)
-    arcpy.management.AddField(StopsLayer, location_type, "TEXT")
-    arcpy.management.AddField(StopsLayer, parent_station, "TEXT")
-    arcpy.management.AddField(StopsLayer, 'rte_dir_id', "TEXT")
-    arcpy.management.AddField(StopsLayer, 'route_id', "TEXT")
-    arcpy.management.AddField(StopsLayer, 'rte_id_num', "LONG")
-    arcpy.management.AddField(StopsLayer, 'dir_id', "SHORT")
-    # Create Valid Field Names for each time period field.
-    base_field_names = ['NumTrips', 'NumTripsPerHr', 'MaxWaitTime', 'AvgHeadway']
-    final_frequency_fields = []
-
-    for time_period in period_id_list:
-        new_field_names = [arcpy.ValidateFieldName(str(time_period) + field_name, stopsfc_path) for field_name in
-                           base_field_names]
-        final_frequency_fields.extend(new_field_names)
-        for new_field_name in new_field_names:
-            arcpy.management.AddField(StopsLayer, new_field_name, "DOUBLE")
-    # Field Assumption Info:
-    # total_non_frequency_fields = 10
-    # total_frequency_fields= total_cursor_fields-total_non_frequency_fields
-    # Get the stop info from the GTFS SQL file
-    if stoplist:
-        StopTable = []
-        for stop_id in stoplist:
-            selectstoptablestmt = "SELECT stop_id, stop_code, stop_name, stop_desc, stop_lat, stop_lon, zone_id, stop_url, location_type, parent_station FROM stops WHERE stop_id='%s';" % stop_id
-            c.execute(selectstoptablestmt)
-            StopInfo = c.fetchall()
-            StopTable.append(StopInfo[0])
-    else:
-        selectstoptablestmt = "SELECT stop_id, stop_code, stop_name, stop_desc, stop_lat, stop_lon, zone_id, stop_url, location_type, parent_station FROM stops;"
-        c.execute(selectstoptablestmt)
-        StopTable = c.fetchall()
-    possiblenulls = [1, 3, 6, 7, 8, 9]
-
-    # Make a list of stop_ids for use later.
-    StopIDList = []
-    for stop in StopTable:
-        StopIDList.append(stop[0])
-
-    if not ArcVersion:
-       DetermineArcVersion()
-
-    # Add the stops table to a feature class.
-    if ArcVersion == "10.0":
-        arcpy.AddError("This tool only supports ArcGIS versions 10.1 and up. Sorry.")
-    else:
-        # For everything 10.1 and forward
-        base_fields = ["SHAPE@", "stop_id", "stop_code", "stop_name", "stop_desc",
-                       "zone_id", "stop_url", location_type, parent_station, "rte_dir_id", "route_id", "rte_id_num",
-                       "dir_id"]
-        base_fields.extend(final_frequency_fields)
-        cursor_fields = tuple(base_fields)
-
-        cur3 = arcpy.da.InsertCursor(StopsLayer, cursor_fields)
-        # Schema of stops table
-        ##   0 - stop_id
-        ##   1 - stop_code
-        ##   2 - stop_name
-        ##   3 - stop_desc
-        ##   4 - stop_lat  #Spatial
-        ##   5 - stop_lon  #Spatial
-        ##   6 - zone_id
-        ##   7 - stop_url
-        ##   8 - location_type
-        ##   9 - parent_station
-        ##   10 - rte_dir_id
-        ##   11 - route_id
-        ##   12 - route_id_num
-        ##   13 - dir_id
-        ##   14 - [Period1]NumofTrips
-        ##   15 - [Period1]NumTripsPerHr
-        ##   16 - [Period1]MaxWaitTime
-        ##   17 - [Period1]AvgHeadway
-        ##   18 - [Period_n]NumofTrips
-        ##   19 - [Period_n]NumTripsPerHr
-        ##   20 - [Period_n]MaxWaitTime
-        ##   21 - [Period_n]AvgHeadway
-        ##   XX - Continues for number of periods n.
-        for stopitem in StopTable:
-            stop = list(stopitem)
-            stop_id = stop[0]
-
-            try:
-                rtdirpairstop_dict = stop_frequency_dict[stop_id]
-                for rtdirpair in rtdirpairstop_dict:
-                    new_stop_route_dir_record = rtdirpairstop_dict[rtdirpair]
-                    # Not All Service IDs are served at some time periods, we need to append None Values equal to the
-                    # number of missing fields for those records that did not get filled.
-                    # Shapefile output can't handle null values, so make them empty strings.
-                    if ".shp" in stopsfc_name:
-                        for idx in possiblenulls:
-                            if not stop[idx]:
-                                stop[idx] = ""
-                    pt = arcpy.Point()
-                    pt.X = float(stop[5])
-                    pt.Y = float(stop[4])
-                    # GTFS stop lat/lon is written in WGS1984
-                    ptGeometry = arcpy.PointGeometry(pt, WGSCoords)
-                    if output_coords != WGSCoords:  # Change projection to match output location
-                        ptGeometry = ptGeometry.projectAs(output_coords)
-                    try:
-                        dir_id = new_stop_route_dir_record[3]
-                        new_stop_route_dir_record[3] = int(dir_id)
-                    except:  # Is instance would work, but this is 2to3
-                        arcpy.AddWarning("Text Direction ID set to None "
-                                         "for record:" + str(new_stop_route_dir_record))
-                        new_stop_route_dir_record[3] = None
-                    row = [ptGeometry, stop[0], stop[1],
-                           stop[2], stop[3], stop[6], stop[7], stop[8], stop[9]]
-                    row += new_stop_route_dir_record
-                    try:
-                        cur3.insertRow(row)
-                    except:
-                        arcpy.AddWarning("Could not process row {0}".format(str(row)))
-                        pass
-            except KeyError:
-                pass
-    del cur3
     return stopsfc, StopIDList
 
 
