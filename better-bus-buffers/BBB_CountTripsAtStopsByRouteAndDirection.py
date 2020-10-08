@@ -4,7 +4,7 @@
 ## This tool was developed as part of Transit R&D Efforts from Fehr & Peers.
 ## Fehr & Peers contributes this tool to the BBB Toolset to further more
 ## informed planning. 
-## Last updated: 7 August 2020
+## Last updated: 8 October 2020
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Stops by Route and Direction
 
@@ -116,23 +116,18 @@ def GenerateTimePeriodList(start_time_stamp_list, end_time_stamp_list, alias_lis
         time_period_list.append((finalID, start_sec, end_sec, TimeWindowLength))
     return time_period_list
 
-def runTool(outStops, SQLDbase, time_window_value_table):
-    def RetrieveFrequencyStatsForStop(stop_id, rtdirtuple, snap_to_nearest_5_minutes=False):
-        '''For a given stop, query the stop_time_dictionaries {stop_id: [[trip_id, stop_time]]}
+
+
+def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest_5_minutes):
+    def RetrieveFrequencyStatsForStop(stop_id, stoptimedict, start_sec, end_sec):
+        '''For a given stop, query the dictionary
         and return the NumTrips, NumTripsPerHr, MaxWaitTime, and AvgHeadway given a
         specific route_id and direction. If snap to nearest five minutes is true, then
         this function will return headways snapped to the closest 5 minute interval.'''
-        try:
-            stop_time_dictionaries = stoptimedict_rtedirpair[rtdirtuple]
-        except KeyError:
-            # We will get a KeyError if there were no trips found for the route/direction
-            # pair, which usually happens if the wrong SQL database was selected.
-            stop_time_dictionaries = {}
-
         # Make a list of stop_times
         StopTimesAtThisPoint = []
         try:
-            for trip in stop_time_dictionaries[stop_id]:
+            for trip in stoptimedict[stop_id]:
                 StopTimesAtThisPoint.append(trip[1])
         except KeyError:
             pass
@@ -140,241 +135,209 @@ def runTool(outStops, SQLDbase, time_window_value_table):
 
         # Calculate the number of trips
         NumTrips = len(StopTimesAtThisPoint)
-        NumTripsPerHr = float(NumTrips) / TimeWindowLength
+        NumTripsPerHr = round(float(NumTrips) / ((end_sec - start_sec) / 3600), 2)
         # Get the max wait time and the average headway
         MaxWaitTime = BBB_SharedFunctions.CalculateMaxWaitTime(StopTimesAtThisPoint, start_sec, end_sec)
-        AvgHeadway = None
-        if NumTrips > 1:
-            AvgHeadway = max(1, int(round(float(
-                sum(abs(x - y) for (x, y) in zip(StopTimesAtThisPoint[1:], StopTimesAtThisPoint[:-1])) / (
-                        len(StopTimesAtThisPoint) - 1)) / 60, 0)))  # minutes
-            if snap_to_nearest_5_minutes:
-                AvgHeadway = round(AvgHeadway / 5.0) * 5
+        if snap_to_nearest_5_minutes:
+            round_to = 5
+        else:
+            round_to = None
+        AvgHeadway = BBB_SharedFunctions.CalculateAvgHeadway(StopTimesAtThisPoint, round_to)
         return NumTrips, NumTripsPerHr, MaxWaitTime, AvgHeadway
 
-    # ------ Get input parameters and set things up. -----
-    try:
-        # Check software version and fail out quickly if it's not sufficient.
-        BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
+    # ----- Get input parameters and set things up. -----
+    # Check software version and fail out quickly if it's not sufficient.
+    BBB_SharedFunctions.CheckArcVersion(min_version_pro="1.2")
 
-        # The time_window_value_table will be a list of nested lists of strings like:
-        # [[Weekday name or YYYYMMDD date, HH: MM, HH: MM, Departures / Arrivals, Prefix], [], ...]
-        analysis_groups = {}
-        arcpy.AddMessage("Establishing analysis parameters...")
-        for row in time_window_value_table:
-            # [[Weekday name or YYYYMMDD date, HH: MM, HH: MM, Departures / Arrivals, Prefix], [], ...]
-            ag_key = (row[0], row[3])
-            ag_value = analysis_groups.setdefault(ag_key, [])
-            ag_addition = {row[4]: [row[1], row[2]]}
-            ag_value.append(ag_addition)
-            analysis_groups.update({ag_key: ag_value})
-        # SQL database of preprocessed GTFS from Step 1
-        conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
-        c = BBB_SharedFunctions.c = conn.cursor()
-        for period_group_key in analysis_groups:
-            dayString = period_group_key[0]  # "Monday"  # "20160307"
-            DepOrArrChoice = period_group_key[1]  # Departure/Arrival
-            arcpy.AddMessage("Evaluting {0} on Date/Day {1}...".format(dayString, DepOrArrChoice))
-            # Weekday or specific date to analyze.
-            # Note: Datetime format check is in tool validation code
-            alias_hour_pairs = analysis_groups[period_group_key]  # [{alias:[hfrom,hto],...}]
-            Specific, day = BBB_SharedFunctions.CheckSpecificDate(dayString)
+    arcpy.AddMessage("Reading data...")
 
-            # Lower end of time window (HH:MM in 24-hour time)
-            start_time_list = [list(i.values())[0][0] for i in alias_hour_pairs]
-            # Default start time is midnight if they leave it blank.
-            if not start_time_list:
-                start_time_list = ["00:00"]
-            # Upper end of time window (HH:MM in 24-hour time)
-            end_time_list = [list(i.values())[0][1] for i in alias_hour_pairs]
-            # Default end time is 11:59pm if they leave it blank.
-            if not end_time_list:
-                end_time_list = ["23:59"]
+    # Connect to SQL database of preprocessed GTFS from Step 1
+    conn = BBB_SharedFunctions.conn = sqlite3.connect(SQLDbase)
+    c = BBB_SharedFunctions.c = conn.cursor()
 
-            # Convert to seconds
-            ## TODO: Make this work in ArcMap?
-            alias_list = [list(i.keys())[0] for i in alias_hour_pairs]  # Will not work reliably in python 2
-            TimePeriodTuples = GenerateTimePeriodList(start_time_list, end_time_list, alias_list)
-            Min_Start_Sec, Max_End_Sec = GenerateTimePeriodExtent(start_time_list, end_time_list)
+    # Store frequencies if relevant
+    frequencies_dict = BBB_SharedFunctions.MakeFrequenciesDict()
 
-            total_frequency_fields = 4 * len(TimePeriodTuples)
-            arcpy.AddMessage("Time Period IDs and Tuples created. The inputs provided will lead to the creation of {0} "
-                             "frequency fields for {1} time periods.".format(total_frequency_fields,
-                                                                             len(TimePeriodTuples)))
-            # Does the user want to count arrivals or departures at the stops?
-            DepOrArr = BBB_SharedFunctions.CleanUpDepOrArr(DepOrArrChoice)
-            # Output File Paths
-            output_stop_file = outStops
-
-    except:
-        arcpy.AddError("Error getting inputs.")
-        raise
-
-    # ----- Query the GTFS data to count the trips at each stop -----
-    try:
-        arcpy.AddMessage("Calculating the determining trips for route-direction pairs...")
-        # Assemble Route and Direction IDS
-        triproutefetch = '''SELECT DISTINCT route_id,direction_id FROM trips;'''
+    # Get unique route_id/direction_id pairs and calculate the trips used in each
+    # Some GTFS datasets use the same route_id to identify trips traveling in
+    # either direction along a route. Others identify it as a different route.
+    # We will consider each direction separately if there is more than one.
+    trip_route_dict = {}  # {(route_id, direction_id): [(trip_id, service_id),..]}
+    triproutefetch = '''SELECT DISTINCT route_id,direction_id FROM trips;'''
+    c.execute(triproutefetch)
+    for rtpair in c.fetchall():
+        key = tuple(rtpair)
+        route_id = rtpair[0]
+        direction_id = rtpair[1]
+        # Get list of trips
+        # Ignore direction if this route doesn't have a direction
+        if direction_id is not None and str(direction_id).strip():
+            triproutefetch = '''
+                    SELECT trip_id, service_id FROM trips
+                    WHERE route_id = '{0}' AND direction_id = {1};'''.format(route_id, direction_id)
+        else:
+            triproutefetch = '''
+                    SELECT trip_id, service_id FROM trips
+                    WHERE route_id = '{0}';'''.format(route_id)
         c.execute(triproutefetch)
-        route_dir_list = c.fetchall()
+        triproutelist = c.fetchall()
+        trip_route_dict[key] = triproutelist
+
+    # ----- For each time window, calculate the stop frequency -----
+    final_stop_freq_dict = {}  # {(stop_id, route_id, direction_id): {prefix: (NumTrips, NumTripsPerHour, MaxWaitTimeSec, AvgHeadwayMin)}}
+    # The time_window_value_table will be a list of nested lists of strings like:
+    # [[Weekday name or YYYYMMDD date, HH: MM, HH: MM, Departures / Arrivals, Prefix], [], ...]
+    for time_window in time_window_value_table:
+        # Prefix/identifier associated with this time window
+        prefix = time_window[4]
+        arcpy.AddMessage(f"Calculating statistics for time window {prefix}...")
+        # Clean up date and determine whether it's a date or a weekday
+        Specific, day = BBB_SharedFunctions.CheckSpecificDate(time_window[0])
+        # Convert times to seconds
+        start_time = time_window[1]
+        end_time = time_window[2]
+        if not start_time:
+            start_time = "00:00"
+        if not end_time:
+            end_time = "23:59"
+        start_sec, end_sec = BBB_SharedFunctions.ConvertTimeWindowToSeconds(start_time, end_time)
+        # Clean up arrival/departure time choice
+        DepOrArr = BBB_SharedFunctions.CleanUpDepOrArr(time_window[3])
+
+        # Get the trips running in this time window for each route/direction pair
         # Get the service_ids serving the correct days
         serviceidlist, serviceidlist_yest, serviceidlist_tom = \
-            BBB_SharedFunctions.GetServiceIDListsAndNonOverlaps(day, Min_Start_Sec, Max_End_Sec, DepOrArr, Specific)
-        # Some GTFS datasets use the same route_id to identify trips traveling in
-        # either direction along a route. Others identify it as a different route.
-        # We will consider each direction separately if there is more than one.
-        trip_route_warning_counter = 0
-        trip_route_dict = {}  # {(route_id, direction_id): [trip_id, trip_id,..]}
-        for rtpair in route_dir_list:
-            key = tuple(rtpair)
-            route_id = rtpair[0]
-            direction_id = rtpair[1]
-            # Get list of trips
-            # Ignore direction if this route doesn't have a direction
-            if not direction_id is None and str(direction_id).strip():  # GTFS direction IDs of zero or empty text
-                triproutefetch = '''
-                        SELECT trip_id, service_id FROM trips
-                        WHERE route_id = '{0}' AND direction_id = {1};'''.format(route_id, direction_id)
-            else:
-                triproutefetch = '''
-                        SELECT trip_id, service_id FROM trips
-                        WHERE route_id = '{0}';'''.format(route_id)
-            c.execute(triproutefetch)
-            triproutelist = c.fetchall()
-            if not triproutelist:
-                arcpy.AddWarning("Your GTFS dataset does not contain any trips \
-corresponding to Route %s and Direction %s. Please ensure that \
-you have selected the correct GTFS SQL file for this input file or that your \
-GTFS data is good. Output fields will be generated, but \
-the values will be 0 or <Null>." % (route_id, str(direction_id)))
+            BBB_SharedFunctions.GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific)
 
-            for triproute in triproutelist:
+        # Retrieve the stop_times for the time window broken out by route/direction
+        stoproutedir_dict = {}  # {(stop_id, route_id, direction_id): [NumTrips, NumTripsPerHour, MaxWaitTimeSec, AvgHeadwayMin]}
+        for rtdirpair in trip_route_dict:
+            # Get trips running with these service_ids
+            trip_serv_list = trip_route_dict[rtdirpair]
+            triplist = []
+            for tripserv in trip_serv_list:
                 # Only keep trips running on the correct day
-                if triproute[1] in serviceidlist or triproute[1] in serviceidlist_tom or \
-                    triproute[1] in serviceidlist_yest:
-                    trip_route_dict.setdefault(key, []).append(triproute[0])  # {(rtdirpair): [trip_id, trip_id,..]}
+                if tripserv[1] in serviceidlist or tripserv[1] in serviceidlist_tom or \
+                    tripserv[1] in serviceidlist_yest:
+                    triplist.append(tripserv[0])
 
-            if not trip_route_dict:
-                arcpy.AddWarning("There is no service for route %s in direction %s \
-    on %s during the time window you selected. Output fields will be generated, but \
-    the values will be 0 or <Null>." % (route_id, str(direction_id), str(day)))
+            # Get the stop_times that occur during this time window for these trips
+            try:
+                stoptimedict = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(
+                    start_sec, end_sec, DepOrArr, triplist, "today", frequencies_dict)
+            except KeyError:  # No trips
+                pass
+            try:
+                stoptimedict_yest = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(
+                    start_sec, end_sec, DepOrArr, triplist, "yesterday", frequencies_dict)
+            except KeyError:  # No trips
+                pass
+            try:
+                stoptimedict_tom = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(
+                    start_sec, end_sec, DepOrArr, triplist, "tomorrow", frequencies_dict)
+            except KeyError:  # No trips
+                pass
 
-    except:
-        arcpy.AddError("Error getting trips associated with route.")
-        raise
+            # Combine the three dictionaries into one master
+            for stop in stoptimedict_yest:
+                stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_yest[stop]
+            for stop in stoptimedict_tom:
+                stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_tom[stop]
 
-    # ----- Query the GTFS data to count the trips at each stop for this time period -----
-    time_period_id_list = []  # List of Time Period IDs used to generate final fields in FC.
-    stop_frequency_route_dir_dict = {}  # Stop ID to nested list{stop_id:{rtdirpair:[route-dir-pair-string,route_id,route_id_num,dir_id,
-    # repeated for n time periods->[Period*]NumTrips,[Period*]NumTripsPerHour,[Period*]MaxWaitTime,[Period*]Headway],{...}
-    for temporal_idx, time_tuple in enumerate(TimePeriodTuples):
-        time_period = time_tuple[0]
-        time_period_id_list.append(time_period)
-        start_sec = time_tuple[1]
-        end_sec = time_tuple[2]
-        TimeWindowLength = time_tuple[3]
-        
-        try:
-            arcpy.AddMessage(
-                "Calculating the number of transit trips available during the time window of time period ID"
-                " {0}...".format(str(time_period)))
-            frequencies_dict = BBB_SharedFunctions.MakeFrequenciesDict()
-            stoptimedict_rtedirpair = {}  # #{rtdir tuple:stoptimedict}}
-            for rtdirpair in trip_route_dict:
-                triplist = trip_route_dict[rtdirpair]
-                # Get the stop_times that occur during this time window- Not Causing Issues
+            for stop in stoptimedict.keys():
+                # Get Stop-Route-Dir Frequencies by time period
+                vals = RetrieveFrequencyStatsForStop(stop, stoptimedict, start_sec, end_sec)
+                key = (stop, rtdirpair[0], rtdirpair[1],)
+                if key not in final_stop_freq_dict:
+                    final_stop_freq_dict[key] = {prefix: vals}
+                else:
+                    final_stop_freq_dict[key][prefix] = vals
+
+    # ----- Write the stops and stats to the output feature class -----
+    arcpy.AddMessage("Writing outputs...")
+    # Make the basic feature class for stops with correct gtfs fields
+    with arcpy.EnvManager(overwriteOutput=True):
+        output_coords = BBB_SharedFunctions.CreateStopsFeatureClass(output_stop_file)
+
+    # Add fields specific to this tool's outputs
+    arcpy.management.AddField(output_stop_file, 'route_id', "TEXT")
+    arcpy.management.AddField(output_stop_file, 'direction_id', "SHORT")
+    # Create fields for stats for each time window using prefix
+    base_field_names = ['_NumTrips', '_NumTripsPerHr', '_MaxWaitTime', '_AvgHeadway']
+    new_fields = []
+    for time_window in time_window_value_table:
+        for base_field in base_field_names:
+            new_field = time_window[4] + base_field
+            new_fields.append(new_field)
+            arcpy.management.AddField(output_stop_file, new_field, "DOUBLE")
+
+    # Get the stop info from the GTFS SQL file
+    StopTable = BBB_SharedFunctions.GetStopsData()
+    stop_dict = {stop[0]: stop for stop in StopTable}
+
+    # Make a dictionary to track whether we have inserted all stops at least once into the output
+    used_stops = {stop[0]: False for stop in StopTable}
+    # Store stop geometries in dictionary so they can be inserted multiple times without recalculating
+    stop_geoms = {stop[0]: BBB_SharedFunctions.MakeStopGeometry(stop[4], stop[5], output_coords) for stop in StopTable}
+
+    # Add the stops with stats to the feature class
+    fields = [
+        "SHAPE@", "stop_id", "stop_code", "stop_name", "stop_desc", "zone_id", "stop_url", "location_type",
+        "parent_station", "route_id", "direction_id"
+    ] + new_fields
+    with arcpy.da.InsertCursor(output_stop_file, fields) as cur3:
+        # Iterate over all unique stop, route_id, direction_id groups and insert values
+        for key in sorted(final_stop_freq_dict.keys()):
+            stop_id = key[0]
+            used_stops[stop_id] = True
+            route_id = key[1]
+            dir_id = key[2]
+            stop_data = stop_dict[stop_id]
+            # Schema of StopTable
+            ##   0 - stop_id
+            ##   1 - stop_code
+            ##   2 - stop_name
+            ##   3 - stop_desc
+            ##   4 - stop_lat
+            ##   5 - stop_lon
+            ##   6 - zone_id
+            ##   7 - stop_url
+            ##   8 - location_type
+            ##   9 - parent_station
+            row = [
+                stop_geoms[stop_id],  # Geometry
+                stop_data[0], stop_data[1], stop_data[2], stop_data[3], stop_data[6], stop_data[7], stop_data[8], stop_data[9],  # GTFS data
+                route_id, direction_id  # route and direction IDs
+            ]
+            # Populate stats fields for each prefix
+            for time_window in time_window_value_table:
+                prefix = time_window[4]
                 try:
-                    stoptimedict = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec, DepOrArr,
-                                                                                        triplist, "today",
-                                                                                        frequencies_dict)
-                except KeyError:  # No trips
-                    pass
-                try:
-                    stoptimedict_yest = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec,
-                                                                                             DepOrArr,
-                                                                                             triplist, "yesterday",
-                                                                                             frequencies_dict)
-                except KeyError:  # No trips
-                    pass
-                try:
-                    stoptimedict_tom = BBB_SharedFunctions.GetStopTimesForStopsInTimeWindow(start_sec, end_sec,
-                                                                                            DepOrArr,
-                                                                                            triplist, "tomorrow",
-                                                                                            frequencies_dict)
-                except KeyError:  # No trips
-                    pass
+                    vals = final_stop_freq_dict[key][prefix]
+                except KeyError:
+                    # This stop/route/direction group had no service for this time window
+                    vals = [0, 0, None, None]
+                row += vals
 
-                # Combine the three dictionaries into one master
-                for stop in stoptimedict_yest:  # Update Dictionaries based on setdefault returns values.
-                    stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_yest[stop]
-                for stop in stoptimedict_tom:
-                    stoptimedict[stop] = stoptimedict.setdefault(stop, []) + stoptimedict_tom[stop]
+            # Insert the row
+            cur3.insertRow(row)
 
-                stoptimedict_rtedirpair[rtdirpair] = stoptimedict  # {rtdir tuple: {stoptimedict}}
-
-                # Add a warning if there is no service.
-                if not stoptimedict:
-                    arcpy.AddWarning("There is no service for route %s in direction %s \
-on %s during the time window you selected. Output fields will be generated, but \
-the values will be 0 or <Null>." % (rtdirpair[0], str(rtdirpair[1]), dayString))
-
-        except:
-            arcpy.AddError("Error counting arrivals or departures at stop during time window.")
-            raise
-
-        try:
-            arcpy.AddMessage("Developing Frequency and Trip Statistics for Stop-Route-Direction combinations.")
-            for rtdirpair in stoptimedict_rtedirpair:
-                stops = stoptimedict_rtedirpair[rtdirpair].keys()
-                for stop in stops:
-                    # Declare Unique ID Fields
-                    routedir_id_str, route_id, dir_id = str(rtdirpair), str(rtdirpair[0]), str(rtdirpair[1])
-                    try:
-                        route_id_num = int(''.join(list(
-                            filter(str.isdigit, route_id.split(":")[-1]))))  # Works in Python 3 too-gets all numbers
-                    except:  # not a number
-                        route_id_num = 999
-                    # Get Stop-Route-Dir Frequencies by time period
-                    NumTrips, NumTripsPerHour, MaxWaitTimeSec, AvgHeadwayMin = RetrieveFrequencyStatsForStop(stop,
-                                                                                                             rtdirpair)
-                    # Nested Dictionary Starts with Stop Level Keys
-                    stop_frequency_record_rtdir_pair_dict = stop_frequency_route_dir_dict.setdefault(stop, {})
-                    # The Dictionary that is keyed to the stop is a dictionary that is keyed to the current rtdirpair,
-                    # the value is the list of values that are having frequencies extended on to based on the analysis
-                    # analysis parameters.
-                    # Declare empty default Record with IDs and None values as starting values of record.
-                    empty_default_record = [routedir_id_str, route_id, route_id_num, dir_id]
-                    frequency_field_start_index = int(
-                        len(empty_default_record))  # No Minus because it is the start index
-                    empty_default_record.extend([None] * total_frequency_fields)
-                    stop_frequency_record = stop_frequency_record_rtdir_pair_dict.setdefault(rtdirpair,
-                                                                                             empty_default_record)
-                    new_frequency_fields = [NumTrips, NumTripsPerHour, MaxWaitTimeSec, AvgHeadwayMin]
-                    number_of_frequency_fields = int(len(new_frequency_fields))
-                    # Update Values with the appropriate index values.
-                    time_period_start_index = temporal_idx * number_of_frequency_fields
-                    for idx, value in enumerate(new_frequency_fields):
-                        # Allocate values based on enumerate index, time period placement, and start of frequency fields
-                        frequency_value_index = idx + time_period_start_index + frequency_field_start_index
-                        stop_frequency_record[frequency_value_index] = new_frequency_fields[idx]
-        except:
-            arcpy.AddError("Error calculating statistics for arrivals or departures at stop during time window.")
-            raise
-            # ----- Write to output -----
-
-    try:
-        # Output Settings
-        OverwriteOutput = arcpy.env.overwriteOutput  # Get the orignal value so we can reset it.
-        arcpy.env.overwriteOutput = True
-        arcpy.AddMessage("Writing output...")
-        BBB_SharedFunctions.MakeTemporalRouteDirStopsFeatureClass(output_stop_file, stop_frequency_route_dir_dict,
-                                                                  time_period_id_list)
-    except:
-        arcpy.AddError("Error writing output to feature class(es).")
-        raise
-    finally:
-        # Reset overwriteOutput to what it was originally.
-        arcpy.env.overwriteOutput = OverwriteOutput
+        # Insert row for any remaining stops that were not used at all
+        for stop in used_stops:
+            if used_stops[stop]:
+                # This one was already inserted
+                continue
+            stop_data = stop_dict[stop_id]
+            row = [
+                stop_geoms[stop_id],  # Geometry
+                stop_data[0], stop_data[1], stop_data[2], stop_data[3], stop_data[6], stop_data[7], stop_data[8], stop_data[9],  # GTFS data
+                None, None  # route and direction IDs - None because not used
+            ]
+            # Populate stats fields for each prefix
+            for time_window in time_window_value_table:
+                row += [0, 0, None, None]
+            # Insert the row
+            cur3.insertRow(row)
 
     # Close Connection
     conn.close()
