@@ -291,7 +291,7 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
             stop_id = key[0]
             used_stops[stop_id] = True
             route_id = key[1]
-            dir_id = key[2]
+            direction_id = key[2]
             stop_data = stop_dict[stop_id]
             # Schema of StopTable
             ##   0 - stop_id
