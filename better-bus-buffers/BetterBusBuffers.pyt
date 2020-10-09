@@ -1015,8 +1015,8 @@ class CountTripsAtStopsByRouteAndDirection(object):
         param_time_windows.values = [['Monday', '00:00', '23:59', 'Departures', 'TW1']]
 
         param_snap_to_nearest_5_minutes = arcpy.Parameter(
-            displayName="Snap to Nearest 5 Minutes",
-            name="snap_to_nearest_5_minutes",
+            displayName="Round Headway to Nearest 5 Minutes",
+            name="round_headway_to_nearest_5_minutes",
             datatype="GPBoolean",
             parameterType="Required",
             direction="Input")
