@@ -26,6 +26,8 @@ The *[Count Trips at Points Online](#CountTripsAtPointsOnline)* does the same th
 
 The *[Count Trips at Stops](#CountTripsAtStops)* tool counts the number of transit trips that visit the stops in your transit system during a time window.  The output is a feature class of your GTFS stops with fields indicating the number of transit trips that visit those stops.
 
+The *[Count Trips at Stops by Route and Direction](#CountTripsAtStopsRouteDir)* tool counts the number of transit trips that visit the stops in your transit system during a time window.  In contrast to *Count Trips at Stops*, this tool does not combine trips from different routes or directions of travel. Instead, if a stop is used by multiple routes and/or directions, the stop will be duplicated in the output.
+
 The *[Count High Frequency Routes at Stops](#CountHighFrequencyRoutesAtStops)* tool counts the number of routes at each stop that meet a desired headway threshold. The output is a feature class of your GTFS stops with fields indicating trip and headway statistics along with a count of the number of routes at the stop that has headways of a desired threshold or shorter.
 
 Detailed instructions for each of these tools is given later in this document.
@@ -34,7 +36,7 @@ Detailed instructions for each of these tools is given later in this document.
 * ArcGIS 10.2 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher.
 * The *Count High Frequency Routes at Stops* tool requires ArcGIS 10.4 or higher or ArcGIS Pro 1.2 or higher.
 * You need the Desktop Advanced (ArcInfo) license in order to run the *Count Trips in Polygon Buffers around Stops* tool.
-* All tools except *Count Trips at Stops*, *Count Trips at Points Online*, *Count High Frequency Routes at Stops*, and those in the *Count Trips on Lines* toolset require the Network Analyst extension.
+* All tools except *Count Trips at Stops*, *Count Trips at Stops by Route and Direction*, *Count Trips at Points Online*, *Count High Frequency Routes at Stops*, and those in the *Count Trips on Lines* toolset require the Network Analyst extension.
 * For the *Count Trips at Points Online* tool, an ArcGIS Online account with routing privileges and sufficient credits for your analysis.
 
 ## Data requirements
@@ -359,7 +361,7 @@ The *Count Trips at Stops* tool counts the number of transit trips that visit th
 * **SQL database of preprocessed GTFS data**: The SQL database you created in the *Preprocess GTFS* tool.
 * **Weekday or YYYYMMDD date**:  Choose the day you wish to consider.  You can select a generic weekday, such as Tuesday, and all trips running on a typical Tuesday (as defined in your GTFS calendar.txt file) will be counted.  You cannot use a generic weekday if your GTFS data does not have a calendar.txt file.  Alternatively, you can enter a specific date in YYYYMMDD format, such as 20160212 for February 12, 2016.  All trips running on that specific date, as defined in your GTFS dataset's calendar.txt and calendar_dates.txt file, will be counted.  Specific dates are useful if you want to analyze a holiday, if your calendar.txt file has non-overlapping date ranges, or if your GTFS dataset does not have a calendar.txt file.
 * **Time window start (HH:MM) (24-hour time)**:  The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.
-* **Time window end (HH:MM) (24-hour time**:  The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.  If you wish to analyze a time window spanning midnight, you can use times greater than 23:59.  For instance, a time window of 11pm to 1am should have a start time of 23:00 and an end time of 25:00.
+* **Time window end (HH:MM) (24-hour time)**:  The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.  If you wish to analyze a time window spanning midnight, you can use times greater than 23:59.  For instance, a time window of 11pm to 1am should have a start time of 23:00 and an end time of 25:00.
 * **Count arrivals or departures**: Indicate whether you want to count the number of arrivals at the stop during the time window or the number of departures from the stop.
 
 ### Outputs
@@ -387,6 +389,47 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
 
 Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
 
+## <a name="CountTripsAtStops"></a>Running *Count Trips at Stops by Route and Direction*
+
+### What this tool does
+The *Count Trips at Stops by Route and Direction* tool counts the number of transit trips that visit the stops in your transit system during a time window.  In contrast to *Count Trips at Stops*, this tool does not combine trips from different routes or directions of travel. Instead, if a stop is used by multiple routes and/or directions, the stop will be duplicated in the output.
+
+![Screenshot of tool dialog](./images/Screenshot_CountTripsatStopsRouteDir_Dialog.png)
+
+### Inputs
+* **Output feature class**:  Choose a name and location for your output feature class.  It must be a feature class in a geodatabase and not a shapefile.
+* **SQL database of preprocessed GTFS data**: The SQL database you created in the *Preprocess GTFS* tool.
+* **Time Windows**: A value table (a list of lists) defining the time windows for which you want to calculate transit frequencies.  Each time window input includes:
+  * **Weekday or YYYYMMDD date**:  Choose the day you wish to consider.  You can select a generic weekday, such as Tuesday, and all trips running on a typical Tuesday (as defined in your GTFS calendar.txt file) will be counted.  You cannot use a generic weekday if your GTFS data does not have a calendar.txt file.  Alternatively, you can enter a specific date in YYYYMMDD format, such as 20160212 for February 12, 2016.  All trips running on that specific date, as defined in your GTFS dataset's calendar.txt and calendar_dates.txt file, will be counted.  Specific dates are useful if you want to analyze a holiday, if your calendar.txt file has non-overlapping date ranges, or if your GTFS dataset does not have a calendar.txt file.
+  * **Time Window Start**:  The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.
+  * **Time Window End**:  The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.  If you wish to analyze a time window spanning midnight, you can use times greater than 23:59.  For instance, a time window of 11pm to 1am should have a start time of 23:00 and an end time of 25:00.
+  * **Count Arrivals or Departures**: Indicate whether you want to count the number of arrivals at the stop during the time window or the number of departures from the stop.
+  * **Output Field Prefix**: The field name prefix to use for this time window in the output table.
+* **Round Headway to Nearest 5 Minutes**: Whether or not to round the calculated average headway values to the nearest 5 minutes (True) or leave them as is (False)
+
+### Outputs
+* **[Output feature class]**:  This point feature class shows your GTFS stops with some stops duplicated if they are used by multiple routes and directions of travel within the specified time windows.  The attributes table contains information from the stops.txt file and fields indicating the transit frequency at each stop for each time window.  Please see "Understanding the Output" below for an explanation of the fields in this table.
+
+### Understanding the output
+This tool produces a points feature class containing the fields described below.
+* **stop_id**:  The unique stop_id from the GTFS stops.txt file.  The original stop_id now has the GTFS folder name prepended to it, in order to prevent problems when combining multiple GTFS datasets in the same analysis.
+* **stop_code, stop_name, stop_desc, zone_id, stop_url, location_type, parent_station**:  Fields from the GTFS stops.txt file.  For an explanation of these fields, please review the [GTFS reference guide](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#stopstxt).
+* **[Output Field Prefix]_NumTrips**:  The total number of transit trips that visit this stop during the time window designated by the prefix.
+* **[Output Field Prefix]_NumTripsPerHr**: The average number of transit trips that visit this stop per hour during the time window designated by the prefix.  This number is calculated by dividing NumTrips by the length of the time window.
+* **[Output Field Prefix]_MaxWaitTime**: The maximum time, in minutes, between consecutive transit trip arrivals or departures during the time window designated by the prefix.  This is the maximum amount of time during which no trips visit this stop.
+A MaxWaitTime of \<Null\> indicates that the MaxWaitTime could not be calculated for one of the following reasons:
+  - There were fewer than two transit trips available within the time window.
+  - The time between the start of the time window and the first trip or the last trip and the end of the time window was greater than the largest time between trips.
+
+  When choosing symbology, make sure to check for values of \<Null\>.
+* **[Output Field Prefix]_AvgHeadway**: The average headway, in minutes, between trips during the time window designated by the prefix. This field will be \<Null\> if the average headway could not be calculated, typically for the same reason that the MaxWaitTime field cannot be calculated.
+
+### Troubleshooting & potential pitfalls
+* **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
+
+Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+
+
 ## <a name="CountHighFrequencyRoutesAtStops"></a>Running *Count High Frequency Routes at Stops*
 
 ### What this tool does
@@ -400,7 +443,7 @@ The *Count High Frequency Routes at Stops* tool counts the number of routes at e
 * **SQL database of preprocessed GTFS data**: The SQL database you created in the *Preprocess GTFS* tool.
 * **Weekday or YYYYMMDD date**:  Choose the day you wish to consider.  You can select a generic weekday, such as Tuesday, and all trips running on a typical Tuesday (as defined in your GTFS calendar.txt file) will be counted.  You cannot use a generic weekday if your GTFS data does not have a calendar.txt file.  Alternatively, you can enter a specific date in YYYYMMDD format, such as 20160212 for February 12, 2016.  All trips running on that specific date, as defined in your GTFS dataset's calendar.txt and calendar_dates.txt file, will be counted.  Specific dates are useful if you want to analyze a holiday, if your calendar.txt file has non-overlapping date ranges, or if your GTFS dataset does not have a calendar.txt file.
 * **Time window start (HH:MM) (24-hour time)**:  The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.
-* **Time window end (HH:MM) (24-hour time**:  The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.  If you wish to analyze a time window spanning midnight, you can use times greater than 23:59.  For instance, a time window of 11pm to 1am should have a start time of 23:00 and an end time of 25:00.
+* **Time window end (HH:MM) (24-hour time)**:  The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.  If you wish to analyze a time window spanning midnight, you can use times greater than 23:59.  For instance, a time window of 11pm to 1am should have a start time of 23:00 and an end time of 25:00.
 * **Count arrivals or departures**: Indicate whether you want to count the number of arrivals at the stop during the time window or the number of departures from the stop.
 * **Headway Threshold**: This is a headway threshold in minutes.  For each stop, the tool determines the number of routes visiting that stop that have an average time between buses that is less than or equal to this threshold. For example, if a stop is served by two routes with 10-minute headways and one route with a 30-minute headway, and the Headway Threshold is set to 15 minutes, the MtHdWyLim field will be set to 2 for that stop.  The two 10-minute headway routes count, but the 30-minute headway route does not. 
 * **Snap to Nearest 5 Minutes**: Calculated headways will be snapped to the closest 5 minute interval. Sometimes GTFS calculated average headways can be headways such as 11 or 12 minutes rather than the expected 10 due to rounding or other scheduling artifacts. If this is checked, headways will be rounded to the nearest 5 minutes. For example, 11 minutes would become 10, 13 minutes would become 15. 
