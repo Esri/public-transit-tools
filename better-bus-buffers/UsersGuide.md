@@ -389,7 +389,7 @@ A MaxWaitTime of \<Null\> (or -1 for shapefile output) indicates that the MaxWai
 
 Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
 
-## <a name="CountTripsAtStops"></a>Running *Count Trips at Stops by Route and Direction*
+## <a name="CountTripsAtStopsRouteDir"></a>Running *Count Trips at Stops by Route and Direction*
 
 ### What this tool does
 The *Count Trips at Stops by Route and Direction* tool counts the number of transit trips that visit the stops in your transit system during a time window.  In contrast to *Count Trips at Stops*, this tool does not combine trips from different routes or directions of travel. Instead, if a stop is used by multiple routes and/or directions, the stop will be duplicated in the output.
