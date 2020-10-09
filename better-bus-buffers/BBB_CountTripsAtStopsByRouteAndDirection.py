@@ -60,64 +60,6 @@ import arcpy
 import BBB_SharedFunctions
 import sqlite3, os, datetime
 
-
-def GenerateTimePeriodExtent(start_time_stamp_list, end_time_stamp_list):
-    """Takes a list of start and end time stamps and returns the minimum valued start time and the maximum valued
-    end time to determine the global temporal extent."""
-    temporal_extent = None
-    start_seconds_list = []
-    end_seconds_list = []
-    for start_time, end_time in zip(start_time_stamp_list, end_time_stamp_list):
-        # Convert to seconds from midnight
-        start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
-        # Convert to seconds from midnight
-        end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
-        start_seconds_list.append(start_sec)
-        end_seconds_list.append(end_sec)
-    min_start_time, max_end_time = min(start_seconds_list), max(end_seconds_list)
-    return min_start_time, max_end_time
-
-
-def GenerateTimePeriodList(start_time_stamp_list, end_time_stamp_list, alias_list, start_default="00:00",
-                           end_default="23:59"):
-    """This function will take a list of string time stamps of start and end times, and return a nested list of the structure.
-    [(Time_period_iD, start_seconds, end_seconds, time_window),...]
-    :param - start_time_stamp_list - list of start times in HH:MM
-    :param - end_time_stamp_list - list of end times in HH:MM
-    :param - alias_list- list of names to name time period summaries
-    :param - start_default - default start time
-    :param - end_default -default end time"""
-    time_period_list = []
-    cached_hours = (None, None)
-    for start_time, end_time, alias in zip(start_time_stamp_list, end_time_stamp_list, alias_list):
-        # Declare Defaults
-        if start_time == "":
-            start_time = start_default
-        # Convert to seconds
-        start_sec = BBB_SharedFunctions.parse_time(start_time + ":00")
-        # Upper end of time window (HH:MM in 24-hour time)
-        # Default end time is 11:59pm if they leave it blank.
-        if end_time == "":
-            end_time = end_default
-        # Generate Unique Time Period ID
-        start_time_id = str(start_time).split(":")[0]
-        end_time_id = str(end_time).split(":")[0]
-        if start_time_id == cached_hours[0] and end_time_id == cached_hours[1]:
-            start_time_id = str(start_time).replace(":", "")
-            end_time_id = str(end_time).replace(":", "")
-        finalID = alias
-        cached_hours = (start_time_id, end_time_id)
-        # Determine Temporal Values
-        # Convert to seconds
-        end_sec = BBB_SharedFunctions.parse_time(end_time + ":00")
-        # Length of time window in hours - used to calculate num trips / hour
-        # TimeWindowLength = (end_sec - start_sec) / 3600
-        TimeWindowLength = (end_sec - start_sec) / 3600
-        time_period_list.append((finalID, start_sec, end_sec, TimeWindowLength))
-    return time_period_list
-
-
-
 def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest_5_minutes):
     def RetrieveFrequencyStatsForStop(stop_id, stoptimedict, start_sec, end_sec):
         '''For a given stop, query the dictionary
