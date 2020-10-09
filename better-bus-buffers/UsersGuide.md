@@ -63,7 +63,7 @@ The *Preprocess GTFS* tool converts your GTFS dataset(s) into a SQL database.  T
 
 ### Inputs
 - **GTFS directories**:  The *folder(s)* containing your (unzipped) GTFS .txt files.  You can select multiple GTFS datasets to analyze simultaneously.
-- **Name and location for output SQL database**:  The tool will generate a SQL database with the name and location you specify here.  You can give it any name and extension you want.  You will use this file as input for the other BetterBusBuffers tools.
+- **Name and location for output SQL database**:  The tool will generate a SQL database with the name and location you specify here.  You can give it any name you want, and use a ".sql" expression.  You will use this file as input for the other BetterBusBuffers tools.
 
 ### Outputs
 - **[Your designated output filename]**: A SQL database containing your GTFS data that is required as input for the BetterBusBuffers tools.
