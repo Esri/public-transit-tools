@@ -414,6 +414,8 @@ The *Count Trips at Stops by Route and Direction* tool counts the number of tran
 This tool produces a points feature class containing the fields described below.
 * **stop_id**:  The unique stop_id from the GTFS stops.txt file.  The original stop_id now has the GTFS folder name prepended to it, in order to prevent problems when combining multiple GTFS datasets in the same analysis.
 * **stop_code, stop_name, stop_desc, zone_id, stop_url, location_type, parent_station**:  Fields from the GTFS stops.txt file.  For an explanation of these fields, please review the [GTFS reference guide](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md#stopstxt).
+* **route_id**: The GTFS route_id with which this table row is associated. This field will be \<Null\> if no routes visited the stop_id during any of the designated time windows.
+* **direction_id**: The GTFS direction_id with which this table row is associated. This field will be \<Null\> if no routes visited the stop_id during any of the designated time windows.
 * **[Output Field Prefix]_NumTrips**:  The total number of transit trips that visit this stop during the time window designated by the prefix.
 * **[Output Field Prefix]_NumTripsPerHr**: The average number of transit trips that visit this stop per hour during the time window designated by the prefix.  This number is calculated by dividing NumTrips by the length of the time window.
 * **[Output Field Prefix]_MaxWaitTime**: The maximum time, in minutes, between consecutive transit trip arrivals or departures during the time window designated by the prefix.  This is the maximum amount of time during which no trips visit this stop.
@@ -423,6 +425,8 @@ A MaxWaitTime of \<Null\> indicates that the MaxWaitTime could not be calculated
 
   When choosing symbology, make sure to check for values of \<Null\>.
 * **[Output Field Prefix]_AvgHeadway**: The average headway, in minutes, between trips during the time window designated by the prefix. This field will be \<Null\> if the average headway could not be calculated, typically for the same reason that the MaxWaitTime field cannot be calculated.
+
+The stop_id values in the output are not unique.  The combination of stop_id, route_id, and direction_id should be unique.
 
 ### Troubleshooting & potential pitfalls
 * **I got a warning message saying I had non-overlapping date ranges**: This is because of the way your GTFS data has constructed its calendar.txt file, or because your GTFS datasets (if you have multiple datasets) do not cover the same date ranges.  See the explanation of this problem in the [*Preprocess GTFS* section](#PreprocessGTFS).
