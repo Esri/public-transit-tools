@@ -405,6 +405,7 @@ The *Count Trips at Stops by Route and Direction* tool counts the number of tran
   * **Time Window End**:  The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2am is 02:00, and 2pm is 14:00.  If you wish to analyze a time window spanning midnight, you can use times greater than 23:59.  For instance, a time window of 11pm to 1am should have a start time of 23:00 and an end time of 25:00.
   * **Count Arrivals or Departures**: Indicate whether you want to count the number of arrivals at the stop during the time window or the number of departures from the stop.
   * **Output Field Prefix**: The field name prefix to use for this time window in the output table.
+  Several default time windows are included when you first open the tool, but you can remove, modify, or add to them as needed.
 * **Round Headway to Nearest 5 Minutes**: Whether or not to round the calculated average headway values to the nearest 5 minutes (True) or leave them as is (False)
 
 ### Outputs
