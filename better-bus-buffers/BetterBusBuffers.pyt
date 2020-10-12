@@ -1,12 +1,12 @@
 ############################################################################
 ## Tool name: BetterBusBuffers
 ## Created by: Melinda Morang, Esri
-## Last updated: 6 December 2017
+## Last updated: 7 August 2020
 ############################################################################
 ''' Python toolbox that defines all the tools in the BetterBusBuffers tool
 suite.'''
 ################################################################################
-'''Copyright 2017 Esri
+'''Copyright 2020 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -40,7 +40,8 @@ class Toolbox(object):
                         BBBIndividualRoute_CountTripsForRoute,
                         BBBLines_PreprocessLines,
                         BBBLines_CountTripsOnLines,
-                        CountHighFrequencyRoutesAtStops]
+                        CountHighFrequencyRoutesAtStops,
+                        CountTripsAtStopsByRouteAndDirection]
 
 
 #region PreprocessGTFS
@@ -979,6 +980,107 @@ or shorter.'''
 #endregion
 
 
+#region CountTripsAtStopsByRouteAndDirection
+class CountTripsAtStopsByRouteAndDirection(object):
+    def __init__(self):
+        """Define the tool (tool name is the name of the class)."""
+        self.label = "Count Trips at Stops by Route and Direction"
+        self.description = ("The Count Trips at Stops by Route and Direction outputs a"
+        "feature class where every GTFS stop is duplicated for every route-direction combination"
+        "that uses that stop during the analysis time windows. Each point will represent a unique"
+        "combination of stop id, route id, and direction id, and the frequency statistics that"
+        "relate to each of them for the analyzed time window.") 
+        self.canRunInBackground = True
+
+    def getParameterInfo(self):
+        """Define parameter definitions"""
+
+        param_time_windows = arcpy.Parameter(
+            displayName="Time Windows",
+            name="Time_Windows",
+            datatype="GPValueTable",
+            parameterType="Required",
+            direction="Input")
+        param_time_windows.columns = [
+            ['GPString', 'Weekday or YYYYMMDD Date'],
+            ['GPString', 'Time Window Start'],
+            ['GPString', 'Time Window End'],
+            ['GPString', 'Count Arrivals Or Departures'],
+            ['GPString', 'Output Field Prefix']
+            ]
+        param_time_windows.filters[0].type = 'ValueList'
+        param_time_windows.filters[0].list = ToolValidator.days
+        param_time_windows.filters[3].type = 'ValueList'
+        param_time_windows.filters[3].list = ['Arrivals', 'Departures']
+        param_time_windows.values = [
+            ['Monday', '00:00', '23:59', 'Departures', 'WKD_DAILY'],
+            ['Monday', '06:00', '09:00', 'Departures', 'WKD_AM'],
+            ['Monday', '16:00', '19:00', 'Departures', 'WKD_PM'],
+            ['Saturday', '00:00', '23:59', 'Departures', 'WKE_DAILY']
+        ]
+
+        param_snap_to_nearest_5_minutes = arcpy.Parameter(
+            displayName="Round Headway to Nearest 5 Minutes",
+            name="round_headway_to_nearest_5_minutes",
+            datatype="GPBoolean",
+            parameterType="Required",
+            direction="Input")
+        param_snap_to_nearest_5_minutes.value = True
+
+        params = [
+            make_parameter(param_output_feature_class),
+            make_parameter(param_SQLDbase),
+            param_time_windows,
+            param_snap_to_nearest_5_minutes
+            ]
+
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
+        param_fc = parameters[0]
+        param_time_windows = parameters[2]
+
+        if param_fc.valueAsText:
+            out_gdb = os.path.dirname(param_fc.valueAsText)
+            ToolValidator.clean_time_window_prefix_strings(param_time_windows, 4, out_gdb)
+
+        return
+
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal validation for each tool
+        parameter.  This method is called after internal validation."""
+
+        param_fc = parameters[0]
+        param_SQLDbase = parameters[1]
+        param_time_windows = parameters[2]
+
+        ToolValidator.forbid_shapefile(param_fc)
+        ToolValidator.check_SQLDBase(param_SQLDbase, param_SQLDbase.valueAsText, ["stops", "trips", "stop_times"], ["calendar", "calendar_dates"])
+        ToolValidator.check_date_param_value_table(param_time_windows, 0, param_SQLDbase.valueAsText)
+        ToolValidator.check_time_window_value_table(param_time_windows, 1, 2)
+        ToolValidator.validate_time_window_prefix_strings(param_time_windows, 4)
+
+        return
+
+    def execute(self, parameters, messages):
+        """The source code of the tool."""
+        import BBB_CountTripsAtStopsByRouteAndDirection
+        outStops = parameters[0].valueAsText
+        SQLDbase = parameters[1].valueAsText
+        time_window_value_table = parameters[2].values
+        snap_to_nearest_5 = parameters[3].value
+        BBB_CountTripsAtStopsByRouteAndDirection.runTool(
+            outStops, SQLDbase, time_window_value_table, snap_to_nearest_5)
+        return
+#endregion
+
 
 class CommonParameter(object):
     def __init__(self, displayName, name, datatype, parameterType, direction, multiValue=None, default_val=None, filter_list=None):
@@ -1013,7 +1115,8 @@ param_SQLDbase = CommonParameter(
     "sql_database",
     "DEFile",
     "Required",
-    "Input")
+    "Input",
+    filter_list=["sql"])
 
 param_day = CommonParameter(
     "Weekday or YYYYMMDD date",
