@@ -26,6 +26,7 @@ import itertools
 import time
 import traceback
 import argparse
+import pandas as pd
 from distutils.util import strtobool
 from multiprocessing import Manager
 
@@ -676,6 +677,27 @@ def solve_od_cost_matrix(inputs, chunk):
     return odcm.job_result
 
 
+def add_results_to_output(origins, destinations, weight_field, num_dest_rows, shared_dict):
+    # Convert the shared dictionary to a pandas dataframe for easier processing
+    result_df = pd.DataFrame.from_records(
+        [(key[0], key[1], shared_dict[key]) for key in shared_dict],
+        columns=["OriginOID", "DestinationOID", "TimesReached"]
+    )
+    # Delete the shared dictionary to clear up memory
+    del shared_dict
+
+    total_dests = num_dest_rows
+
+    # If we're using a weight field, read in those values and join them into the result table
+    if weight_field:
+        with arcpy.da.SearchCursor(destinations, ["OID@", weight_field]) as cur:
+            w_df = pd.DataFrame(cur, columns=["DestinationOID", "Weight"])
+        w_df.set_index("DestinationOID", inplace=True)
+        total_dests = w_df["Weight"].sum()  # Overwrite number of destinations using weight field
+        result_df = result_df.join(w_df, "DestinationOID")
+
+
+
 def compute_ods_in_parallel(**kwargs):
     """Compute OD Cost Matrices between Origins and Destinations in parallel and combine results.
 
@@ -715,7 +737,6 @@ def compute_ods_in_parallel(**kwargs):
     time_increment = kwargs["time_increment"]
     network_data_source = kwargs["network_data_source"]
     travel_mode = kwargs["travel_mode"]
-    output_od_lines = kwargs["output_od_lines"]
     chunk_size = kwargs["chunk_size"]
     max_processes = kwargs["max_processes"]
     time_units = kwargs["time_units"]
@@ -769,7 +790,8 @@ def compute_ods_in_parallel(**kwargs):
         err = f"Input Destinations dataset {destinations} does not exist."
         LOGGER.error(err)
         raise ValueError(err)
-    if int(arcpy.management.GetCount(destinations).getOutput(0)) <= 0:
+    num_dest_rows = int(arcpy.management.GetCount(destinations).getOutput(0))
+    if num_dest_rows <= 0:
         err = f"Input Destinations dataset {destinations} has no rows."
         LOGGER.error(err)
         raise ValueError(err)
@@ -899,19 +921,14 @@ def compute_ods_in_parallel(**kwargs):
                         LOGGER.error(err)
                     raise
 
-                # Parse the results dictionary and store components for post-processing.
-                if result["solveSucceeded"]:
-                    od_line_fcs.append(result["outputLines"])
-                else:
+                # Log failed solves
+                if not result["solveSucceeded"]:
                     LOGGER.warning(f"Solve failed for job id {result['jobId']}")
                     msgs = result["solveMessages"]
                     LOGGER.warning(msgs)
 
-    # Merge individual OD Lines feature classes into a single feature class
-    if od_line_fcs:
-        post_process_od_lines(od_line_fcs, output_od_lines, num_destinations, optimized_cost_field)
-    else:
-        LOGGER.warning("All OD Cost Matrix solves failed, so no output was produced.")
+        # Calculate statistics from the results of the OD Cost Matrix calculations present in the shared dictionary.
+        add_results_to_output(origins, destinations, weight_field, num_dest_rows, shared_dict)
 
     # Cleanup
     # Delete the job folders if the job succeeded
