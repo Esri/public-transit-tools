@@ -24,18 +24,19 @@ import arcpy
 
 # These properties are set by the tool dialog or can be specified as command line arguments. Do not set the values for
 # these properties in the OD_PROPS dictionary below because they will be ignored.
-OD_PROPS_SET_BY_TOOL = ["travelMode", "timeUnits", "distanceUnits", "defaultImpedanceCutoff", "defaultDestinationCount"]
+OD_PROPS_SET_BY_TOOL = ["travelMode", "timeUnits", "defaultImpedanceCutoff", "timeOfDay"]
 
 # You can customize these properties to your needs, and the parallel OD cost matrix calculations will use them.
 OD_PROPS = {
     "accumulateAttributeNames": [],
     "allowSaveLayerFile": False,
+    "defaultDestinationCount": None,  # None means to find all destinations within the cutoff.
+    "distanceUnits": arcpy.nax.DistanceUnits.Meters,
     "ignoreInvalidLocations": True,
     "lineShapeType": arcpy.nax.LineShapeType.NoLine,
     "overrides": "",
     # "searchQuery": [],  # This parameter is very network specific. Only uncomment if you are using it.
     "searchTolerance": 5000,
     "searchToleranceUnits": arcpy.nax.DistanceUnits.Meters,
-    "timeOfDay": None,
     "timeZone": arcpy.nax.TimeZoneUsage.LocalTimeAtLocations,
 }

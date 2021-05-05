@@ -27,11 +27,12 @@ import time
 import traceback
 import argparse
 from distutils.util import strtobool
+from multiprocessing import Manager
 
 import arcpy
 
 # Import OD Cost Matrix settings from config file
-from od_config import OD_PROPS, OD_PROPS_SET_BY_TOOL
+from CalculateAccessibilityMatrix_OD_config import OD_PROPS, OD_PROPS_SET_BY_TOOL
 
 import AnalysisHelpers
 
@@ -307,6 +308,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         Expected arguments:
         - origins
         - destinations
+        - destination_where_clause
         - network_data_source
         - travel_mode
         - time_units
@@ -316,6 +318,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         """
         self.origins = kwargs["origins"]
         self.destinations = kwargs["destinations"]
+        self.destination_where_clause = kwargs["destination_where_clause"]
         self.network_data_source = kwargs["network_data_source"]
         self.travel_mode = kwargs["travel_mode"]
         self.time_units = kwargs["time_units"]
@@ -341,11 +344,6 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         # Set up other instance attributes
         self.is_service = is_nds_service(self.network_data_source)
         self.od_solver = None
-        self.time_attribute = ""
-        self.distance_attribute = ""
-        self.is_travel_mode_time_based = True
-        self.is_travel_mode_dist_based = True
-        self.optimized_field_name = None
         self.input_origins_layer = "InputOrigins" + self.job_id
         self.input_destinations_layer = "InputDestinations" + self.job_id
         self.input_origins_layer_obj = None
@@ -363,7 +361,6 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             "jobFolder": self.job_folder,
             "solveSucceeded": False,
             "solveMessages": "",
-            "outputLines": "",
             "logFile": self.log_file
         }
 
@@ -372,8 +369,6 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         desc_destinations = arcpy.Describe(self.destinations)
         self.origins_oid_field_name = desc_origins.oidFieldName
         self.destinations_oid_field_name = desc_destinations.oidFieldName
-        self.origins_fields = desc_origins.fields
-        self.destinations_fields = desc_destinations.fields
 
     def _make_nds_layer(self):
         """Create a network dataset layer if one does not already exist."""
@@ -389,7 +384,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
                 log_to_use=self.logger
             )
 
-    def initialize_od_solver(self):
+    def initialize_od_solver(self, time_of_day=None):
         """Initialize an OD solver object and set properties."""
         # For a local network dataset, we need to checkout the Network Analyst extension license.
         if not self.is_service:
@@ -420,37 +415,41 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.logger.debug("Setting OD Cost Matrix analysis properties specified tool inputs...")
         self.od_solver.travelMode = self.travel_mode
         self.od_solver.timeUnits = self.time_units
-        self.od_solver.distanceUnits = self.distance_units
-        self.od_solver.defaultDestinationCount = self.num_destinations
         self.od_solver.defaultImpedanceCutoff = self.cutoff
+        # Set time of day, which is passed in as an OD solve parameter from our chunking mechanism
+        self.od_solver.timeOfDay = time_of_day
 
-        # Determine if the travel mode has impedance units that are time-based, distance-based, or other.
-        self._determine_if_travel_mode_time_based()
+        # Ensure the travel mode has impedance units that are time-based.
+        self._validate_travel_mode()
 
-    def solve(self, origins_criteria, destinations_criteria):
+    def _validate_travel_mode(self):
+        """Validate that the travel mode has time units
+
+        Raises:
+            ValueError: If the travel mode's impedance units are not time based.
+        """
+        # Get the travel mode object from the already-instantiated OD solver object. This saves us from having to parse
+        # the user's input travel mode from its string name, object, or json representation.
+        travel_mode = self.od_solver.travelMode
+        impedance = travel_mode.impedance
+        time_attribute = travel_mode.timeAttributeName
+        if impedance != time_attribute:
+            err = f"The impedance units of the selected travel mode {travel_mode.name} are not time based."
+            self.logger.error(err)
+            raise ValueError(err)
+
+    def solve(self, origins_criteria, destinations_criteria, time_of_day, shared_dict):
         """Create and solve an OD Cost Matrix analysis for the designated chunk of origins and destinations.
 
         Args:
             origins_criteria (list): Origin ObjectID range to select from the input dataset
             destinations_criteria ([type]): Destination ObjectID range to select from the input dataset
         """
-        # Make output gdb
-        self.logger.debug("Creating output geodatabase for OD cost matrix analysis...")
-        run_gp_tool(
-            arcpy.management.CreateFileGDB,
-            [os.path.dirname(self.od_workspace), os.path.basename(self.od_workspace)],
-            log_to_use=self.logger
-        )
-
         # Select the origins and destinations to process
         self._select_inputs(origins_criteria, destinations_criteria)
-        if not self.input_destinations_layer_obj:
-            # No destinations met the criteria for this set of origins
-            self.logger.debug("No destinations met the criteria for this set of origins. Skipping OD calculation.")
-            return
 
         # Initialize the OD solver object
-        self.initialize_od_solver()
+        self.initialize_od_solver(time_of_day)
 
         # Load the origins
         self.logger.debug("Loading origins...")
@@ -483,7 +482,8 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         # the inputs in the current chunk. You may want to select only barriers within a reasonable distance of the
         # inputs, particularly if you run into the maximumFeaturesAffectedByLineBarriers,
         # maximumFeaturesAffectedByPointBarriers, and maximumFeaturesAffectedByPolygonBarriers tool limits for portal
-        # solves. However, since barriers is likely an unusual case, deal with this only if it becomes a problem.
+        # solves. However, since barriers and portal solves with limits are unusual for this tool, deal with this only
+        # if it becomes a problem.
         for barrier_fc in self.barriers:
             self.logger.debug(f"Loading barriers feature class {barrier_fc}...")
             shape_type = arcpy.Describe(barrier_fc).shapeType
@@ -533,82 +533,15 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.logger.debug("Solve succeeded.")
         self.job_result["solveSucceeded"] = True
 
-        # Export the OD Lines output to a feature class
-        output_od_lines = os.path.join(self.od_workspace, "output_od_lines")
-        self.logger.debug(f"Exporting OD cost matrix Lines output to {output_od_lines}...")
-        solve_result.export(arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines, output_od_lines)
-        self.job_result["outputLines"] = output_od_lines
+        # Read the results to discover all destinations reached by the origins in this chunk and update the shared
+        # dictionary
+        self.logger.debug("Logging OD Cost Matrix results...")
+        for row in solve_result.searchCursor(
+            arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines, ["OriginOID", "DestinationOID"]
+        ):
+            shared_dict[(row[0], row[1])] += 1
 
         self.logger.debug("Finished calculating OD cost matrix.")
-
-    def _hour_to_time_units(self):
-        """Convert 1 hour to the user's specified time units.
-
-        Raises:
-            ValueError: if the time units are not one of the known arcpy.nax.TimeUnits enums
-
-        Returns:
-            float: 1 hour in the user's specified time units
-        """
-        if self.time_units == arcpy.nax.TimeUnits.Minutes:
-            return 60.
-        if self.time_units == arcpy.nax.TimeUnits.Seconds:
-            return 3600.
-        if self.time_units == arcpy.nax.TimeUnits.Hours:
-            return 1.
-        if self.time_units == arcpy.nax.TimeUnits.Days:
-            return 1/24.
-        # If we got to this point, the time units were invalid.
-        err = f"Invalid time units: {self.time_units}"
-        self.logger.error(err)
-        raise ValueError(err)
-
-    def _mile_to_dist_units(self):
-        """Convert 1 mile to the user's specified distance units.
-
-        Raises:
-            ValueError: if the distance units are not one of the known arcpy.nax.DistanceUnits enums
-
-        Returns:
-            float: 1 mile in the user's specified distance units
-        """
-        if self.distance_units == arcpy.nax.DistanceUnits.Miles:
-            return 1.
-        if self.distance_units == arcpy.nax.DistanceUnits.Kilometers:
-            return 1.60934
-        if self.distance_units == arcpy.nax.DistanceUnits.Meters:
-            return 1609.33999997549
-        if self.distance_units == arcpy.nax.DistanceUnits.Feet:
-            return 5280.
-        if self.distance_units == arcpy.nax.DistanceUnits.Yards:
-            return 1760.
-        if self.distance_units == arcpy.nax.DistanceUnits.NauticalMiles:
-            return 0.868976
-        # If we got to this point, the distance units were invalid.
-        err = f"Invalid distance units: {self.distance_units}"
-        self.logger.error(err)
-        raise ValueError(err)
-
-    def _convert_time_cutoff_to_distance(self):
-        """Convert a time-based cutoff to distance units
-
-        For a time-based travel mode, the cutoff is expected to be in the user's specified time units. Convert this
-        to a safe straight-line distance cutoff in the user's specified distance units to use when pre-selecting
-        destinations relevant to this chunk.
-
-        Returns:
-            float: Distance cutoff to use for pre-selecting destinations by straight-line distance
-        """
-        # Assume a max driving speed. Note: If your analysis is doing something other than driving, you may want to
-        # update this.
-        max_speed = 80.  # Miles per hour
-        # Convert the assumed max speed to the user-specified distance units / time units
-        max_speed = max_speed * (self._mile_to_dist_units() / self._hour_to_time_units())  # distance units / time units
-        # Convert the user's cutoff from time to the user's distance units
-        cutoff_dist = self.cutoff * max_speed
-        # Add a 5% margin to be on the safe side
-        cutoff_dist = cutoff_dist + (0.05 * cutoff_dist)
-        return cutoff_dist
 
     def _select_inputs(self, origins_criteria, destinations_criteria):
         """Create layers from the origins and destinations so the layers contain only the desired inputs for the chunk.
@@ -621,7 +554,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.logger.debug("Selecting origins for this chunk...")
         origins_where_clause = (
             f"{self.origins_oid_field_name} >= {origins_criteria[0]} "
-            f"And {self.origins_oid_field_name} <= {origins_criteria[1]}"
+            f"AND {self.origins_oid_field_name} <= {origins_criteria[1]}"
         )
         self.input_origins_layer_obj = run_gp_tool(
             arcpy.management.MakeFeatureLayer,
@@ -629,73 +562,18 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             log_to_use=self.logger
         ).getOutput(0)
 
-        # Select the destinations with ObjectIDs in this range
+        # Select the destinations with ObjectIDs in this range subject to the global destination where clause
         self.logger.debug("Selecting destinations for this chunk...")
         destinations_where_clause = (
             f"{self.destinations_oid_field_name} >= {destinations_criteria[0]} "
-            f"And {self.destinations_oid_field_name} <= {destinations_criteria[1]} "
+            f"AND {self.destinations_oid_field_name} <= {destinations_criteria[1]} "
+            f"AND {self.destination_where_clause}"
         )
         self.input_destinations_layer_obj = run_gp_tool(
             arcpy.management.MakeFeatureLayer,
             [self.destinations, self.input_destinations_layer, destinations_where_clause],
             log_to_use=self.logger
         ).getOutput(0)
-
-        # Eliminate irrelevant destinations in this chunk if possible by selecting only those that fall within a
-        # reasonable straight-line distance cutoff. The straight-line distance will always be >= the network distance,
-        # so any destinations falling beyond our cutoff limit in straight-line distance are guaranteed to be irrelevant
-        # for the network-based OD cost matrix analysis
-        # > If not using an impedance cutoff, we cannot do anything here, so just return
-        if not self.cutoff:
-            return
-        # > If using a travel mode with impedance units that are not time or distance-based, we cannot determine how to
-        # convert the cutoff units into a sensible distance buffer, so just return
-        if not self.is_travel_mode_time_based and not self.is_travel_mode_dist_based:
-            return
-        # > If using a distance-based travel mode, use the cutoff value directly
-        if self.is_travel_mode_dist_based:
-            cutoff_dist = self.cutoff + (0.05 * self.cutoff)  # Use 5% margin to be on the safe side
-        # > If using a time-based travel mode, convert the time-based cutoff to a distance value in the user's specified
-        # distance units by assuming a fast maximum travel speed
-        else:
-            cutoff_dist = self._convert_time_cutoff_to_distance()
-
-        # Use SelectLayerByLocation to select those within a straight-line distance
-        self.logger.debug(
-            f"Eliminating destinations outside of distance threshold {cutoff_dist} {self.distance_units.name}...")
-        self.input_destinations_layer_obj = run_gp_tool(arcpy.management.SelectLayerByLocation, [
-            self.input_destinations_layer,
-            "WITHIN_A_DISTANCE_GEODESIC",
-            self.input_origins_layer,
-            f"{cutoff_dist} {self.distance_units.name}",
-        ], log_to_use=self.logger).getOutput(0)
-
-        # If no destinations are within the cutoff, reset the destinations layer object
-        # so the iteration will be skipped
-        if not self.input_destinations_layer_obj.getSelectionSet():
-            self.input_destinations_layer_obj = None
-            msg = "No destinations found within the distance threshold."
-            self.logger.debug(msg)
-            self.job_result["solveMessages"] = msg
-            return
-
-    def _determine_if_travel_mode_time_based(self):
-        """Determine if the travel mode uses a time-based impedance attribute."""
-        # Get the travel mode object from the already-instantiated OD solver object. This saves us from having to parse
-        # the user's input travel mode from its string name, object, or json representation.
-        travel_mode = self.od_solver.travelMode
-        impedance = travel_mode.impedance
-        time_attribute = travel_mode.timeAttributeName
-        distance_attribute = travel_mode.distanceAttributeName
-        self.is_travel_mode_time_based = True if time_attribute == impedance else False
-        self.is_travel_mode_dist_based = True if distance_attribute == impedance else False
-        # Determine which of the OD Lines output table fields contains the optimized cost values
-        if not self.is_travel_mode_time_based and not self.is_travel_mode_dist_based:
-            self.optimized_field_name = "Total_Other"
-        elif self.is_travel_mode_time_based:
-            self.optimized_field_name = "Total_Time"
-        else:
-            self.optimized_field_name = "Total_Distance"
 
     def setup_logger(self, logger_obj):
         """Set up the logger used for logging messages for this process. Logs are written to a text file.
@@ -713,25 +591,15 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             logger_obj.addHandler(file_handler)
 
 
-def validate_od_settings(**od_inputs):
-    """Validate OD cost matrix settings before spinning up a bunch of parallel processes doomed to failure.
-
-    Also check which field name in the output OD Lines will store the optimized cost values. This depends on the travel
-    mode being used by the analysis, and we capture it here to use in later steps.
-
-    Returns:
-        str: The name of the field in the output OD Lines table containing the optimized costs for the analysis
-    """
+def validate_od_settings(time_of_day, **od_inputs):
+    """Validate OD cost matrix settings before spinning up a bunch of parallel processes doomed to failure."""
     # Create a dummy ODCostMatrix object, initialize an OD solver object, and set properties
     # This allows us to detect any errors prior to spinning up a bunch of parallel processes and having them all fail.
     LOGGER.debug("Validating OD Cost Matrix settings...")
     odcm = None
-    optimized_cost_field = None
     try:
         odcm = ODCostMatrix(**od_inputs)
-        odcm.initialize_od_solver()
-        # Check which field name in the output OD Lines will store the optimized cost values
-        optimized_cost_field = odcm.optimized_field_name
+        odcm.initialize_od_solver(time_of_day)
         LOGGER.debug("OD Cost Matrix settings successfully validated.")
     except Exception:
         LOGGER.error("Error initializing OD Cost Matrix analysis.")
@@ -743,8 +611,6 @@ def validate_od_settings(**od_inputs):
         if odcm:
             LOGGER.debug("Deleting temporary test OD Cost Matrix job folder...")
             shutil.rmtree(odcm.job_result["jobFolder"], ignore_errors=True)
-
-    return optimized_cost_field
 
 
 def validate_weight_field(destinations, weight_field):
@@ -830,9 +696,7 @@ def compute_ods_in_parallel(**kwargs):
     - chunk_size
     - max_processes
     - time_units
-    - distance_units
-    - cutoff (optional)
-    - num_destinations (optional)
+    - cutoff
     - precalculate_network_locations
     - barriers (optional)
 
@@ -944,7 +808,7 @@ def compute_ods_in_parallel(**kwargs):
 
     # Create a scratch folder to store intermediate outputs from the OD Cost Matrix processes
     unique_id = uuid.uuid4().hex
-    scratch_folder = os.path.join(arcpy.env.scratchFolder, "ODCM_" + unique_id)  # pylint: disable=no-member
+    scratch_folder = os.path.join(arcpy.env.scratchFolder, "CalcAccMtx_" + unique_id)  # pylint: disable=no-member
     LOGGER.info(f"Intermediate outputs will be written to {scratch_folder}.")
     os.mkdir(scratch_folder)
 
@@ -969,9 +833,8 @@ def compute_ods_in_parallel(**kwargs):
 
     # Validate OD Cost Matrix settings. Essentially, create a dummy ODCostMatrix class instance and set up the solver
     # object to ensure this at least works. Do this up front before spinning up a bunch of parallel processes that are
-    # guaranteed to all fail. While we're doing this, check and store the field name that will represent the optimized
-    # costs in the output OD Lines table. We'll use this in post processing.
-    optimized_cost_field = validate_od_settings(**od_inputs)
+    # guaranteed to all fail.
+    validate_od_settings(start_times[0], **od_inputs)
 
     # Set max origins and destinations per chunk
     max_origins = chunk_size
@@ -1002,36 +865,47 @@ def compute_ods_in_parallel(**kwargs):
     # Calculate the total number of jobs to use in logging
     total_jobs = len(origin_ranges) * len(destination_ranges) * len(start_times)
 
-    # Compute OD cost matrix in parallel
-    completed_jobs = 0  # Track the number of jobs completed so far to use in logging
-    # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the OD cost matrices
-    with futures.ProcessPoolExecutor(max_workers=max_processes) as executor:
-        # Each parallel process calls the solve_od_cost_matrix() function with the od_inputs dictionary for the given
-        # origin and destination OID ranges.
-        jobs = {executor.submit(solve_od_cost_matrix, od_inputs, chunks): chunks for chunks in chunks}
-        # As each job is completed, add some logging information and store the results to post-process later
-        for future in futures.as_completed(jobs):
-            completed_jobs += 1
-            LOGGER.info(
-                f"Finished OD Cost Matrix calculation {completed_jobs} of {total_jobs}.")
-            try:
-                # The OD cost matrix job returns a results dictionary. Retrieve it.
-                result = future.result()
-            except Exception:
-                # If we couldn't retrieve the result, some terrible error happened. Log it.
-                LOGGER.error("Failed to get OD Cost Matrix result from parallel processing.")
-                errs = traceback.format_exc().splitlines()
-                for err in errs:
-                    LOGGER.error(err)
-                raise
+    # The multiprocessing module's Manager allows us to share a managed dictionary across processes, including
+    # writing to it. This allows us to track which destinations are accessible to each origin and for how many of our
+    # start times without having to write out and post-process a bunch of tables.
+    with Manager() as manager:
+        # Initialize a special dictionary of {(Origin OID, Destination OID): Number of times reached} that will be
+        # shared across processes
+        shared_dict = manager.dict({})
+        for row_o in arcpy.da.SearchCursor(origins, ["OID@"]):  # pylint: disable=no-member
+            for row_d in arcpy.da.SearchCursor(destinations, ["OID@"]):  # pylint: disable=no-member
+                shared_dict[(row_o[0], row_d[0])] = 0
 
-            # Parse the results dictionary and store components for post-processing.
-            if result["solveSucceeded"]:
-                od_line_fcs.append(result["outputLines"])
-            else:
-                LOGGER.warning(f"Solve failed for job id {result['jobId']}")
-                msgs = result["solveMessages"]
-                LOGGER.warning(msgs)
+        # Compute OD cost matrix in parallel
+        completed_jobs = 0  # Track the number of jobs completed so far to use in logging
+        # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the OD cost matrices
+        with futures.ProcessPoolExecutor(max_workers=max_processes) as executor:
+            # Each parallel process calls the solve_od_cost_matrix() function with the od_inputs dictionary for the
+            # given origin and destination OID ranges and time of day.
+            jobs = {executor.submit(solve_od_cost_matrix, od_inputs, shared_dict, chunks): chunks for chunks in chunks}
+            # As each job is completed, add some logging information and store the results to post-process later
+            for future in futures.as_completed(jobs):
+                completed_jobs += 1
+                LOGGER.info(
+                    f"Finished OD Cost Matrix calculation {completed_jobs} of {total_jobs}.")
+                try:
+                    # The OD cost matrix job returns a results dictionary. Retrieve it.
+                    result = future.result()
+                except Exception:
+                    # If we couldn't retrieve the result, some terrible error happened. Log it.
+                    LOGGER.error("Failed to get OD Cost Matrix result from parallel processing.")
+                    errs = traceback.format_exc().splitlines()
+                    for err in errs:
+                        LOGGER.error(err)
+                    raise
+
+                # Parse the results dictionary and store components for post-processing.
+                if result["solveSucceeded"]:
+                    od_line_fcs.append(result["outputLines"])
+                else:
+                    LOGGER.warning(f"Solve failed for job id {result['jobId']}")
+                    msgs = result["solveMessages"]
+                    LOGGER.warning(msgs)
 
     # Merge individual OD Lines feature classes into a single feature class
     if od_line_fcs:
