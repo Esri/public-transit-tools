@@ -43,7 +43,7 @@ arcpy.env.overwriteOutput = True
 # Set logging for the main process.
 # LOGGER logs everything from the main process to stdout using a specific format that the SolveLargeODCostMatrix tool
 # can parse and write to the geoprocessing message feed.
-LOG_LEVEL = logging.INFO  # Set to logging.DEBUG to see verbose debug messages
+LOG_LEVEL = logging.DEBUG  # Set to logging.DEBUG to see verbose debug messages
 LOGGER = logging.getLogger(__name__)  # pylint:disable=invalid-name
 LOGGER.setLevel(LOG_LEVEL)
 console_handler = logging.StreamHandler(stream=sys.stdout)
@@ -54,7 +54,6 @@ console_handler.setFormatter(logging.Formatter("%(levelname)s" + MSG_STR_SPLITTE
 LOGGER.addHandler(console_handler)
 
 # Set some global variables. Some of these are also referenced in the script tool definition.
-DISTANCE_UNITS = ["Kilometers", "Meters", "Miles", "Yards", "Feet", "NauticalMiles"]
 TIME_UNITS = ["Days", "Hours", "Minutes", "Seconds"]
 MAX_AGOL_PROCESSES = 4  # AGOL concurrent processes are limited so as not to overload the service for other users.
 DELETE_INTERMEDIATE_OD_OUTPUTS = True  # Set to False for debugging purposes
@@ -445,6 +444,8 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         Args:
             origins_criteria (list): Origin ObjectID range to select from the input dataset
             destinations_criteria ([type]): Destination ObjectID range to select from the input dataset
+            time_of_day (datetime): Time of day for this solve
+            shared_dict (Managed dictionary): Shared dictionary to store OD pairs and counts
         """
         # Select the origins and destinations to process
         self._select_inputs(origins_criteria, destinations_criteria)
@@ -656,7 +657,7 @@ def validate_weight_field(destinations, weight_field):
         LOGGER.warning(wng)
 
 
-def solve_od_cost_matrix(inputs, chunk):
+def solve_od_cost_matrix(inputs, shared_dict, chunk):
     """Solve an OD Cost Matrix analysis for the given inputs for the given chunk of ObjectIDs.
 
     Args:
@@ -673,13 +674,13 @@ def solve_od_cost_matrix(inputs, chunk):
         f"Processing origins OID {chunk[0][0]} to {chunk[0][1]} and destinations OID {chunk[1][0]} to {chunk[1][1]} "
         f"as job id {odcm.job_id}"
     ))
-    odcm.solve(chunk[0], chunk[1])
+    odcm.solve(chunk[0], chunk[1], chunk[2], shared_dict)
     return odcm.job_result
 
 
 def add_results_to_output(origins, destinations, weight_field, num_dest_rows, num_times, shared_dict):
 
-    output_df = pd.DataFrame()
+    LOGGER.info("Calculating statistics for final output...")
 
     if weight_field:
 
@@ -688,6 +689,7 @@ def add_results_to_output(origins, destinations, weight_field, num_dest_rows, nu
             [(key[0], key[1], shared_dict[key]) for key in shared_dict],
             columns=["OriginOID", "DestinationOID", "TimesReached"]
         )
+        print(result_df.head())
 
         # Delete the shared dictionary to clear up memory
         del shared_dict
@@ -703,6 +705,7 @@ def add_results_to_output(origins, destinations, weight_field, num_dest_rows, nu
         del w_df
         # We don't need this field anymore
         result_df.drop(["DestinationOID"], axis="columns", inplace=True)
+        print(result_df.head())
 
     else:
         # Convert the shared dictionary to a pandas dataframe for easier processing
@@ -711,6 +714,7 @@ def add_results_to_output(origins, destinations, weight_field, num_dest_rows, nu
             [(key[0], shared_dict[key]) for key in shared_dict],
             columns=["OriginOID", "TimesReached"]
         )
+        print(result_df.head())
 
         # Delete the shared dictionary to clear up memory
         del shared_dict
@@ -720,12 +724,27 @@ def add_results_to_output(origins, destinations, weight_field, num_dest_rows, nu
 
         # Set the total number of destinations to the number of rows in the destinations table.
         total_dests = num_dest_rows
+        print(result_df.head())
+
+    print("Unique:")
+    unique = result_df["OriginOID"].unique()
+    print(unique)
+
+    output_df = pd.DataFrame(unique, columns=["OriginOID"])
+    print("Dataframe:")
+    print(output_df)
+
+    print("Indexed:")
+    output_df.set_index("OriginOID", inplace=True)
+    print(output_df)
 
     # Calculate the total destinations found for each origin using the weight field
-    output_df["TotalDests"] = result_df.groupby("OriginOID")["Weight"].sum()
+    output_df["TotalDests"] = result_df[result_df["TimesReached"] > 0].groupby("OriginOID")["Weight"].sum()
+    print(output_df.head())
 
     # Calculate the percentage of destinations reached
     output_df["PercDests"] = 100.0 * output_df["TotalDests"] / total_dests
+    print(output_df.head())
 
     # Calculate the number of destinations accessible at different thresholds
     for perc in range(10, 100, 10):
@@ -735,9 +754,13 @@ def add_results_to_output(origins, destinations, weight_field, num_dest_rows, nu
         output_df[total_field] = result_df[result_df["TimesReached"] >= threshold].groupby("OriginOID")["Weight"].sum()
         output_df[perc_field] = 100.0 * output_df[total_field] / total_dests
 
+    output_df.fillna(0, inplace=True)
+    print(output_df.head())
+
     # Write the calculated values to output
     output_df = output_df.to_records()
     arcpy.da.ExtendTable(origins, arcpy.Describe(origins).oidFieldName, output_df, "OriginOID", False)
+
 
 def compute_ods_in_parallel(**kwargs):
     """Compute OD Cost Matrices between Origins and Destinations in parallel and combine results.
@@ -878,7 +901,7 @@ def compute_ods_in_parallel(**kwargs):
     # Set up a where clause to eliminate destinations that will never contribute any values to the final solution.
     # Only applies if we're using a weight field.
     if weight_field:
-        dest_where = f"{weight_field} IS NOT NULL and {weight_field} != 0"
+        dest_where = f"{weight_field} IS NOT NULL and {weight_field} <> 0"
     else:
         dest_where = ""
 
@@ -910,12 +933,21 @@ def compute_ods_in_parallel(**kwargs):
             tool_limits
         )
 
+    # Delete pre-existing output fields in origins. This way we can calculate them afresh and ensure correct type.
+    origin_fields = [f.name for f in arcpy.ListFields(origins)]
+    out_fields = ["TotalDests", "PercDests"] + \
+                 [f"DsAL{perc}Perc" for perc in range(10, 100, 10)] + \
+                 [f"PsAL{perc}Perc" for perc in range(10, 100, 10)]
+    fields_to_delete = [f for f in origin_fields if f in out_fields]
+    if fields_to_delete:
+        run_gp_tool(arcpy.management.DeleteField, [origins, fields_to_delete])
+
     # Precalculate network location fields for inputs
     if is_service and should_precalc_network_locations:
         LOGGER.warning("Cannot precalculate network location fields when the network data source is a service.")
     if not is_service and should_precalc_network_locations:
-        precalculate_network_locations(output_origins, network_data_source, travel_mode)
-        precalculate_network_locations(output_destinations, network_data_source, travel_mode)
+        precalculate_network_locations(origins, network_data_source, travel_mode)
+        precalculate_network_locations(destinations, network_data_source, travel_mode)
         for barrier_fc in barriers:
             precalculate_network_locations(barrier_fc, network_data_source, travel_mode)
 
@@ -940,6 +972,7 @@ def compute_ods_in_parallel(**kwargs):
                 shared_dict[(row_o[0], row_d[0])] = 0
 
         # Compute OD cost matrix in parallel
+        LOGGER.info("Solving OD Cost Matrix chunks in parallel...")
         completed_jobs = 0  # Track the number of jobs completed so far to use in logging
         # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the OD cost matrices
         with futures.ProcessPoolExecutor(max_workers=max_processes) as executor:
@@ -969,7 +1002,7 @@ def compute_ods_in_parallel(**kwargs):
                     LOGGER.warning(msgs)
 
         # Calculate statistics from the results of the OD Cost Matrix calculations present in the shared dictionary.
-        add_results_to_output(origins, destinations, weight_field, num_dest_rows, shared_dict)
+        add_results_to_output(origins, destinations, weight_field, num_dest_rows, len(start_times), shared_dict)
 
     # Cleanup
     # Delete the job folders if the job succeeded
@@ -1059,10 +1092,8 @@ def _launch_tool():
 
     # --cutoff parameter
     help_string = (
-        "Impedance cutoff to limit the OD cost matrix search distance. Should be specified in the same units as the "
-        "time-units parameter if the travel mode's impedance is in units of time or in the same units as the "
-        "distance-units parameter if the travel mode's impedance is in units of distance. Otherwise, specify this in "
-        "the units of the travel mode's impedance attribute."
+        "Time cutoff to limit the OD cost matrix search. Should be specified in the same units as the "
+        "time-units parameter"
     )
     parser.add_argument(
         "-co", "--cutoff", action="store", dest="cutoff", type=float, help=help_string, required=False)
