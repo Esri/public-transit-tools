@@ -1,12 +1,12 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 17 May 2019
+## Last updated: 8 May 2021
 ############################################################################
 ''' Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
 suite.'''
 ################################################################################
-'''Copyright 2019 Esri
+'''Copyright 2021 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -786,7 +786,7 @@ class CalculateAccessibilityMatrixPro(object):
             "--time-window-start-time", parameters[8].valueAsText,
             "--time-window-end-day", parameters[9].valueAsText,
             "--time-window-end-time", parameters[10].valueAsText,
-            "--time-increment", parameters[11].value,
+            "--time-increment", parameters[11].valueAsText,
             "--chunk-size", parameters[12].valueAsText,
             "--max-processes", parameters[13].valueAsText,
             "--precalculate-network-locations", parameters[15].valueAsText.capitalize(),
