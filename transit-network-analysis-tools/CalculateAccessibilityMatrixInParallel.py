@@ -1,8 +1,21 @@
-"""Compute a large Origin Destination (OD) cost matrices by chunking the
-inputs, solving in parallel, and recombining the results into a single
-feature class.
+############################################################################
+## Tool name: Transit Network Analysis Tools
+## Created by: Melinda Morang, Esri
+## Last updated: 8 May 2021
+############################################################################
+"""Count the number of destinations reachable from each origin by transit and
+walking. The tool calculates an Origin-Destination Cost Matrix for each start
+time within a time window because the reachable destinations change depending
+on the time of day because of the transit schedules.  The output gives the
+total number of destinations reachable at least once as well as the number of
+destinations reachable at least 10%, 20%, ...90% of start times during the time
+window.  The number of reachable destinations can be weighted based on a field,
+such as the number of jobs available at each destination.  The tool also
+calculates the percentage of total destinations reachable.
 
-This is a sample script users can modify to fit their specific needs.
+This version of the tool is for ArcGIS Pro only and solves the OD Cost Matrices in
+parallel. It was built based off the Solve Large OD Cost Matrix sample script
+available from https://github.com/Esri/large-network-analysis-tools.
 
 Copyright 2021 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +47,7 @@ import arcpy
 
 # Import OD Cost Matrix settings from config file
 from CalculateAccessibilityMatrix_OD_config import OD_PROPS, OD_PROPS_SET_BY_TOOL
-
+# Import shared helper code
 import AnalysisHelpers
 
 arcpy.env.overwriteOutput = True
@@ -43,7 +56,7 @@ arcpy.env.overwriteOutput = True
 # Set logging for the main process.
 # LOGGER logs everything from the main process to stdout using a specific format that the SolveLargeODCostMatrix tool
 # can parse and write to the geoprocessing message feed.
-LOG_LEVEL = logging.DEBUG  # Set to logging.DEBUG to see verbose debug messages
+LOG_LEVEL = logging.INFO  # Set to logging.DEBUG to see verbose debug messages
 LOGGER = logging.getLogger(__name__)  # pylint:disable=invalid-name
 LOGGER.setLevel(LOG_LEVEL)
 console_handler = logging.StreamHandler(stream=sys.stdout)
@@ -679,33 +692,42 @@ def solve_od_cost_matrix(inputs, shared_dict, chunk):
 
 
 def add_results_to_output(origins, destinations, weight_field, num_dest_rows, num_times, shared_dict):
+    """Calculate accessibility statistics and write them to the Origins table.
 
+    Args:
+        origins (str): Catalog path to origins. The statistics fields will be appended to the origins table.
+        destinations (str): Catalog path to destinations
+        weight_field (str): Weight field name in destinations
+        num_dest_rows (int): Number of rows in the destinations table
+        num_times (int): Number of times of day that were analyzed
+        shared_dict (Managed dict): Multiprocessing managed dictionary of {(OriginOID, DestinationOID): times reached}
+    """
     LOGGER.info("Calculating statistics for final output...")
 
     if weight_field:
-
         # Convert the shared dictionary to a pandas dataframe for easier processing
         result_df = pd.DataFrame.from_records(
             [(key[0], key[1], shared_dict[key]) for key in shared_dict],
             columns=["OriginOID", "DestinationOID", "TimesReached"]
         )
-        print(result_df.head())
-
         # Delete the shared dictionary to clear up memory
         del shared_dict
 
         # Read in the weight field values and join them into the result table
-        with arcpy.da.SearchCursor(destinations, ["OID@", weight_field]) as cur:
+        LOGGER.debug("Joining weight field from destinations to results dataframe...")
+        with arcpy.da.SearchCursor(destinations, ["OID@", weight_field]) as cur:  # pylint: disable=no-member
             w_df = pd.DataFrame(cur, columns=["DestinationOID", "Weight"])
+
         # Calculate the total number of destinations based on weight and store this for later use
         total_dests = w_df["Weight"].sum()
+
         # Join the Weight field into the results dataframe
         w_df.set_index("DestinationOID", inplace=True)
         result_df = result_df.join(w_df, "DestinationOID")
         del w_df
+
         # We don't need this field anymore
         result_df.drop(["DestinationOID"], axis="columns", inplace=True)
-        print(result_df.head())
 
     else:
         # Convert the shared dictionary to a pandas dataframe for easier processing
@@ -714,8 +736,6 @@ def add_results_to_output(origins, destinations, weight_field, num_dest_rows, nu
             [(key[0], shared_dict[key]) for key in shared_dict],
             columns=["OriginOID", "TimesReached"]
         )
-        print(result_df.head())
-
         # Delete the shared dictionary to clear up memory
         del shared_dict
 
@@ -724,42 +744,35 @@ def add_results_to_output(origins, destinations, weight_field, num_dest_rows, nu
 
         # Set the total number of destinations to the number of rows in the destinations table.
         total_dests = num_dest_rows
-        print(result_df.head())
 
-    print("Unique:")
-    unique = result_df["OriginOID"].unique()
-    print(unique)
-
-    output_df = pd.DataFrame(unique, columns=["OriginOID"])
-    print("Dataframe:")
-    print(output_df)
-
-    print("Indexed:")
+    # Create the output dataframe indexed by the OriginOID
+    LOGGER.debug("Creating output dataframe indexed by OriginOID...")
+    output_df = pd.DataFrame(result_df["OriginOID"].unique(), columns=["OriginOID"])
     output_df.set_index("OriginOID", inplace=True)
-    print(output_df)
 
     # Calculate the total destinations found for each origin using the weight field
+    LOGGER.debug("Calculating TotalDests and PercDests...")
     output_df["TotalDests"] = result_df[result_df["TimesReached"] > 0].groupby("OriginOID")["Weight"].sum()
-    print(output_df.head())
-
     # Calculate the percentage of destinations reached
     output_df["PercDests"] = 100.0 * output_df["TotalDests"] / total_dests
-    print(output_df.head())
 
     # Calculate the number of destinations accessible at different thresholds
+    LOGGER.debug("Calculating the number of destinations accessible at different thresholds...")
     for perc in range(10, 100, 10):
         total_field = f"DsAL{perc}Perc"
         perc_field = f"PsAL{perc}Perc"
         threshold = num_times * perc / 100
         output_df[total_field] = result_df[result_df["TimesReached"] >= threshold].groupby("OriginOID")["Weight"].sum()
         output_df[perc_field] = 100.0 * output_df[total_field] / total_dests
-
+    # Fill empty cells with 0
     output_df.fillna(0, inplace=True)
-    print(output_df.head())
+    # Clean up
+    del result_df
 
     # Write the calculated values to output
     output_df = output_df.to_records()
-    arcpy.da.ExtendTable(origins, arcpy.Describe(origins).oidFieldName, output_df, "OriginOID", False)
+    arcpy.da.ExtendTable(  # pylint: disable=no-member
+        origins, arcpy.Describe(origins).oidFieldName, output_df, "OriginOID", False)
 
 
 def compute_ods_in_parallel(**kwargs):
