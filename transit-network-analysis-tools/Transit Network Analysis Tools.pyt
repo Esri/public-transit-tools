@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 8 May 2021
+## Last updated: 7 June 2021
 ############################################################################
 ''' Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
 suite.'''
@@ -19,14 +19,10 @@ suite.'''
 ################################################################################
 
 import os
-import sys
-import time
 import arcpy
 import ToolValidator
-from AnalysisHelpers import isPy3
-if isPy3:
-    import subprocess
-    import CalculateAccessibilityMatrixInParallel as odcm
+from AnalysisHelpers import isPy3, TIME_UNITS, MAX_AGOL_PROCESSES, is_nds_service
+
 
 class Toolbox(object):
     def __init__(self):
@@ -643,6 +639,14 @@ class CalculateAccessibilityMatrixPro(object):
             ),
 
             arcpy.Parameter(
+                displayName="Output Updated Origins",
+                name="Output_Updated_Origins",
+                datatype="DEFeatureClass",
+                parameterType="Required",
+                direction="Output"
+            ),
+
+            arcpy.Parameter(
                 displayName="Cutoff Time",
                 name="Cutoff_Time",
                 datatype="GPDouble",
@@ -706,11 +710,11 @@ class CalculateAccessibilityMatrixPro(object):
         params[2].filter.list = ["Short", "Long", "Double"]
         params[2].parameterDependencies = [params[1].name]
         params[4].parameterDependencies = [params[3].name]
-        params[6].filter.list = odcm.TIME_UNITS
-        params[6].value = "Minutes"
-        params[12].value = 1000  # chunk size
-        params[13].value = 4  # number of processes
-        params[15].value = True  # precalculate locations
+        params[7].filter.list = TIME_UNITS
+        params[7].value = "Minutes"
+        params[13].value = 1000  # chunk size
+        params[14].value = 4  # number of processes
+        params[16].value = True  # precalculate locations
 
         return params
 
@@ -723,11 +727,11 @@ class CalculateAccessibilityMatrixPro(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
         param_network = parameters[3]
-        param_precalculate = parameters[15]
+        param_precalculate = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
         if param_network.altered and param_network.value:
-            if odcm.is_nds_service(param_network.valueAsText):
+            if is_nds_service(param_network.valueAsText):
                 param_precalculate.value = False
                 param_precalculate.enabled = False
             else:
@@ -737,13 +741,13 @@ class CalculateAccessibilityMatrixPro(object):
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
-        start_day = parameters[7]
-        end_day = parameters[9]
-        start_time = parameters[8]
-        end_time = parameters[10]
-        increment = parameters[11]
+        start_day = parameters[8]
+        end_day = parameters[10]
+        start_time = parameters[9]
+        end_time = parameters[11]
+        increment = parameters[12]
         param_network = parameters[3]
-        param_max_processes = parameters[13]
+        param_max_processes = parameters[14]
 
         # Show a filter list of weekdays but also allow YYYYMMDD dates
         ToolValidator.allow_YYYYMMDD_day(start_day)
@@ -760,9 +764,9 @@ class CalculateAccessibilityMatrixPro(object):
         # If the network data source is arcgis.com, cap max processes
         if param_max_processes.altered and param_max_processes.value and \
                 param_network.altered and param_network.value:
-            if "arcgis.com" in param_network.valueAsText and param_max_processes.value > odcm.MAX_AGOL_PROCESSES:
+            if "arcgis.com" in param_network.valueAsText and param_max_processes.value > MAX_AGOL_PROCESSES:
                 param_max_processes.setErrorMessage((
-                    f"The maximum number of parallel processes cannot exceed {odcm.MAX_AGOL_PROCESSES} when the "
+                    f"The maximum number of parallel processes cannot exceed {MAX_AGOL_PROCESSES} when the "
                     "ArcGIS Online services are used as the network data source."
                 ))
 
@@ -770,151 +774,28 @@ class CalculateAccessibilityMatrixPro(object):
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
-        # Launch the odcm script as a subprocess so it can spawn parallel processes. We have to do this because a tool
-        # running in the Pro UI cannot call concurrent.futures without opening multiple instances of Pro.
-        cwd = os.path.dirname(os.path.abspath(__file__))
-        odcm_inputs = [
-            os.path.join(sys.exec_prefix, "python.exe"),
-            os.path.join(cwd, "CalculateAccessibilityMatrixInParallel.py"),
-            "--origins", get_catalog_path(parameters[0]),
-            "--destinations", get_catalog_path(parameters[1]),
-            "--network-data-source", get_catalog_path(parameters[3]),
-            "--travel-mode", get_travel_mode_json(parameters[4]),
-            "--cutoff", parameters[5].valueAsText,
-            "--time-units", parameters[6].valueAsText,
-            "--time-window-start-day", parameters[7].valueAsText,
-            "--time-window-start-time", parameters[8].valueAsText,
-            "--time-window-end-day", parameters[9].valueAsText,
-            "--time-window-end-time", parameters[10].valueAsText,
-            "--time-increment", parameters[11].valueAsText,
-            "--chunk-size", parameters[12].valueAsText,
-            "--max-processes", parameters[13].valueAsText,
-            "--precalculate-network-locations", parameters[15].valueAsText.capitalize(),
-            "--barriers"
-        ] + get_catalog_path_multivalue(parameters[14])
-        weight_field = parameters[2].valueAsText
-        if weight_field:
-            odcm_inputs += ["--weight-field", weight_field]
-
-        # We do not want to show the console window when calling the command line tool from within our GP tool.
-        # This can be done by setting this hex code.
-        create_no_window = 0x08000000
-        with subprocess.Popen(
-            odcm_inputs,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            creationflags=create_no_window
-        ) as process:
-            # The while loop reads the subprocess's stdout in real time and writes the stdout messages to the GP UI.
-            # This is the only way to write the subprocess's status messages in a way that a user running the tool from
-            # the ArcGIS Pro UI can actually see them.
-            # When process.poll() returns anything other than None, the process has completed, and we should stop
-            # checking and move on.
-            while process.poll() is None:
-                output = process.stdout.readline()
-                if output:
-                    msg_string = output.strip().decode()
-                    parse_std_and_write_to_gp_ui(msg_string)
-                time.sleep(.5)
-
-            # Once the process is finished, check if any additional errors were returned. Messages that came after the
-            # last process.poll() above will still be in the queue here. This is especially important for detecting
-            # messages from raised exceptions, especially those with tracebacks.
-            output, _ = process.communicate()
-            if output:
-                out_msgs = output.decode().splitlines()
-                for msg in out_msgs:
-                    parse_std_and_write_to_gp_ui(msg)
-
-            # In case something truly horrendous happened and none of the logging caught our errors, at least fail the
-            # tool when the subprocess returns an error code. That way the tool at least doesn't happily succeed but not
-            # actually do anything.
-            return_code = process.returncode
-            if return_code != 0:
-                arcpy.AddError("OD Cost Matrix script failed.")
-
+        import CalculateAccessibilityMatrixInParallel
+        od_solver = CalculateAccessibilityMatrixInParallel.ODCostMatrixSolver(**{
+            "origins": parameters[0].value,
+            "destinations": parameters[1].value,
+            "weight_field": parameters[2].valueAsText if parameters[2].value else None,
+            "network_data_source": parameters[3].value,
+            "travel_mode": parameters[4].value,
+            "output_origins": parameters[5].valueAsText,
+            "cutoff": parameters[6].value,
+            "time_units": parameters[7].valueAsText,
+            "time_window_start_day": parameters[8].valueAsText,
+            "time_window_start_time": parameters[9].valueAsText,
+            "time_window_end_day": parameters[10].valueAsText,
+            "time_window_end_time": parameters[11].valueAsText,
+            "time_increment": parameters[12].value,
+            "chunk_size": parameters[13].value,
+            "max_processes": parameters[14].value,
+            "barriers": parameters[15].values if parameters[15].values else None,
+            "precalculate_network_locations": parameters[16].value
+        })
+        od_solver.solve_large_od_cost_matrix()
         return
-
-# region subprocess helpers
-
-def get_catalog_path(param):
-    """Get the catalog path for the designated input if possible. Ensures we can pass map layers to the subprocess.
-
-    Args:
-        param (arcpy.Parameter): Parameter from which to retrieve the catalog path.
-
-    Returns:
-        string: Catalog path to the data
-    """
-    if hasattr(param.value, "dataSource"):
-        return param.value.dataSource
-    else:
-        return param.valueAsText
-
-
-def get_catalog_path_multivalue(param):
-    """Get a list of catalog paths for a multivalue feature layer parameter if possible.
-
-    Args:
-        param (arcpy.Parameter): Parameter from which to retrieve the catalog path.
-
-    Returns:
-        list(str): List of catalog paths to the data
-    """
-    if not param.values:
-        return []
-    # Get both the values as geoprocessing objects and the string values
-    values = param.values
-    # Have to strip the quotes that get added if there are spaces in the filepath.
-    string_values = [val.strip("'") for val in param.valueAsText.split(";")]
-    catalog_paths = []
-    for idx, val in enumerate(values):
-        # If the value is a layer object, get its data source (catalog path)
-        if hasattr(val, "dataSource"):
-            catalog_paths.append(val.dataSource)
-        # Otherwise, it's probably already a string catalog path. The only way to get it is to retrive it from the
-        # valueAsText string that we split up above.
-        else:
-            catalog_paths.append(string_values[idx])
-    return catalog_paths
-
-
-def get_travel_mode_json(param):
-    """Get the JSON representation of a travel mode if possible.
-
-    Args:
-        param (arcpy.Parameter): travel mode parameter
-
-    Returns:
-        string: JSON string representation of a travel mode. If this cannot be determined, it just returns the
-            parameter's valueAsText value.
-    """
-    if hasattr(param.value, "_JSON"):
-        return param.value._JSON  # pylint: disable=protected-access
-    else:
-        return param.valueAsText
-
-
-def parse_std_and_write_to_gp_ui(msg_string):
-    """Parse a message string returned from the subprocess's stdout and write it to the GP UI according to type.
-
-    Logged messages in the odcm module start with a level indicator that allows us to parse them and write them as
-    errors, warnings, or info messages.  Example: "ERROR | Something terrible happened" is an error message.
-
-    Args:
-        msg_string (str): Message string (already decoded) returned from odcm.py subprocess stdout
-    """
-    try:
-        level, msg = msg_string.split(odcm.MSG_STR_SPLITTER)
-        if level in ["ERROR", "CRITICAL"]:
-            arcpy.AddError(msg)
-        elif level == "WARNING":
-            arcpy.AddWarning(msg)
-        else:
-            arcpy.AddMessage(msg)
-    except Exception:  # pylint: disable=broad-except
-        arcpy.AddMessage(msg_string)
-
-# region subprocess helpers
 
 # region parameters
 
