@@ -52,7 +52,6 @@ import arcpy
 
 # Import OD Cost Matrix settings from config file
 from CalculateAccessibilityMatrix_OD_config import OD_PROPS, OD_PROPS_SET_BY_TOOL
-
 import AnalysisHelpers
 
 arcpy.env.overwriteOutput = True
@@ -240,7 +239,8 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.od_solver = arcpy.nax.OriginDestinationCostMatrix(self.network_data_source)
 
         # Set the OD cost matrix analysis properties.
-        # Read properties from the od_config.py config file for all properties not set in the UI as parameters.
+        # Read properties from the CalculateAccessbilityMatrix_OD_config.py config file for all properties not set in
+        # the UI as parameters.
         # OD properties documentation: https://pro.arcgis.com/en/pro-app/arcpy/network-analyst/odcostmatrix.htm
         # The properties have been extracted to the config file to make them easier to find and set so users don't have
         # to dig through the code to change them.
@@ -469,9 +469,9 @@ class ParallelODCalculator():
         time_window_start_day, time_window_start_time, time_window_end_day, time_window_end_time, time_increment,
         max_processes, time_units, cutoff, weight_field=None, barriers=None
     ):
-        """Compute OD Cost Matrices between Origins and Destinations in parallel and combine results.
+        """Compute OD Cost Matrices between Origins and Destinations in parallel for all increments in the time window,
+        calculate accessibility statistics, and write the output fields to the output Origins feature class.
 
-        Compute OD cost matrices in parallel and combine and post-process the results.
         This class assumes that the inputs have already been pre-processed and validated.
 
         Args:
@@ -506,8 +506,6 @@ class ParallelODCalculator():
             barriers = []
         self.max_processes = max_processes
         self.weight_field = weight_field
-        ########
-        LOGGER.info(f"Weight field: {self.weight_field}")
 
         # Validate time window inputs and convert them into a list of times of day to run the analysis
         try:
@@ -556,8 +554,6 @@ class ParallelODCalculator():
         self.chunks = itertools.product(origin_ranges, destination_ranges, self.start_times)
         # Calculate the total number of jobs to use in logging
         self.total_jobs = len(origin_ranges) * len(destination_ranges) * len(self.start_times)
-
-        self.optimized_cost_field = None
 
     def _validate_od_settings(self):
         """Validate OD cost matrix settings before spinning up a bunch of parallel processes doomed to failure."""
@@ -628,8 +624,8 @@ class ParallelODCalculator():
         self._validate_od_settings()
 
         # The multiprocessing module's Manager allows us to share a managed dictionary across processes, including
-        # writing to it. This allows us to track which destinations are accessible to each origin and for how many of our
-        # start times without having to write out and post-process a bunch of tables.
+        # writing to it. This allows us to track which destinations are accessible to each origin and for how many of
+        # our start times without having to write out and post-process a bunch of tables.
         with Manager() as manager:
             # Initialize a special dictionary of {(Origin OID, Destination OID): Number of times reached} that will be
             # shared across processes
@@ -641,7 +637,8 @@ class ParallelODCalculator():
             # Compute OD cost matrix in parallel
             LOGGER.info("Solving OD Cost Matrix chunks in parallel...")
             completed_jobs = 0  # Track the number of jobs completed so far to use in logging
-            # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the OD cost matrices
+            # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the OD cost
+            # matrices
             with futures.ProcessPoolExecutor(max_workers=self.max_processes) as executor:
                 # Each parallel process calls the solve_od_cost_matrix() function with the od_inputs dictionary for the
                 # given origin and destination OID ranges and time of day.
@@ -877,14 +874,9 @@ def launch_parallel_od():
 
     # Get arguments as dictionary.
     args = vars(parser.parse_args())
-    ##########
-    LOGGER.info("Made it pas arg parse. Args:")
-    LOGGER.info(args)
 
     # Initialize a parallel OD Cost Matrix calculator class
     od_calculator = ParallelODCalculator(**args)
-    #########
-    LOGGER.info("Instantiated ParallelODCalculator")
     # Solve the OD Cost Matrix in parallel chunks
     start_time = time.time()
     od_calculator.solve_od_in_parallel()
