@@ -16,7 +16,7 @@ The *Transit Network Analysis Tools* must be used with a transit-enabled network
 The *Transit Network Analysis Tools* download includes the "Transit Network Analysis Tools.pyt" toolbox. You can add this to ArcToolbox or simply access it in the folder tree in the Catalog pane.  The download also includes several associated files in the same folder as the .pyt file.  Keep these files together in the same folder.
 
 The tools included are:
-- [Calculate Accessibility Matrix (ArcMap version)](#AccessibilityMatrix)
+- [Calculate Accessibility Matrix](#AccessibilityMatrix)
 - [Calculate Travel Time Statistics](#Stats)
 - [Create Percent Access Polygons](#PercentAccess)
 - [Prepare Time Lapse Polygons](#TimeLapse)
@@ -108,12 +108,7 @@ Note that when this tool runs, if the input OD Cost Matrix layer and the network
 
 The ArcGIS Pro version of Calculate Accessibility Matrix requires a transit-enabled network dataset created with the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
-There is no specific set-up required to run the tool, as the origins, destinations, and all relevant settings can be set in the tool's UI.
-
-However, your origins and destinations must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the Feature to Point tool to do this.
-- [Feature to Point - ArcGIS Pro](https://pro.arcgis.com/en/pro-app/latest/tool-reference/data-management/feature-to-point.htm)
-
-#### 3. Run the *Calculate Accessibility Matrix* tool
+There is no specific set-up required to run the tool, as the origins, destinations, and all relevant settings can be set in the tool's UI.  However, your origins and destinations must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the [Feature to Point](https://pro.arcgis.com/en/pro-app/latest/tool-reference/data-management/feature-to-point.htm) tool to do this.
 
 ![Screenshot of tool dialog](./images/Screenshot_CalculateAccessibilityMatrix_Pro_Dialog.png)
 
