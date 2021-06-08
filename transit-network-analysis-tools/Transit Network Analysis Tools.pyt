@@ -601,6 +601,7 @@ class CalculateAccessibilityMatrixPro(object):
 
         params = [
 
+            # 0
             arcpy.Parameter(
                 displayName="Origins",
                 name="Origins",
@@ -608,6 +609,7 @@ class CalculateAccessibilityMatrixPro(object):
                 parameterType="Required",
                 direction="Input"),
 
+            # 1
             arcpy.Parameter(
                 displayName="Destinations",
                 name="Destinations",
@@ -615,29 +617,7 @@ class CalculateAccessibilityMatrixPro(object):
                 parameterType="Required",
                 direction="Input"),
 
-            arcpy.Parameter(
-                displayName="Destinations Weight Field",
-                name="Destinations_Weight_Field",
-                datatype="Field",
-                parameterType="Optional",
-                direction="Input"),
-
-            arcpy.Parameter(
-                displayName="Network Data Source",
-                name="Network_Data_Source",
-                datatype="GPNetworkDataSource",
-                parameterType="Required",
-                direction="Input"
-            ),
-
-            arcpy.Parameter(
-                displayName="Travel Mode",
-                name="Travel_Mode",
-                datatype="NetworkTravelMode",
-                parameterType="Required",
-                direction="Input"
-            ),
-
+            # 2
             arcpy.Parameter(
                 displayName="Output Updated Origins",
                 name="Output_Updated_Origins",
@@ -646,6 +626,25 @@ class CalculateAccessibilityMatrixPro(object):
                 direction="Output"
             ),
 
+            # 3
+            arcpy.Parameter(
+                displayName="Network Data Source",
+                name="Network_Data_Source",
+                datatype="GPNetworkDataSource",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 4
+            arcpy.Parameter(
+                displayName="Travel Mode",
+                name="Travel_Mode",
+                datatype="NetworkTravelMode",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 5
             arcpy.Parameter(
                 displayName="Cutoff Time",
                 name="Cutoff_Time",
@@ -654,6 +653,7 @@ class CalculateAccessibilityMatrixPro(object):
                 direction="Input"
             ),
 
+            # 6
             arcpy.Parameter(
                 displayName="Cutoff Time Units",
                 name="Cutoff_Time_Units",
@@ -662,12 +662,18 @@ class CalculateAccessibilityMatrixPro(object):
                 direction="Input"
             ),
 
+            # 7
             make_parameter(param_startday),
+            # 8
             make_parameter(param_starttime),
+            # 9
             make_parameter(param_endday),
+            # 10
             make_parameter(param_endtime),
+            # 11
             make_parameter(param_timeinc),
 
+            # 12
             arcpy.Parameter(
                 displayName="Maximum Origins and Destinations per Chunk",
                 name="Max_Inputs_Per_Chunk",
@@ -676,6 +682,7 @@ class CalculateAccessibilityMatrixPro(object):
                 direction="Input"
             ),
 
+            # 13
             arcpy.Parameter(
                 displayName="Maximum Number of Parallel Processes",
                 name="Max_Processes",
@@ -684,6 +691,15 @@ class CalculateAccessibilityMatrixPro(object):
                 direction="Input"
             ),
 
+            # 14
+            arcpy.Parameter(
+                displayName="Destinations Weight Field",
+                name="Destinations_Weight_Field",
+                datatype="Field",
+                parameterType="Optional",
+                direction="Input"),
+
+            # 15
             arcpy.Parameter(
                 displayName="Barriers",
                 name="Barriers",
@@ -694,6 +710,7 @@ class CalculateAccessibilityMatrixPro(object):
                 category="Advanced"
             ),
 
+            # 16
             arcpy.Parameter(
                 displayName="Precalculate Network Locations",
                 name="Precalculate_Network_Locations",
@@ -707,13 +724,13 @@ class CalculateAccessibilityMatrixPro(object):
 
         params[0].filter.list = ["Point"]
         params[1].filter.list = ["Point"]
-        params[2].filter.list = ["Short", "Long", "Double"]
-        params[2].parameterDependencies = [params[1].name]
-        params[4].parameterDependencies = [params[3].name]
-        params[7].filter.list = TIME_UNITS
-        params[7].value = "Minutes"
-        params[13].value = 1000  # chunk size
-        params[14].value = 4  # number of processes
+        params[14].filter.list = ["Short", "Long", "Double"]  # destination weight field
+        params[14].parameterDependencies = [params[1].name]  # destination weight field
+        params[4].parameterDependencies = [params[3].name]  # travel mode
+        params[6].filter.list = TIME_UNITS
+        params[6].value = "Minutes"
+        params[12].value = 1000  # chunk size
+        params[13].value = 4  # number of processes
         params[16].value = True  # precalculate locations
 
         return params
@@ -741,13 +758,13 @@ class CalculateAccessibilityMatrixPro(object):
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
-        start_day = parameters[8]
-        end_day = parameters[10]
-        start_time = parameters[9]
-        end_time = parameters[11]
-        increment = parameters[12]
+        start_day = parameters[7]
+        end_day = parameters[9]
+        start_time = parameters[8]
+        end_time = parameters[10]
+        increment = parameters[11]
         param_network = parameters[3]
-        param_max_processes = parameters[14]
+        param_max_processes = parameters[13]
 
         # Show a filter list of weekdays but also allow YYYYMMDD dates
         ToolValidator.allow_YYYYMMDD_day(start_day)
@@ -778,19 +795,19 @@ class CalculateAccessibilityMatrixPro(object):
         od_solver = CalculateAccessibilityMatrixInParallel.ODCostMatrixSolver(**{
             "origins": parameters[0].value,
             "destinations": parameters[1].value,
-            "weight_field": parameters[2].valueAsText if parameters[2].value else None,
+            "output_origins": parameters[2].valueAsText,
             "network_data_source": parameters[3].value,
             "travel_mode": parameters[4].value,
-            "output_origins": parameters[5].valueAsText,
-            "cutoff": parameters[6].value,
-            "time_units": parameters[7].valueAsText,
-            "time_window_start_day": parameters[8].valueAsText,
-            "time_window_start_time": parameters[9].valueAsText,
-            "time_window_end_day": parameters[10].valueAsText,
-            "time_window_end_time": parameters[11].valueAsText,
-            "time_increment": parameters[12].value,
-            "chunk_size": parameters[13].value,
-            "max_processes": parameters[14].value,
+            "cutoff": parameters[5].value,
+            "time_units": parameters[6].valueAsText,
+            "time_window_start_day": parameters[7].valueAsText,
+            "time_window_start_time": parameters[8].valueAsText,
+            "time_window_end_day": parameters[9].valueAsText,
+            "time_window_end_time": parameters[10].valueAsText,
+            "time_increment": parameters[11].value,
+            "chunk_size": parameters[12].value,
+            "max_processes": parameters[13].value,
+            "weight_field": parameters[14].valueAsText if parameters[14].value else None,
             "barriers": parameters[15].values if parameters[15].values else None,
             "precalculate_network_locations": parameters[16].value
         })
