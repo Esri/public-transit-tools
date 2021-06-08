@@ -639,7 +639,7 @@ class CalculateAccessibilityMatrixPro(object):
             arcpy.Parameter(
                 displayName="Travel Mode",
                 name="Travel_Mode",
-                datatype="NetworkTravelMode",
+                datatype="GPString",
                 parameterType="Required",
                 direction="Input"
             ),
@@ -726,7 +726,7 @@ class CalculateAccessibilityMatrixPro(object):
         params[1].filter.list = ["Point"]
         params[14].filter.list = ["Short", "Long", "Double"]  # destination weight field
         params[14].parameterDependencies = [params[1].name]  # destination weight field
-        params[4].parameterDependencies = [params[3].name]  # travel mode
+        # params[4].parameterDependencies = [params[3].name]  # travel mode
         params[6].filter.list = TIME_UNITS
         params[6].value = "Minutes"
         params[12].value = 1000  # chunk size
@@ -744,15 +744,27 @@ class CalculateAccessibilityMatrixPro(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
         param_network = parameters[3]
+        param_travel_mode = parameters[4]
         param_precalculate = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
+        # Also populate travel mode parameter with time-based travel modes only.
         if param_network.altered and param_network.value:
             if is_nds_service(param_network.valueAsText):
                 param_precalculate.value = False
                 param_precalculate.enabled = False
             else:
                 param_precalculate.enabled = True
+
+            try:
+                travel_modes = arcpy.nax.GetTravelModes(param_network.value)
+                param_travel_mode.filter.list = [
+                    tm_name for tm_name in travel_modes if
+                    travel_modes[tm_name].impedance == travel_modes[tm_name].timeAttributeName
+                ]
+            except Exception:
+                # We couldn't get travel modes for this network for some reason.
+                pass
         return
 
     def updateMessages(self, parameters):
@@ -797,7 +809,7 @@ class CalculateAccessibilityMatrixPro(object):
             "destinations": parameters[1].value,
             "output_origins": parameters[2].valueAsText,
             "network_data_source": parameters[3].value,
-            "travel_mode": parameters[4].value,
+            "travel_mode": parameters[4].valueAsText,
             "cutoff": parameters[5].value,
             "time_units": parameters[6].valueAsText,
             "time_window_start_day": parameters[7].valueAsText,
