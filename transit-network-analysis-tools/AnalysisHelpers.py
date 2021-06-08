@@ -59,7 +59,7 @@ def convert_time_units_str_to_enum(time_units):
     if time_units.lower() == "days":
         return arcpy.nax.TimeUnits.Days
     # If we got to this point, the input time units were invalid.
-    err = f"Invalid time units: {time_units}"
+    err = "Invalid time units: " + str(time_units)
     arcpy.AddError(err)
     raise ValueError(err)
 
