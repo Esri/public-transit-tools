@@ -795,9 +795,9 @@ class CalculateAccessibilityMatrixPro(object):
                 param_network.altered and param_network.value:
             if "arcgis.com" in param_network.valueAsText and param_max_processes.value > MAX_AGOL_PROCESSES:
                 param_max_processes.setErrorMessage((
-                    f"The maximum number of parallel processes cannot exceed {MAX_AGOL_PROCESSES} when the "
+                    "The maximum number of parallel processes cannot exceed %i when the "
                     "ArcGIS Online services are used as the network data source."
-                ))
+                ) % MAX_AGOL_PROCESSES)
 
         return
 
