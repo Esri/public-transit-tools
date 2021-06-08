@@ -5,7 +5,7 @@ Created by Melinda Morang, Esri
 Contributors:
 David Wasserman, Fehr & Peers
 
-Copyright 2019 Esri  
+Copyright 2021 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ## What are the Transit Network Analysis Tools?
@@ -16,7 +16,7 @@ The *Transit Network Analysis Tools* must be used with a transit-enabled network
 The *Transit Network Analysis Tools* download includes the "Transit Network Analysis Tools.pyt" toolbox. You can add this to ArcToolbox or simply access it in the folder tree in the Catalog pane.  The download also includes several associated files in the same folder as the .pyt file.  Keep these files together in the same folder.
 
 The tools included are:
-- [Calculate Accessibility Matrix](#AccessibilityMatrix)
+- [Calculate Accessibility Matrix (ArcMap version)](#AccessibilityMatrix)
 - [Calculate Travel Time Statistics](#Stats)
 - [Create Percent Access Polygons](#PercentAccess)
 - [Prepare Time Lapse Polygons](#TimeLapse)
@@ -24,6 +24,7 @@ The tools included are:
 
 ## Software requirements
 * ArcMap 10.2 or higher or ArcGIS Pro 2.4 or higher. A Desktop Basic license is sufficient.
+  * Note: The Calculate Accessibility Matrix tool has not been tested on versions of ArcGIS Pro prior to 2.8 and may not work properly. Upgrading to the latest version of ArcGIS Pro is always recommended.
 * Network Analyst extension.
 
 ## Data requirements
@@ -38,31 +39,36 @@ The results of analyses performed using your GTFS-enabled network dataset can va
 
 The *Calculate Accessibility Matrix* tool attempts to account for the dynamic nature of transit schedules by solving an Origin-Destination Cost Matrix analysis for multiple times of day and summarizing the results.  The user specifies a time window, and the tool will run the analysis for each minute within the time window.  In addition to counting the total number of destinations reachable at least once during the time window, the tool output also shows the number of destinations reachable at least 10%, 20%, ...90% of start times during the time window.  More detail on the tool output is available below.
 
+This tool has separate versions for ArcMap and ArcGIS Pro. The toolbox will only show the version of the tool appropriate for the product you are using. The ArcGIS Pro version parallelizes the OD Cost Matrix solves and consequently will run faster and be less likely to run out of memory.
+
+The ArcMap and Pro versions have different input parameters and require different setups. They are described separately below. The output fields for both versions are the same and are described together at the end of this section.
+- [Jump to the Calculate Accessibility Matrix for ArcMap section](#AccessibilityMatrixArcMap)
+- [Jump to the Calculate Accessibility Matrix for ArcGIS Pro section](#AccessibilityMatrixPro)
+
+### <a name="AccessibilityMatrixArcMap"></a>Calculate Accessibility Matrix (ArcMap version)
+
 Running this tool involves three steps:
 
 1. Prepare your Origin and Destination data
 2. Prepare an Origin-Destination Cost Matrix layer to use as input to the tool
 3. Run the *Calculate Accessibility Matrix* tool
 
-### 1. Prepare your Origin and Destination data
+#### 1. Prepare your Origin and Destination data
 
 Your origins and destinations must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the Feature to Point tool to do this.
 - [Feature to Point - ArcMap](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/feature-to-point.htm)
-- [Feature to Point - ArcGIS Pro](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/feature-to-point.htm)
 
-### 2. Prepare an Origin-Destination Cost Matrix layer to use as input to the tool
+#### 2. Prepare an Origin-Destination Cost Matrix layer to use as input to the tool
 
-All Network Analyst layers, such as an Origin-Destination Cost Matrix analysis layer, must reference a network data source. To run this tool, you must create and configure an Origin-Destination Cost Matrix analysis layer referencing a transit-enabled network dataset created with either the downloadable [*Add GTFS to a Network Dataset* toolset](http://arcg.is/10jXez) in ArcMap or the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+All Network Analyst layers, such as an Origin-Destination Cost Matrix analysis layer, must reference a network data source. To run this tool, you must create and configure an Origin-Destination Cost Matrix analysis layer referencing a transit-enabled network dataset created with the downloadable [*Add GTFS to a Network Dataset* toolset](http://arcg.is/10jXez) in ArcMap.
 
 - [Learn how to create and configure an Origin-Destination Cost Matrix analysis layer in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm)
-- [Learn how to create and configure an Origin-Destination Cost Matrix analysis layer in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/od-cost-matrix-tutorial.htm)
 
 Once you have created the Origin-Destination Cost Matrix analysis layer, you must configure it with settings appropriate for this tool, which are described below.
 
 - [Learn how to configure Origin-Destination Cost Matrix properties in ArcMap.](https://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/od-cost-matrix.htm#GUID-7C72D0E2-CB83-4CB5-A98B-EDA7D1EDAF19)
-- [Learn how to configure Origin-Destination Cost Matrix properties in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/od-cost-matrix-analysis-layer.htm#ESRI_SECTION1_D36A18B15D704F0DBA9B4C766A4A2719)
 
-If you're using ArcMap, first make sure to [configure your analysis layer with correct settings](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step8) according to the *Add GTFS to a Network Dataset* tool's user's guide.
+Make sure to [configure your analysis layer with correct settings](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step8) according to the *Add GTFS to a Network Dataset* tool's user's guide.
 
 You do not need to set a time of day for your analysis because you will choose the time window when you run the *Calculate Accessibility Matrix* tool.
 
@@ -73,14 +79,13 @@ You do not need to add any Origins or Destinations to your OD Cost Matrix layer 
 You can also save your Origin-Destination Cost Matrix analysis layer to a layer file to use as input for the tool.  This is useful if you want to run this tool in a standalone python script.
 
 - [Learn how to save a Network Analyst layer to a layer file in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm)
-- [Learn how to save a Network Analyst layer to a layer file in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/save-to-layer-file.htm)
 
-### 3. Run the *Calculate Accessibility Matrix* tool
+#### 3. Run the *Calculate Accessibility Matrix* tool
 Once your origin and destination feature classes and your OD Cost Matrix layer are prepared, run the *Calculate Accessibility Matrix* tool to calculate measures of accessibility.  Fields with these accessibility measures will be added to your input origins table.
 
 ![Screenshot of tool dialog](./images/Screenshot_CalculateAccessibilityMatrix_Dialog.png)
 
-#### Inputs
+##### Inputs
 * **OD Cost Matrix Layer**: An OD Cost Matrix layer in your map or saved as a layer file (see previous section on how to set this up).
 * **Origins**: A point feature class representing the locations you want to calculate accessibility measures for.  For example, your origins might be census block centroids or the centroids of individual parcels.
 * **Destinations**: A point feature class representing the destinations your origins will travel to.  For example, if you want to measure your origins' level of accessibility to jobs, your Destinations could be the locations of employment centers.
@@ -91,8 +96,51 @@ Once your origin and destination feature classes and your OD Cost Matrix layer a
 * **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that an analysis will be performed for the time of day you enter here.
 * **Time Increment (minutes)**: Increment the OD Cost Matrix's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the OD Cost Matrix will be solved for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would calculate the OD Cost Matrix for 10:00, 10:02, 10:04, etc.
 
-#### Outputs
-This tool does not produce a new output.  Instead, it adds the following fields to your input Origins table:
+##### Outputs
+This tool does not produce a new output.  Instead, it adds the output fields to your input Origins table. [Read about the tool's output fields.](#AccessibilityMatrixOutputs)
+
+##### Tool performance
+OD Cost Matrices with many origins and destinations may take a long time to solve, and since this tool solves the analysis once per start time within the time limit, this tool could take a very long time to complete.  If you want to solve a really massive problem, do not use the ArcMap version of this tool.  The ArcGIS Pro version has been rewritten from the ground up using newer technology. It parallelizes the OD Cost Matrix solve across multiple cores on your machine and uses newer and more efficient python methods for solving the OD Cost Matrix and post-processing the results.
+
+Note that when this tool runs, if the input OD Cost Matrix layer and the network it references are in the map, these layers might re-draw over and over again, which impacts tool performance.  Before running the tool, turn off the layers in the map to prevent the re-draw behavior.
+
+### <a name="AccessibilityMatrixPro"></a>Calculate Accessibility Matrix (ArcGIS Pro version)
+
+The ArcGIS Pro version of Calculate Accessibility Matrix requires a transit-enabled network dataset created with the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+
+There is no specific set-up required to run the tool, as the origins, destinations, and all relevant settings can be set in the tool's UI.
+
+However, your origins and destinations must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the Feature to Point tool to do this.
+- [Feature to Point - ArcGIS Pro](https://pro.arcgis.com/en/pro-app/latest/tool-reference/data-management/feature-to-point.htm)
+
+#### 3. Run the *Calculate Accessibility Matrix* tool
+
+![Screenshot of tool dialog](./images/Screenshot_CalculateAccessibilityMatrix_Pro_Dialog.png)
+
+##### Inputs
+* **Origins**: A point feature class representing the locations you want to calculate accessibility measures for.  For example, your origins might be census block centroids or the centroids of individual parcels.
+* **Destinations**: A point feature class representing the destinations your origins will travel to.  For example, if you want to measure your origins' level of accessibility to jobs, your Destinations could be the locations of employment centers.
+* **Output Updated Origins**: Output path. Your input origins will be copied to this location, and the output fields will be added.
+* **Network Data Source**: The network dataset or service URL to use for the calculation. You should use a transit-enabled network dataset created with the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm) or an ArcGIS Enterprise service created from such a network. Technically, however, the tool will work with any network dataset that has at least one time-based travel mode.
+* **Travel Mode**: The name of a time-based [travel mode](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/travel-modes.htm) on the network dataset you wish to use to calculate the OD Cost Matrix. Typically you should choose a travel mode modeling travel by public transit.
+* **Cutoff Time**: The maximum travel time allowed in your analysis. For example, if you want to analyze the number of jobs reachable within a 30-minute commute from your origins, set the Cutoff Time to 30, and set the Cutoff Time Units to Minutes.
+* **Cutoff Time Units**: The units of time in which to interpret the Cutoff Time.
+* **Start Day (Weekday or YYYYMMDD date)**: Day of the week or YYYYMMDD date for the first start time of your analysis.  [Learn when to use a generic weekday or a specific date.](#Dates)
+* **Start Time (HH:MM) (24 hour time)**: The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2 AM is 02:00, and 2 PM is 14:00.
+* **End Day (Weekday or YYYYMMDD date)**: If you're using a generic weekday for Start Day, you must use the same day for End Day.  If you want to run an analysis spanning multiple days, choose specific YYYYMMDD dates for both Start Day and End Day.
+* **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that an analysis will be performed for the time of day you enter here.
+* **Time Increment (minutes)**: Increment the OD Cost Matrix's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the OD Cost Matrix will be solved for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would calculate the OD Cost Matrix for 10:00, 10:02, 10:04, etc.
+* **Maximum Origins and Destinations per Chunk**: In order to solve large OD Cost Matrix problems efficiently, the tool can split up large numbers of inputs into chunks and solve the chunks in parallel across multiple cores of your computer. This parameter specifies the maximum number of origins and destinations that should be allowed in a single chunk. The optimal number depends on your computing resources. Larger chunks take longer to solve and require more memory, but there is some overhead associated with having more chunks.
+* **Maximum Number of Parallel Processes**: In order to solve large OD Cost Matrix problems efficiently, the tool solve the OD Cost Matrix for different start times in parallel across multiple cores of your machine. If the number of origins and destinations are large, it may also break them up into chunks and solve them in parallel as well. This parameter designates the number of parallel processes that can safely be used. You should select a number less than or equal to the number of virtual cores or processors your computer has.
+* **Destinations Weight Field**:  Optionally, choose a field from your Destinations table that will be used as a weight.  For example, if your destinations represent employment centers, the weight field could be the number of jobs available at each point. Only integer and double fields can be used for the weight field.  If you do not choose a weight field, each destination will be counted as 1.
+* **Barriers**: Optionally, choose layers with point, line, or polygon barriers to use in the OD Cost Matrix analysis.
+* **Precalculate Network Locations**: When doing an OD Cost Matrix analysis, the input origin and destination points must be ["located" on the network dataset](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/locating-analysis-inputs.htm). Because the tool parallelizes the OD Cost Matrix across multiple processes, using the same origins and destinations many times, it saves time to calculate the network locations in advance rather than repeating this calculation in every parallel process. The only time you should uncheck this parameter is if you have already calculated the network locations of your input origins and destinations for the network dataset and travel mode you are using, and you simply wish to re-use these. 
+
+Advanced users with specific analysis needs can modify additional OD Cost Matrix analysis properties in the CalculateAccessibilityMatrix_OD_config.py file. Note that you may need to close and re-open ArcGIS Pro in order for those changes to be used when the tool runs.
+
+### <a name="AccessibilityMatrixOutputs"></a>Calculate Accessibility Matrix tool output fields
+
+The output Origins table contains the following fields:
 - *TotalDests*
 - *PercDests*
 - *DsAL10Perc*, *DsAL20Perc*, ..., *DsAL90Perc*
@@ -119,12 +167,6 @@ So, for our weighted example above, for Origin 1, the *DsAL10Perc* field will ha
 If you care about a bare minimum of access, use the *TotalDests* field.  If you care about quality of access, compare the value of *TotalDests* with, say, *DsAL90Perc*, and note that the total number of destinations reachable more than 90% of the time is much lower.
 
 **PsAL10Perc**, **PsAL20Perc**, ..., **PsAL90Perc**:  These are companion fields to *DsAL10Perc*, *DsAL20Perc*, etc. and have the same relationship that *PercDests* does to *TotalDests*.  For example, *PsAL10Perc* is *DsAL10Perc* divided by the total weighted number of destinations that were included in the analysis.
-
-#### Tool performance
-OD Cost Matrices with many origins and destinations may take a long time to solve, and since this tool solves the analysis once per start time within the time limit, this tool could take a very long time to complete.  If you want to solve a really massive problem, this tool might not be the most efficient way to do it.  Please contact me, and I can share some code samples for using multiprocessing to solve these analyses in parallel.
-
-Note that when this tool runs, if the input OD Cost Matrix layer and the network it references are in the map, these layers might re-draw over and over again, which impacts tool performance.  Before running the tool, turn off the layers in the map to prevent the re-draw behavior.
-
 
 
 ## <a name="Stats"></a>Calculate Travel Time Statistics
