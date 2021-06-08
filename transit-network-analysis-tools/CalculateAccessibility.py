@@ -4,15 +4,18 @@
 ## Created by: Melinda Morang, Esri
 ## Last updated: 17 June 2019
 ################################################################################
-'''Count the number of destinations reachable from each origin by transit and 
-walking. The tool calculates an Origin-Destination Cost Matrix for each start 
-time within a time window because the reachable destinations change depending 
-on the time of day because of the transit schedules.  The output gives the 
-total number of destinations reachable at least once as well as the number of 
-destinations reachable at least 10%, 20%, ...90% of start times during the time 
-window.  The number of reachable destinations can be weighted based on a field, 
-such as the number of jobs available at each destination.  The tool also 
-calculates the percentage of total destinations reachable.'''
+'''Count the number of destinations reachable from each origin by transit and
+walking. The tool calculates an Origin-Destination Cost Matrix for each start
+time within a time window because the reachable destinations change depending
+on the time of day because of the transit schedules.  The output gives the
+total number of destinations reachable at least once as well as the number of
+destinations reachable at least 10%, 20%, ...90% of start times during the time
+window.  The number of reachable destinations can be weighted based on a field,
+such as the number of jobs available at each destination.  The tool also
+calculates the percentage of total destinations reachable.
+
+This is the layer-based version of the tool that works in ArcMap. ArcGIS Pro
+users are encouraged to use the Pro version that can handle larger problems.'''
 ################################################################################
 '''Copyright 2019 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +41,7 @@ def runTool(input_network_analyst_layer, origins_feature_class, destinations_fea
             destinations_weight_field=None, start_day_input="Wednesday", start_time_input="08:00",
             end_day_input="Wednesday", end_time_input="09:00", increment_input=1):
     """Solves an Origin-Destination Cost Matrix analysis for multiple times of day and summarizes the results.
-    
+
     The user specifies a time window, and the tool will run the analysis for each minute within the time window. In
     addition to counting the total number of destinations reachable at least once during the time window, the tool
     output also shows the number of destinations reachable at least 10%, 20%, ...90% of start times during the time
