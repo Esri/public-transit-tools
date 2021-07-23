@@ -30,6 +30,26 @@ TIME_UNITS = ["Days", "Hours", "Minutes", "Seconds"]
 MAX_AGOL_PROCESSES = 4  # AGOL concurrent processes are limited so as not to overload the service for other users.
 
 
+def validate_input_feature_class(feature_class):
+    """Validate that the designated input feature class exists and is not empty.
+
+    Args:
+        feature_class (str, layer): Input feature class or layer to validate
+
+    Raises:
+        ValueError: The input feature class does not exist.
+        ValueError: The input feature class has no rows.
+    """
+    if not arcpy.Exists(feature_class):
+        err = f"Input dataset {feature_class} does not exist."
+        arcpy.AddError(err)
+        raise ValueError(err)
+    if int(arcpy.management.GetCount(feature_class).getOutput(0)) <= 0:
+        err = f"Input dataset {feature_class} has no rows."
+        arcpy.AddError(err)
+        raise ValueError(err)
+
+
 def is_nds_service(network_data_source):
     """Determine if the network data source points to a service.
 
@@ -60,6 +80,56 @@ def convert_time_units_str_to_enum(time_units):
         return arcpy.nax.TimeUnits.Days
     # If we got to this point, the input time units were invalid.
     err = "Invalid time units: " + str(time_units)
+    arcpy.AddError(err)
+    raise ValueError(err)
+
+
+def convert_travel_direction_str_to_enum(travel_direction):
+    """Convert a string representation of travel direction to an arcpy.nax enum.
+
+    Raises:
+        ValueError: If the string cannot be parsed as a valid arcpy.nax.TravelDirection enum value.
+    """
+    if travel_direction.lower() == "toward facilities":
+        return arcpy.nax.TravelDirection.ToFacility
+    if travel_direction.lower() == "away from facilities":
+        return arcpy.nax.TravelDirection.FromFacility
+    # If we got to this point, the input was invalid.
+    err = "Invalid travel direction: " + str(travel_direction)
+    arcpy.AddError(err)
+    raise ValueError(err)
+
+
+def convert_geometry_at_cutoff_str_to_enum(geometry_at_cutoff):
+    """Convert a string representation of geometry at cutoff to an arcpy.nax enum.
+
+    Raises:
+        ValueError: If the string cannot be parsed as a valid arcpy.nax.ServiceAreaPolygonCutoffGeometry enum value.
+    """
+    if geometry_at_cutoff.lower() == "rings":
+        return arcpy.nax.ServiceAreaPolygonCutoffGeometry.Rings
+    if geometry_at_cutoff.lower() == "disks":
+        return arcpy.nax.ServiceAreaPolygonCutoffGeometry.Disks
+    # If we got to this point, the input was invalid.
+    err = "Invalid geometry at cutoff: " + str(geometry_at_cutoff)
+    arcpy.AddError(err)
+    raise ValueError(err)
+
+
+def convert_geometry_at_overlap_str_to_enum(geometry_at_overlap):
+    """Convert a string representation of geometry at cutoff to an arcpy.nax enum.
+
+    Raises:
+        ValueError: If the string cannot be parsed as a valid arcpy.nax.ServiceAreaOverlapGeometry enum value.
+    """
+    if geometry_at_overlap.lower() == "overlap":
+        return arcpy.nax.ServiceAreaOverlapGeometry.Overlap
+    if geometry_at_overlap.lower() == "dissolve":
+        return arcpy.nax.ServiceAreaOverlapGeometry.Dissolve
+    if geometry_at_overlap.lower() == "split":
+        return arcpy.nax.ServiceAreaOverlapGeometry.Split
+    # If we got to this point, the input was invalid.
+    err = "Invalid geometry at overlap: " + str(geometry_at_overlap)
     arcpy.AddError(err)
     raise ValueError(err)
 
