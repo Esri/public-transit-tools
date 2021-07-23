@@ -3,8 +3,9 @@
 ## Created by: Melinda Morang, Esri
 ## Last updated: 23 July 2021
 ############################################################################
-"""Run a Service Area analysis incrementing the time of day over a time window. Save the output polygons to a single
-feature class that can be used to generate a time lapse video or run the Create Percent Access Polygons tool.
+"""Run a Service Area analysis incrementing the time of day over a time window.
+Save the output polygons to a single feature class that can be used to generate
+a time lapse video or run the Create Percent Access Polygons tool.
 
 This script parses the inputs and validates them and launches the parallelized
 Service Area solve as a subprocess.
