@@ -141,11 +141,11 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
             raise ValueError(err)
 
         # Validate origins, destinations, and barriers
-        self._validate_input_feature_class(self.origins)
-        self._validate_input_feature_class(self.destinations)
+        AnalysisHelpers.validate_input_feature_class(self.origins)
+        AnalysisHelpers.validate_input_feature_class(self.destinations)
         self._validate_weight_field()
         for barrier_fc in self.barriers:
-            self._validate_input_feature_class(barrier_fc)
+            AnalysisHelpers.validate_input_feature_class(barrier_fc)
         # If the barriers are layers, convert them to catalog paths so we can pass them to the subprocess
         self.barriers = [AnalysisHelpers.get_catalog_path(barrier_fc) for barrier_fc in self.barriers]
 
@@ -184,26 +184,6 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
                 arcpy.AddWarning(
                     "Cannot precalculate network location fields when the network data source is a service.")
                 self.should_precalc_network_locations = False
-
-    @staticmethod
-    def _validate_input_feature_class(feature_class):
-        """Validate that the designated input feature class exists and is not empty.
-
-        Args:
-            feature_class (str, layer): Input feature class or layer to validate
-
-        Raises:
-            ValueError: The input feature class does not exist.
-            ValueError: The input feature class has no rows.
-        """
-        if not arcpy.Exists(feature_class):
-            err = f"Input dataset {feature_class} does not exist."
-            arcpy.AddError(err)
-            raise ValueError(err)
-        if int(arcpy.management.GetCount(feature_class).getOutput(0)) <= 0:
-            err = f"Input dataset {feature_class} has no rows."
-            arcpy.AddError(err)
-            raise ValueError(err)
 
     def _validate_weight_field(self):
         """Validate that the designated weight field is present in the destinations table and has a valid type.
