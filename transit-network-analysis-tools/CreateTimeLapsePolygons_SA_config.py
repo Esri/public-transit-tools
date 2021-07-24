@@ -1,5 +1,4 @@
-"""Defines Service Area solver object properties that are not specified
-in the tool dialog.
+"""Defines Service Area solver object properties that are not specified in the tool dialog.
 
 A list of Service Area solver properties is documented here:
 https://pro.arcgis.com/en/pro-app/latest/arcpy/network-analyst/servicearea.htm
@@ -48,6 +47,5 @@ SA_PROPS = {
     # "searchQuery": [],  # This parameter is very network specific. Only uncomment if you are using it.
     "searchTolerance": 500,
     "searchToleranceUnits": arcpy.nax.DistanceUnits.Meters,
-    "timeOfDay": None,
     "timeZone": arcpy.nax.TimeZoneUsage.LocalTimeAtLocations
 }
