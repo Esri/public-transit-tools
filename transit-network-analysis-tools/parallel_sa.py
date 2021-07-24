@@ -43,14 +43,14 @@ from multiprocessing import Manager
 
 import arcpy
 
-# Import OD Cost Matrix settings from config file
+# Import Service Area settings from config file
 from CreateTimeLapsePolygons_SA_config import SA_PROPS, SA_PROPS_SET_BY_TOOL
 import AnalysisHelpers
 
 arcpy.env.overwriteOutput = True
 
 # Set logging for the main process.
-# LOGGER logs everything from the main process to stdout using a specific format that the SolveLargeODCostMatrix tool
+# LOGGER logs everything from the main process to stdout using a specific format that the SolveLargeServiceArea tool
 # can parse and write to the geoprocessing message feed.
 LOG_LEVEL = logging.INFO  # Set to logging.DEBUG to see verbose debug messages
 LOGGER = logging.getLogger(__name__)  # pylint:disable=invalid-name
@@ -77,7 +77,7 @@ def run_gp_tool(tool, tool_args=None, tool_kwargs=None, log_to_use=LOGGER):
         tool_kwargs (dictionary, optional): Dictionary of tool parameter names and values that can be used as named
             arguments in the tool command. Defaults to None.
         log_to_use (logging.logger, optional): logger class to use for messages. Defaults to LOGGER. When calling this
-            from the ODCostMatrix class, use self.logger instead so the messages go to the processes's log file instead
+            from the ServiceArea class, use self.logger instead so the messages go to the processes's log file instead
             of stdout.
 
     Returns:
@@ -223,7 +223,7 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         self.logger.debug("Creating Service Area object...")
         self.sa_solver = arcpy.nax.ServiceArea(self.network_data_source)
 
-        # Set the OD cost matrix analysis properties.
+        # Set the Service Area analysis properties.
         # Read properties from the CreateTimeLapsePolygons_SA_config.py config file for all properties not set in
         # the UI as parameters.
         # SA properties documentation: https://pro.arcgis.com/en/pro-app/latest/arcpy/network-analyst/servicearea.htm
@@ -408,7 +408,7 @@ class ParallelSACalculator():
             time_window_end_day (str): English weekday name or YYYYMMDD date representing the weekday or end date of
                 the time window
             time_window_end_time (str): HHMM time of day for the end of the time window
-            time_increment (int): Number of minutes between each run of the OD Cost Matrix in the time window
+            time_increment (int): Number of minutes between each run of the Service Area in the time window
             travel_direction (str): String representation of the travel direction (to or from facilities)
             geometry_at_cutoff (str): String representation of the geometry at cutoffs (rings or disks)
             geometry_at_overlap (str): String representation of the geometry at overlap (split, overlap, dissolve)
@@ -416,8 +416,10 @@ class ParallelSACalculator():
             barriers (list(str), optional): List of catalog paths to point, line, and polygon barriers to use.
                 Defaults to None.
         """
-        self.facilities = facilities
         time_units = AnalysisHelpers.convert_time_units_str_to_enum(time_units)
+        travel_direction = AnalysisHelpers.convert_travel_direction_str_to_enum(travel_direction)
+        geometry_at_cutoff = AnalysisHelpers.convert_geometry_at_cutoff_str_to_enum(geometry_at_cutoff)
+        geometry_at_overlap = AnalysisHelpers.convert_geometry_at_overlap_str_to_enum(geometry_at_overlap)
         if not barriers:
             barriers = []
         self.max_processes = max_processes
@@ -434,24 +436,17 @@ class ParallelSACalculator():
             LOGGER.error(str(ex))
             raise ValueError from ex
 
-        # Scratch folder to store intermediate outputs from the OD Cost Matrix processes
+        # Scratch folder to store intermediate outputs from the Service Area processes
         unique_id = uuid.uuid4().hex
         self.scratch_folder = os.path.join(
             arcpy.env.scratchFolder, "CalcAccMtx_" + unique_id)  # pylint: disable=no-member
         LOGGER.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
         os.mkdir(self.scratch_folder)
 
-        # Set up a where clause to eliminate destinations that will never contribute any values to the final solution.
-        # Only applies if we're using a weight field.
-        if self.weight_field:
-            self.dest_where = f"{self.weight_field} IS NOT NULL and {self.weight_field} <> 0"
-        else:
-            self.dest_where = ""
-
         # Initialize the dictionary of inputs to send to each OD solve
-        self.od_inputs = {
-            "origins": self.origins,
-            "destinations": self.destinations,
+        self.sa_inputs = {
+            "facilities": facilities,
+            "output_polygons": output_polygons,
             "destination_where_clause": self.dest_where,
             "network_data_source": network_data_source,
             "travel_mode": travel_mode,
@@ -461,232 +456,85 @@ class ParallelSACalculator():
             "barriers": barriers
         }
 
-        # Construct OID ranges for chunks of origins and destinations
-        origin_ranges = self._get_oid_ranges_for_input(self.origins, max_origins)
-        destination_ranges = self._get_oid_ranges_for_input(self.destinations, max_destinations, self.dest_where)
-
-        # Construct chunks consisting of (range of origin oids, range of destination oids, start time)
-        self.chunks = itertools.product(origin_ranges, destination_ranges, self.start_times)
-        # Calculate the total number of jobs to use in logging
-        self.total_jobs = len(origin_ranges) * len(destination_ranges) * len(self.start_times)
-
-    def _validate_od_settings(self):
-        """Validate OD cost matrix settings before spinning up a bunch of parallel processes doomed to failure."""
-        # Create a dummy ODCostMatrix object, initialize an OD solver object, and set properties. This allows us to
-        # detect any errors prior to spinning up a bunch of parallel processes and having them all fail.
-        LOGGER.debug("Validating OD Cost Matrix settings...")
+    def _validate_sa_settings(self):
+        """Validate Service Area settings before spinning up a bunch of parallel processes doomed to failure."""
+        # Create a dummy ServiceArea object and set properties. This allows us to detect any errors prior to spinning up
+        # a bunch of parallel processes and having them all fail.
+        LOGGER.debug("Validating Service Area settings...")
         sa = None
         try:
-            sa = ODCostMatrix(**self.od_inputs)
-            sa.initialize_od_solver()
-            LOGGER.debug("OD Cost Matrix settings successfully validated.")
+            sa = ServiceArea(**self.sa_inputs)
+            sa.initialize_sa_solver()
+            LOGGER.debug("Service Area settings successfully validated.")
         except Exception:
-            LOGGER.error("Error initializing OD Cost Matrix analysis.")
+            LOGGER.error("Error initializing Service Area analysis.")
             errs = traceback.format_exc().splitlines()
             for err in errs:
                 LOGGER.error(err)
             raise
         finally:
             if sa:
-                LOGGER.debug("Deleting temporary test OD Cost Matrix job folder...")
+                LOGGER.debug("Deleting temporary test Service Area job folder...")
                 shutil.rmtree(sa.job_result["jobFolder"], ignore_errors=True)
                 del sa
 
-    @staticmethod
-    def _get_oid_ranges_for_input(input_fc, max_chunk_size, where=""):
-        """Construct ranges of ObjectIDs for use in where clauses to split large data into chunks.
-
-        Args:
-            input_fc (str, layer): Data that needs to be split into chunks
-            max_chunk_size (int): Maximum number of rows that can be in a chunk
-            where (str, optional): Where clause to use to filter data before chunking. Defaults to "".
-
-        Returns:
-            list: list of ObjectID ranges for the current dataset representing each chunk. For example,
-                [[1, 1000], [1001, 2000], [2001, 2478]] represents three chunks of no more than 1000 rows.
-        """
-        ranges = []
-        num_in_range = 0
-        current_range = [0, 0]
-        # Loop through all OIDs of the input and construct tuples of min and max OID for each chunk
-        # We do it this way and not by straight-up looking at the numerical values of OIDs to account
-        # for definition queries, selection sets, or feature layers with gaps in OIDs
-        for row in arcpy.da.SearchCursor(input_fc, "OID@", where):  # pylint: disable=no-member
-            oid = row[0]
-            if num_in_range == 0:
-                # Starting new range
-                current_range[0] = oid
-            # Increase the count of items in this range and set the top end of the range to the current oid
-            num_in_range += 1
-            current_range[1] = oid
-            if num_in_range == max_chunk_size:
-                # Finishing up a chunk
-                ranges.append(current_range)
-                # Reset range trackers
-                num_in_range = 0
-                current_range = [0, 0]
-        # After looping, close out the last range if we still have one open
-        if current_range != [0, 0]:
-            ranges.append(current_range)
-
-        return ranges
-
-    def solve_od_in_parallel(self):
-        """Solve the OD Cost Matrix in chunks and post-process the results."""
-        # Validate OD Cost Matrix settings. Essentially, create a dummy ODCostMatrix class instance and set up the
+    def solve_sa_in_parallel(self):
+        """Solve the Service Area in chunks and post-process the results."""
+        # Validate Service Area settings. Essentially, create a dummy ServiceArea class instance and set up the
         # solver object to ensure this at least works. Do this up front before spinning up a bunch of parallel processes
         # the optimized that are guaranteed to all fail.
-        self._validate_od_settings()
+        self._validate_sa_settings()
 
-        # The multiprocessing module's Manager allows us to share a managed dictionary across processes, including
-        # writing to it. This allows us to track which destinations are accessible to each origin and for how many of
-        # our start times without having to write out and post-process a bunch of tables.
-        with Manager() as manager:
-            # Initialize a special dictionary of {(Origin OID, Destination OID): Number of times reached} that will be
-            # shared across processes
-            shared_dict = manager.dict({})
-            for row_o in arcpy.da.SearchCursor(self.origins, ["OID@"]):  # pylint: disable=no-member
-                for row_d in arcpy.da.SearchCursor(self.destinations, ["OID@"]):  # pylint: disable=no-member
-                    shared_dict[(row_o[0], row_d[0])] = 0
+        # Compute Service Area in parallel
+        LOGGER.info("Solving Service Area chunks in parallel...")
+        completed_jobs = 0  # Track the number of jobs completed so far to use in logging
+        # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the Service Areas
+        with futures.ProcessPoolExecutor(max_workers=self.max_processes) as executor:
+            # Each parallel process calls the solve_service_area() function with the sa_inputs dictionary for the
+            # given time of day.
+            jobs = {executor.submit(
+                solve_service_area, self.sa_inputs, time_of_day): time_of_day for time_of_day in self.start_times}
+            # As each job is completed, add some logging information and store the results to post-process later
+            for future in futures.as_completed(jobs):
+                completed_jobs += 1
+                LOGGER.info(
+                    f"Finished Service Area calculation {completed_jobs} of {self.total_jobs}.")
+                try:
+                    # The Service Area job returns a results dictionary. Retrieve it.
+                    result = future.result()
+                except Exception:
+                    # If we couldn't retrieve the result, some terrible error happened. Log it.
+                    LOGGER.error("Failed to get Service Area result from parallel processing.")
+                    errs = traceback.format_exc().splitlines()
+                    for err in errs:
+                        LOGGER.error(err)
+                    raise
 
-            # Compute OD cost matrix in parallel
-            LOGGER.info("Solving OD Cost Matrix chunks in parallel...")
-            completed_jobs = 0  # Track the number of jobs completed so far to use in logging
-            # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the OD cost
-            # matrices
-            with futures.ProcessPoolExecutor(max_workers=self.max_processes) as executor:
-                # Each parallel process calls the solve_od_cost_matrix() function with the od_inputs dictionary for the
-                # given origin and destination OID ranges and time of day.
-                jobs = {executor.submit(
-                    solve_od_cost_matrix, self.od_inputs, shared_dict, chunks): chunks for chunks in self.chunks}
-                # As each job is completed, add some logging information and store the results to post-process later
-                for future in futures.as_completed(jobs):
-                    completed_jobs += 1
-                    LOGGER.info(
-                        f"Finished OD Cost Matrix calculation {completed_jobs} of {self.total_jobs}.")
-                    try:
-                        # The OD cost matrix job returns a results dictionary. Retrieve it.
-                        result = future.result()
-                    except Exception:
-                        # If we couldn't retrieve the result, some terrible error happened. Log it.
-                        LOGGER.error("Failed to get OD Cost Matrix result from parallel processing.")
-                        errs = traceback.format_exc().splitlines()
-                        for err in errs:
-                            LOGGER.error(err)
-                        raise
+                # Log failed solves
+                if not result["solveSucceeded"]:
+                    LOGGER.warning(f"Solve failed for job id {result['jobId']}")
+                    msgs = result["solveMessages"]
+                    LOGGER.warning(msgs)
 
-                    # Log failed solves
-                    if not result["solveSucceeded"]:
-                        LOGGER.warning(f"Solve failed for job id {result['jobId']}")
-                        msgs = result["solveMessages"]
-                        LOGGER.warning(msgs)
-
-            # Calculate statistics from the results of the OD Cost Matrix calculations present in the shared dictionary
-            # and write them to the output fields in the Origins table.
-            self._add_results_to_output(shared_dict)
+        ## TODO: Post-process results
 
         # Cleanup
         # Delete the job folders if the job succeeded
-        if DELETE_INTERMEDIATE_OD_OUTPUTS:
+        if DELETE_INTERMEDIATE_SA_OUTPUTS:
             LOGGER.info("Deleting intermediate outputs...")
             try:
                 shutil.rmtree(self.scratch_folder, ignore_errors=True)
             except Exception:  # pylint: disable=broad-except
                 # If deletion doesn't work, just throw a warning and move on. This does not need to kill the tool.
-                LOGGER.warning(f"Unable to delete intermediate OD Cost Matrix output folder {self.scratch_folder}.")
+                LOGGER.warning(f"Unable to delete intermediate Service Area output folder {self.scratch_folder}.")
 
-        LOGGER.info("Finished calculating OD Cost Matrices.")
-
-    def _add_results_to_output(self, shared_dict):
-        """Calculate accessibility statistics and write them to the Origins table.
-
-        Args:
-            shared_dict (Managed dict): Multiprocessing managed dictionary of
-                {(OriginOID, DestinationOID): times reached}
-        """
-        LOGGER.info("Calculating statistics for final output...")
-
-        if self.weight_field:
-            # Convert the shared dictionary to a pandas dataframe for easier processing
-            result_df = pd.DataFrame.from_records(
-                [(key[0], key[1], shared_dict[key]) for key in shared_dict],
-                columns=["OriginOID", "DestinationOID", "TimesReached"]
-            )
-            # Delete the shared dictionary to clear up memory
-            del shared_dict
-
-            # Read in the weight field values and join them into the result table
-            LOGGER.debug("Joining weight field from destinations to results dataframe...")
-            with arcpy.da.SearchCursor(  # pylint: disable=no-member
-                    self.destinations, ["OID@", self.weight_field]) as cur:
-                w_df = pd.DataFrame(cur, columns=["DestinationOID", "Weight"])
-
-            # Calculate the total number of destinations based on weight and store this for later use
-            total_dests = w_df["Weight"].sum()
-
-            # Join the Weight field into the results dataframe
-            w_df.set_index("DestinationOID", inplace=True)
-            result_df = result_df.join(w_df, "DestinationOID")
-            del w_df
-
-            # We don't need this field anymore
-            result_df.drop(["DestinationOID"], axis="columns", inplace=True)
-
-        else:
-            # Convert the shared dictionary to a pandas dataframe for easier processing
-            # Don't bother reading in the DestinationOID field at all for this case since we don't need it for anything.
-            result_df = pd.DataFrame.from_records(
-                [(key[0], shared_dict[key]) for key in shared_dict],
-                columns=["OriginOID", "TimesReached"]
-            )
-            # Delete the shared dictionary to clear up memory
-            del shared_dict
-
-            # Count every row as 1 since we're not using a weight field
-            result_df["Weight"] = 1
-
-            # Set the total number of destinations to the number of rows in the destinations table.
-            total_dests = int(arcpy.management.GetCount(self.destinations).getOutput(0))
-
-        # Create the output dataframe indexed by the OriginOID
-        LOGGER.debug("Creating output dataframe indexed by OriginOID...")
-        unique = result_df["OriginOID"].unique()
-        output_df = pd.DataFrame(unique, columns=["OriginOID"])
-        del unique
-        output_df.set_index("OriginOID", inplace=True)
-
-        # Calculate the total destinations found for each origin using the weight field
-        LOGGER.debug("Calculating TotalDests and PercDests...")
-        output_df["TotalDests"] = result_df[result_df["TimesReached"] > 0].groupby("OriginOID")["Weight"].sum()
-        # Calculate the percentage of destinations reached
-        output_df["PercDests"] = 100.0 * output_df["TotalDests"] / total_dests
-
-        # Calculate the number of destinations accessible at different thresholds
-        LOGGER.debug("Calculating the number of destinations accessible at different thresholds...")
-        for perc in range(10, 100, 10):
-            total_field = f"DsAL{perc}Perc"
-            perc_field = f"PsAL{perc}Perc"
-            threshold = len(self.start_times) * perc / 100
-            output_df[total_field] = result_df[result_df["TimesReached"] >= threshold].groupby(
-                "OriginOID")["Weight"].sum()
-            output_df[perc_field] = 100.0 * output_df[total_field] / total_dests
-        # Fill empty cells with 0
-        output_df.fillna(0, inplace=True)
-        # Clean up
-        del result_df
-
-        # Write the calculated values to output
-        output_df = output_df.to_records()
-        arcpy.da.ExtendTable(  # pylint: disable=no-member
-            self.origins, arcpy.Describe(self.origins).oidFieldName, output_df, "OriginOID", False)
-
-        LOGGER.info(f"Accessibility statistics fields were added to Origins table {self.origins}.")
+        LOGGER.info("Finished calculating Service Areas.")
 
 
-def launch_parallel_od():
-    """Read arguments passed in via subprocess and run the parallel OD Cost Matrix.
+def launch_parallel_sa():
+    """Read arguments passed in via subprocess and run the parallel Service Area.
 
-    This script is intended to be called via subprocess via the CalculateAccessibilityMatrixInParallel.py module, which
+    This script is intended to be called via subprocess via the CreateTimeLapsePolygonsInParallel.py module, which
     does essential preprocessing and validation. Users should not call this script directly from the command line.
 
     We must launch this script via subprocess in order to support parallel processing from an ArcGIS Pro script tool,
@@ -697,13 +545,14 @@ def launch_parallel_od():
 
     # Define Arguments supported by the command line utility
 
-    # --origins parameter
-    help_string = "The full catalog path to the feature class containing the origins. Output fields will be added."
-    parser.add_argument("-o", "--origins", action="store", dest="origins", help=help_string, required=True)
+    # --facilities parameter
+    help_string = "The full catalog path to the feature class containing the facilities."
+    parser.add_argument("-f", "--facilities", action="store", dest="facilities", help=help_string, required=True)
 
-    # --destinations parameter
-    help_string = "The full catalog path to the feature class containing the destinations."
-    parser.add_argument("-d", "--destinations", action="store", dest="destinations", help=help_string, required=True)
+    # --output-polygons parameter
+    help_string = "The full catalog path to the location for the output polygons feature class."
+    parser.add_argument(
+        "-p", "--output-polygons", action="store", dest="output_polygons", help=help_string, required=True)
 
     # --network-data-source parameter
     help_string = "The full catalog path to the network dataset or a portal url that will be used for the analysis."
@@ -716,29 +565,20 @@ def launch_parallel_od():
         "the analysis."
     )
     parser.add_argument("-tm", "--travel-mode", action="store", dest="travel_mode", help=help_string, required=True)
+    
+    # --cutoffs parameter
+    help_string = (
+        "Impedance cutoffs for the Service Area. Should be specified in the same units as the time-units parameter"
+    )
+    parser.add_argument(
+        "-co", "--cutoffs", action="store", dest="cutoff", type=float, help=help_string, nargs='+', required=True)
 
     # --time-units parameter
     help_string = "String name of the time units for the analysis. These units will be used in the output."
     parser.add_argument("-tu", "--time-units", action="store", dest="time_units", help=help_string, required=True)
 
-    # --max-origins parameter
-    help_string = (
-        "Maximum number of origins that can be in one chunk for parallel processing of OD Cost Matrix solves. "
-        "For example, 1000 means that a chunk consists of no more than 1000 origins and max-destination destinations."
-    )
-    parser.add_argument(
-        "-mo", "--max-origins", action="store", dest="max_origins", type=int, help=help_string, required=True)
-
-    # --max-destinations parameter
-    help_string = (
-        "Maximum number of destinations that can be in one chunk for parallel processing of OD Cost Matrix solves. "
-        "For example, 1000 means that a chunk consists of no more than max-origin origins and 1000 destinations."
-    )
-    parser.add_argument(
-        "-md", "--max-destinations", action="store", dest="max_destinations", type=int, help=help_string, required=True)
-
     # --max-processes parameter
-    help_string = "Maximum number parallel processes to use for the OD Cost Matrix solves."
+    help_string = "Maximum number parallel processes to use for the Service Area solves."
     parser.add_argument(
         "-mp", "--max-processes", action="store", dest="max_processes", type=int, help=help_string, required=True)
 
@@ -767,37 +607,37 @@ def launch_parallel_od():
     parser.add_argument("-ti", "--time-increment", action="store", dest="time_increment", type=int,
                         help=help_string, required=True)
 
-    # --cutoff parameter
-    help_string = (
-        "Impedance cutoff to limit the OD cost matrix search distance. Should be specified in the same units as the "
-        "time-units parameter if the travel mode's impedance is in units of time or in the same units as the "
-        "distance-units parameter if the travel mode's impedance is in units of distance. Otherwise, specify this in "
-        "the units of the travel mode's impedance attribute."
-    )
+    # --travel-direction parameter
+    help_string = "String name of the desired travel direction"
     parser.add_argument(
-        "-co", "--cutoff", action="store", dest="cutoff", type=float, help=help_string, required=True)
+        "-td", "--travel-direction", action="store", dest="travel_direction", help=help_string, required=True)
 
-    # --weight-field parameter
-    help_string = "The name of the field in the input destinations that indicates the destination's weight."
+    # --geometry-at-cutoff parameter
+    help_string = "String name of the desired geometry at cutoff option"
     parser.add_argument(
-        "-wf", "--weight-field", action="store", dest="weight_field", help=help_string, required=False)
+        "-gc", "--geometry-at-cutoff", action="store", dest="geometry_at_cutoff", help=help_string, required=True)
+
+    # --geometry-at-overlap parameter
+    help_string = "String name of the desired geometry at overlap option"
+    parser.add_argument(
+        "-go", "--geometry-at-overlap", action="store", dest="geometry_at_overlap", help=help_string, required=True)
 
     # --barriers parameter
-    help_string = "A list of catalog paths to the feature classes containing barriers to use in the OD Cost Matrix."
+    help_string = "A list of catalog paths to the feature classes containing barriers to use in the Service Area."
     parser.add_argument(
         "-b", "--barriers", action="store", dest="barriers", help=help_string, nargs='*', required=False)
 
     # Get arguments as dictionary.
     args = vars(parser.parse_args())
 
-    # Initialize a parallel OD Cost Matrix calculator class
-    od_calculator = ParallelODCalculator(**args)
-    # Solve the OD Cost Matrix in parallel chunks
+    # Initialize a parallel Service Area calculator class
+    sa_calculator = ParallelSACalculator(**args)
+    # Solve the Service Area in parallel chunks
     start_time = time.time()
-    od_calculator.solve_od_in_parallel()
-    LOGGER.info(f"Parallel OD Cost Matrix calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
+    sa_calculator.solve_sa_in_parallel()
+    LOGGER.info(f"Parallel Service Area calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
 
 
 if __name__ == "__main__":
     # This script should always be launched via subprocess as if it were being called from the command line.
-    launch_parallel_od()
+    launch_parallel_sa()
