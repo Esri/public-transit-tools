@@ -279,9 +279,9 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         # Initialize the Service Area solver object
         self.initialize_sa_solver(time_of_day)
 
-        # Add a TIMEOFDAY field to the facilities input that defaults to the start time being used for this analysis.
+        # Add a TimeOfDay field to the facilities.
         # The field will get passed through to the output polygons.
-        field_defs = [[AnalysisHelpers.TIME_FIELD, "DATE", "", "", time_of_day]]
+        field_defs = [[AnalysisHelpers.TIME_FIELD, "DATE"]]
         self.sa_solver.addFields(arcpy.nax.ServiceAreaInputDataType.Facilities, field_defs)
 
         # Load the facilities
@@ -290,6 +290,8 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
             arcpy.nax.ServiceAreaInputDataType.Facilities,
             True  # Use network location fields
         )
+        # Set the TimeOfDay field value to the start time being used for this analysis
+        facilities_field_mappings[AnalysisHelpers.TIME_FIELD].defaultValue = time_of_day
         self.sa_solver.load(
             arcpy.nax.ServiceAreaInputDataType.Facilities,
             self.facilities,
