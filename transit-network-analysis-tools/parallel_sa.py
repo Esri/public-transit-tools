@@ -34,12 +34,9 @@ import sys
 import uuid
 import logging
 import shutil
-import itertools
 import time
 import traceback
 import argparse
-import pandas as pd
-from multiprocessing import Manager
 
 import arcpy
 
@@ -242,7 +239,7 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
                 self.logger.warning(f"Failed to set property {prop} from SA config file. Default will be used instead.")
                 self.logger.warning(str(ex))
         # Set properties explicitly specified in the tool UI as arguments
-        self.logger.debug("Setting Service Area analysis properties specified tool inputs...")
+        self.logger.debug("Setting Service Area analysis properties specified as tool inputs...")
         self.sa_solver.travelMode = self.travel_mode
         self.sa_solver.timeUnits = self.time_units
         self.sa_solver.defaultImpedanceCutoffs = self.cutoffs
@@ -250,9 +247,11 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         self.sa_solver.geometryAtCutoff = self.geometry_at_cutoff
         self.sa_solver.geometryAtOverlap = self.geometry_at_overlap
         # Set time of day, which is passed in as an OD solve parameter from our chunking mechanism
+        self.logger.debug("Setting time of day...")
         self.sa_solver.timeOfDay = time_of_day
 
         # Ensure the travel mode has impedance units that are time-based.
+        self.logger.debug("Validating travel mode...")
         self._validate_travel_mode()
 
     def _validate_travel_mode(self):
@@ -277,8 +276,8 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         Args:
             time_of_day (datetime): Time of day for this solve
         """
-        # Initialize the OD solver object
-        self.initialize_od_solver(time_of_day)
+        # Initialize the Service Area solver object
+        self.initialize_sa_solver(time_of_day)
 
         # Add a TIMEOFDAY field to the facilities input that defaults to the start time being used for this analysis.
         # The field will get passed through to the output polygons.
@@ -336,6 +335,14 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         self.logger.debug("Solve succeeded.")
         self.job_result["solveSucceeded"] = True
 
+        # Make output gdb
+        self.logger.debug("Creating output geodatabase for Service Area analysis...")
+        run_gp_tool(
+            arcpy.management.CreateFileGDB,
+            [os.path.dirname(self.od_workspace), os.path.basename(self.od_workspace)],
+            log_to_use=self.logger
+        )
+
         # Export the Service Area polygons output to a feature class
         output_polygons = os.path.join(self.od_workspace, "output_polygons")
         self.logger.debug(f"Exporting Service Area polygons output to {output_polygons}...")
@@ -386,8 +393,7 @@ class ParallelSACalculator():
         time_window_start_day, time_window_start_time, time_window_end_day, time_window_end_time, time_increment,
         travel_direction, geometry_at_cutoff, geometry_at_overlap, max_processes, barriers=None
     ):
-        """Compute Service Areas around facilities in parallel for all increments in the time window and save the output
-        polygons to the designated feature class.
+        """Compute Service Areas in parallel over the time window and save the output polygons to a feature class.
 
         This class assumes that the inputs have already been pre-processed and validated.
 
@@ -435,23 +441,26 @@ class ParallelSACalculator():
         # Scratch folder to store intermediate outputs from the Service Area processes
         unique_id = uuid.uuid4().hex
         self.scratch_folder = os.path.join(
-            arcpy.env.scratchFolder, "CalcAccMtx_" + unique_id)  # pylint: disable=no-member
+            arcpy.env.scratchFolder, "PTLP_" + unique_id)  # pylint: disable=no-member
         LOGGER.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
         os.mkdir(self.scratch_folder)
 
         # List of intermediate output feature classes created by each process
         self.sa_poly_fcs = []
+        # Final output
+        self.output_polygons = output_polygons
 
         # Initialize the dictionary of inputs to send to each OD solve
         self.sa_inputs = {
             "facilities": facilities,
-            "output_polygons": output_polygons,
-            "destination_where_clause": self.dest_where,
+            "cutoffs": cutoffs,
+            "time_units": time_units,
+            "travel_direction": travel_direction,
+            "geometry_at_cutoff": geometry_at_cutoff,
+            "geometry_at_overlap": geometry_at_overlap,
             "network_data_source": network_data_source,
             "travel_mode": travel_mode,
             "output_folder": self.scratch_folder,
-            "time_units": time_units,
-            "cutoff": cutoff,
             "barriers": barriers
         }
 
@@ -497,7 +506,7 @@ class ParallelSACalculator():
             for future in futures.as_completed(jobs):
                 completed_jobs += 1
                 LOGGER.info(
-                    f"Finished Service Area calculation {completed_jobs} of {self.total_jobs}.")
+                    f"Finished Service Area calculation {completed_jobs} of {len(self.start_times)}.")
                 try:
                     # The Service Area job returns a results dictionary. Retrieve it.
                     result = future.result()
@@ -572,13 +581,13 @@ def launch_parallel_sa():
         "the analysis."
     )
     parser.add_argument("-tm", "--travel-mode", action="store", dest="travel_mode", help=help_string, required=True)
-    
+
     # --cutoffs parameter
     help_string = (
         "Impedance cutoffs for the Service Area. Should be specified in the same units as the time-units parameter"
     )
     parser.add_argument(
-        "-co", "--cutoffs", action="store", dest="cutoff", type=float, help=help_string, nargs='+', required=True)
+        "-co", "--cutoffs", action="store", dest="cutoffs", type=float, help=help_string, nargs='+', required=True)
 
     # --time-units parameter
     help_string = "String name of the time units for the analysis. These units will be used in the output."

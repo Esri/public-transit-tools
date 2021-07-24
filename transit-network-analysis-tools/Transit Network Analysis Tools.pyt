@@ -374,7 +374,7 @@ class PrepareTimeLapsePolygonsPro(object):
             "output_polygons": parameters[1].valueAsText,
             "network_data_source": parameters[2].value,
             "travel_mode": parameters[3].valueAsText,
-            "cutoffs": parameters[4].value,
+            "cutoffs": parameters[4].values,
             "time_units": parameters[5].valueAsText,
             "time_window_start_day": parameters[6].valueAsText,
             "time_window_start_time": parameters[7].valueAsText,

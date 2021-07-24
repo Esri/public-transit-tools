@@ -52,8 +52,8 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
 
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
         self, facilities, cutoffs, time_units, output_polygons, time_window_start_day, time_window_start_time,
-        time_window_end_day, time_window_end_time, time_increment, network_data_source, travel_mode, 
-        travel_direction, geometry_at_cutoff, geometry_at_overlap, 
+        time_window_end_day, time_window_end_time, time_increment, network_data_source, travel_mode,
+        travel_direction, geometry_at_cutoff, geometry_at_overlap,
         max_processes, precalculate_network_locations=True, barriers=None
     ):
         """Initialize the ServiceAreaSolver class.
@@ -295,7 +295,7 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
             "--output-polygons", self.output_polygons,
             "--network-data-source", self.network_data_source,
             "--travel-mode", self.travel_mode,
-            "--cutoffs"] + self.cutoffs + [
+            "--cutoffs"] + [str(cutoff) for cutoff in self.cutoffs] + [
             "--time-units", self.time_units,
             "--travel-direction", self.travel_direction,
             "--geometry-at-cutoff", self.geometry_at_cutoff,
@@ -344,7 +344,7 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
             # actually do anything.
             return_code = process.returncode
             if return_code != 0:
-                arcpy.AddError("OD Cost Matrix script failed.")
+                arcpy.AddError("Service Area script failed.")
 
     def solve_service_areas_in_parallel(self):
         """Solve the Service Areas in parallel over a time window."""
