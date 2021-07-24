@@ -280,6 +280,11 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         # Initialize the OD solver object
         self.initialize_od_solver(time_of_day)
 
+        # Add a TIMEOFDAY field to the facilities input that defaults to the start time being used for this analysis.
+        # The field will get passed through to the output polygons.
+        field_defs = [[AnalysisHelpers.TIME_FIELD, "DATE", "", "", time_of_day]]
+        self.sa_solver.addFields(arcpy.nax.ServiceAreaInputDataType.Facilities, field_defs)
+
         # Load the facilities
         self.logger.debug("Loading facilities...")
         facilities_field_mappings = self.sa_solver.fieldMappings(
@@ -320,21 +325,8 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
 
         # Handle solve messages
         solve_msgs = [msg[-1] for msg in solve_result.solverMessages(arcpy.nax.MessageSeverity.All)]
-        initial_num_msgs = len(solve_msgs)
         for msg in solve_msgs:
             self.logger.debug(msg)
-        ## TODO: See if there is a Service Area equivalent
-        # # Remove repetitive messages so they don't clog up the stdout pipeline when running the tool
-        # # 'No "Destinations" found for "Location 1" in "Origins".' is a common message that tends to be repeated and is
-        # # not particularly useful to see in bulk.
-        # # Note that this will not work for localized software when this message is translated.
-        # common_msg_prefix = 'No "Destinations" found for '
-        # solve_msgs = [msg for msg in solve_msgs if not msg.startswith(common_msg_prefix)]
-        # num_msgs_removed = initial_num_msgs - len(solve_msgs)
-        # if num_msgs_removed:
-        #     self.logger.debug(f"Repetitive messages starting with {common_msg_prefix} were consolidated.")
-        #     solve_msgs.append(f"No destinations were found for {num_msgs_removed} origins.")
-        # solve_msgs = "\n".join(solve_msgs)
 
         # Update the result dictionary
         self.job_result["solveMessages"] = solve_msgs
@@ -344,7 +336,11 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         self.logger.debug("Solve succeeded.")
         self.job_result["solveSucceeded"] = True
 
-        ## TODO: Save Service Area polygons to output feature classes
+        # Export the Service Area polygons output to a feature class
+        output_polygons = os.path.join(self.od_workspace, "output_polygons")
+        self.logger.debug(f"Exporting Service Area polygons output to {output_polygons}...")
+        solve_result.export(arcpy.nax.ServiceAreaOutputDataType.Polygons, output_polygons)
+        self.job_result["outputPolygons"] = output_polygons
 
         self.logger.debug("Finished calculating Service Area.")
 
@@ -443,6 +439,9 @@ class ParallelSACalculator():
         LOGGER.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
         os.mkdir(self.scratch_folder)
 
+        # List of intermediate output feature classes created by each process
+        self.sa_poly_fcs = []
+
         # Initialize the dictionary of inputs to send to each OD solve
         self.sa_inputs = {
             "facilities": facilities,
@@ -510,13 +509,21 @@ class ParallelSACalculator():
                         LOGGER.error(err)
                     raise
 
-                # Log failed solves
-                if not result["solveSucceeded"]:
+                # Parse the results dictionary and store components for post-processing.
+                if result["solveSucceeded"]:
+                    self.sa_poly_fcs.append(result["outputPolygons"])
+                else:
                     LOGGER.warning(f"Solve failed for job id {result['jobId']}")
                     msgs = result["solveMessages"]
                     LOGGER.warning(msgs)
 
-        ## TODO: Post-process results
+        # Merge all the individual Service Area polygons feature classes
+        if not self.sa_poly_fcs:
+            LOGGER.error("All Service Area calculations failed. No output will be written.")
+            return
+        LOGGER.debug("Merging Service Area results...")
+        run_gp_tool(arcpy.management.Merge, [self.sa_poly_fcs, self.output_polygons])
+        LOGGER.info(f"Results written to {self.output_polygons}.")
 
         # Cleanup
         # Delete the job folders if the job succeeded
