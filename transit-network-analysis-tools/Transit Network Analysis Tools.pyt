@@ -345,9 +345,8 @@ class PrepareTimeLapsePolygonsPro(object):
 
         # Show a filter list of weekdays but also allow YYYYMMDD dates
         ToolValidator.allow_YYYYMMDD_day(start_day)
-        ToolValidator.validate_day(end_day)
-
         ToolValidator.set_end_day(start_day, end_day)
+        ToolValidator.validate_day(end_day)
 
         # Make sure time of day format is correct and time window is valid
         ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
