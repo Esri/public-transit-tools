@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 7 June 2021
+## Last updated: 27 July 2021
 ############################################################################
 ''' Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
 suite.'''
@@ -33,8 +33,9 @@ class Toolbox(object):
 
         # List of tool classes associated with this toolbox
         cam_tool = CalculateAccessibilityMatrixPro if isPy3 else CalculateAccessibilityMatrix
+        ptlp_tool = PrepareTimeLapsePolygonsPro if isPy3 else PrepareTimeLapsePolygons
         self.tools = [
-            PrepareTimeLapsePolygons,
+            ptlp_tool,
             cam_tool,
             CalculateTravelTimeStatistics,
             CreatePercentAccessPolygons
@@ -46,8 +47,9 @@ class PrepareTimeLapsePolygons(object):
         """Define the tool (tool name is the name of the class)."""
         self.label = "Prepare Time Lapse Polygons"
         self.description = (
-            "Run a Service Area analysis incrementing the time of day. ",
-            "Save the polygons to a feature class that can be used to generate a time lapse video."
+            "Run a Service Area analysis incrementing the time of day over a time window. ",
+            "Save the polygons to a feature class that can be used to generate a time lapse video or run the "
+            "Create Percent Access Polygons tool. (ArcMap layer-based version.)"
         )
         self.canRunInBackground = True
 
@@ -140,6 +142,261 @@ class PrepareTimeLapsePolygons(object):
             end_time,
             increment
             )
+        return
+
+
+class PrepareTimeLapsePolygonsPro(object):
+    def __init__(self):
+        """Define the tool (tool name is the name of the class)."""
+        self.label = "Prepare Time Lapse Polygons"
+        self.description = (
+            "Run a Service Area analysis incrementing the time of day over a time window. ",
+            "Save the polygons to a feature class that can be used to generate a time lapse video or run the "
+            "Create Percent Access Polygons tool. (ArcGIS Pro version with parallelized solves.)"
+        )
+        self.canRunInBackground = True
+
+    def getParameterInfo(self):
+        """Define parameter definitions"""
+
+        params = [
+
+            # 0
+            arcpy.Parameter(
+                displayName="Facilities",
+                name="Facilities",
+                datatype="GPFeatureLayer",
+                parameterType="Required",
+                direction="Input"),
+
+            # 1
+            arcpy.Parameter(
+                displayName="Output Time Lapse Polygons",
+                name="Output_Polygons",
+                datatype="DEFeatureClass",
+                parameterType="Required",
+                direction="Output"
+            ),
+
+            # 2
+            arcpy.Parameter(
+                displayName="Network Data Source",
+                name="Network_Data_Source",
+                datatype="GPNetworkDataSource",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 3
+            arcpy.Parameter(
+                displayName="Travel Mode",
+                name="Travel_Mode",
+                datatype="GPString",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 4
+            arcpy.Parameter(
+                displayName="Cutoff Times",
+                name="Cutoff_Times",
+                datatype="GPDouble",
+                parameterType="Required",
+                direction="Input",
+                multiValue=True
+            ),
+
+            # 5
+            arcpy.Parameter(
+                displayName="Cutoff Time Units",
+                name="Cutoff_Time_Units",
+                datatype="GPString",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 6
+            make_parameter(param_startday),
+            # 7
+            make_parameter(param_starttime),
+            # 8
+            make_parameter(param_endday),
+            # 9
+            make_parameter(param_endtime),
+            # 10
+            make_parameter(param_timeinc),
+
+            # 11
+            arcpy.Parameter(
+                displayName="Travel Direction",
+                name="Travel_Direction",
+                datatype="GPString",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 12
+            arcpy.Parameter(
+                displayName="Geometry At Cutoff",
+                name="Geometry_At_Cutoff",
+                datatype="GPString",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 13
+            arcpy.Parameter(
+                displayName="Geometry At Overlap",
+                name="Geometry_At_Overlap",
+                datatype="GPString",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 14
+            arcpy.Parameter(
+                displayName="Maximum Number of Parallel Processes",
+                name="Max_Processes",
+                datatype="GPLong",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 15
+            arcpy.Parameter(
+                displayName="Barriers",
+                name="Barriers",
+                datatype="GPFeatureLayer",
+                parameterType="Optional",
+                direction="Input",
+                multiValue=True,
+                category="Advanced"
+            ),
+
+            # 16
+            arcpy.Parameter(
+                displayName="Precalculate Network Locations",
+                name="Precalculate_Network_Locations",
+                datatype="GPBoolean",
+                parameterType="Optional",
+                direction="Input",
+                category="Advanced"
+            )
+
+        ]
+
+        params[0].filter.list = ["Point"]
+        # params[4].parameterDependencies = [params[3].name]  # travel mode
+        params[5].filter.list = TIME_UNITS
+        params[5].value = "Minutes"
+        params[11].filter.list = ["Away From Facilities", "Toward Facilities"]
+        params[11].value = "Away From Facilities"
+        params[12].filter.list = ["Rings", "Disks"]
+        params[12].value = "Rings"
+        params[13].filter.list = ["Overlap", "Dissolve", "Split"]
+        params[13].value = "Overlap"
+        params[14].value = 4  # number of processes
+        params[16].value = True  # precalculate locations
+
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
+        param_network = parameters[2]
+        param_travel_mode = parameters[3]
+        param_cutoffs = parameters[4]
+        param_geom_at_cutoffs = parameters[12]
+        param_precalculate = parameters[16]
+
+        # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
+        # Also populate travel mode parameter with time-based travel modes only.
+        if param_network.altered and param_network.value:
+            if is_nds_service(param_network.valueAsText):
+                param_precalculate.value = False
+                param_precalculate.enabled = False
+            else:
+                param_precalculate.enabled = True
+
+            try:
+                travel_modes = arcpy.nax.GetTravelModes(param_network.value)
+                param_travel_mode.filter.list = [
+                    tm_name for tm_name in travel_modes if
+                    travel_modes[tm_name].impedance == travel_modes[tm_name].timeAttributeName
+                ]
+            except Exception:
+                # We couldn't get travel modes for this network for some reason.
+                pass
+
+        # Disable Geometry At Cutoff parameter if there's only one cutoff
+        if param_cutoffs.altered and param_cutoffs.value and len(param_cutoffs.values) > 1:
+            param_geom_at_cutoffs.enabled = True
+        else:
+            param_geom_at_cutoffs.enabled = False
+
+        return
+
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal validation for each tool
+        parameter.  This method is called after internal validation."""
+        start_day = parameters[6]
+        end_day = parameters[8]
+        start_time = parameters[7]
+        end_time = parameters[9]
+        increment = parameters[10]
+        param_network = parameters[2]
+        param_max_processes = parameters[14]
+
+        # Show a filter list of weekdays but also allow YYYYMMDD dates
+        ToolValidator.allow_YYYYMMDD_day(start_day)
+        ToolValidator.set_end_day(start_day, end_day)
+        ToolValidator.validate_day(end_day)
+
+        # Make sure time of day format is correct and time window is valid
+        ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+
+        # Make sure time increment is good
+        ToolValidator.validate_time_increment(increment)
+
+        # If the network data source is arcgis.com, cap max processes
+        if param_max_processes.altered and param_max_processes.value and \
+                param_network.altered and param_network.value:
+            if "arcgis.com" in param_network.valueAsText and param_max_processes.value > MAX_AGOL_PROCESSES:
+                param_max_processes.setErrorMessage((
+                    "The maximum number of parallel processes cannot exceed %i when the "
+                    "ArcGIS Online services are used as the network data source."
+                ) % MAX_AGOL_PROCESSES)
+
+        return
+
+    def execute(self, parameters, messages):
+        """The source code of the tool."""
+        import CreateTimeLapsePolygonsInParallel
+        sa_solver = CreateTimeLapsePolygonsInParallel.ServiceAreaSolver(**{
+            "facilities": parameters[0].value,
+            "output_polygons": parameters[1].valueAsText,
+            "network_data_source": parameters[2].value,
+            "travel_mode": parameters[3].valueAsText,
+            "cutoffs": parameters[4].values,
+            "time_units": parameters[5].valueAsText,
+            "time_window_start_day": parameters[6].valueAsText,
+            "time_window_start_time": parameters[7].valueAsText,
+            "time_window_end_day": parameters[8].valueAsText,
+            "time_window_end_time": parameters[9].valueAsText,
+            "time_increment": parameters[10].value,
+            "travel_direction": parameters[11].valueAsText,
+            "geometry_at_cutoff": parameters[12].valueAsText,
+            "geometry_at_overlap": parameters[13].valueAsText,
+            "max_processes": parameters[14].value,
+            "barriers": parameters[15].values if parameters[15].values else None,
+            "precalculate_network_locations": parameters[16].value
+        })
+        sa_solver.solve_service_areas_in_parallel()
         return
 
 

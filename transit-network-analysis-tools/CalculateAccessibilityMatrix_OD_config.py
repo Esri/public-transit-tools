@@ -5,8 +5,8 @@ A list of OD cost matrix solver properties is documented here:
 https://pro.arcgis.com/en/pro-app/latest/arcpy/network-analyst/odcostmatrix.htm
 
 You can include any of them in the dictionary in this file, and the tool will
-use them. However, travelMode, timeUnits, distanceUnits, defaultImpedanceCutoff,
-and defaultDestinationCount will be ignored because they are specified in the
+use them. However, travelMode, timeUnits, defaultImpedanceCutoff,
+and timeOfDay will be ignored because they are specified in the
 tool dialog.
 
 Copyright 2021 Esri
@@ -22,8 +22,8 @@ Copyright 2021 Esri
 """
 import arcpy
 
-# These properties are set by the tool dialog or can be specified as command line arguments. Do not set the values for
-# these properties in the OD_PROPS dictionary below because they will be ignored.
+# These properties are set by the tool dialog or can be specified as command line arguments.
+# Do not set the values for these properties in the OD_PROPS dictionary below because they will be ignored.
 OD_PROPS_SET_BY_TOOL = ["travelMode", "timeUnits", "defaultImpedanceCutoff", "timeOfDay"]
 
 # You can customize these properties to your needs, and the parallel OD cost matrix calculations will use them.

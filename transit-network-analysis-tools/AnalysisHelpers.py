@@ -1,7 +1,7 @@
 ################################################################################
 ## Toolbox: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 7 June 2021
+## Last updated: 23 July 2021
 ################################################################################
 '''Helper methods for analysis tools.'''
 ################################################################################
@@ -28,6 +28,27 @@ isPy3 = sys.version_info > (3, 0)
 MSG_STR_SPLITTER = " | "
 TIME_UNITS = ["Days", "Hours", "Minutes", "Seconds"]
 MAX_AGOL_PROCESSES = 4  # AGOL concurrent processes are limited so as not to overload the service for other users.
+TIME_FIELD = "TimeOfDay"  # Used for the output of Prepare Time Lapse Polygons
+
+
+def validate_input_feature_class(feature_class):
+    """Validate that the designated input feature class exists and is not empty.
+
+    Args:
+        feature_class (str, layer): Input feature class or layer to validate
+
+    Raises:
+        ValueError: The input feature class does not exist.
+        ValueError: The input feature class has no rows.
+    """
+    if not arcpy.Exists(feature_class):
+        err = "Input dataset %s does not exist." % feature_class
+        arcpy.AddError(err)
+        raise ValueError(err)
+    if int(arcpy.management.GetCount(feature_class).getOutput(0)) <= 0:
+        err = "Input dataset %s has no rows." % feature_class
+        arcpy.AddError(err)
+        raise ValueError(err)
 
 
 def is_nds_service(network_data_source):
@@ -60,6 +81,56 @@ def convert_time_units_str_to_enum(time_units):
         return arcpy.nax.TimeUnits.Days
     # If we got to this point, the input time units were invalid.
     err = "Invalid time units: " + str(time_units)
+    arcpy.AddError(err)
+    raise ValueError(err)
+
+
+def convert_travel_direction_str_to_enum(travel_direction):
+    """Convert a string representation of travel direction to an arcpy.nax enum.
+
+    Raises:
+        ValueError: If the string cannot be parsed as a valid arcpy.nax.TravelDirection enum value.
+    """
+    if travel_direction.lower() == "toward facilities":
+        return arcpy.nax.TravelDirection.ToFacility
+    if travel_direction.lower() == "away from facilities":
+        return arcpy.nax.TravelDirection.FromFacility
+    # If we got to this point, the input was invalid.
+    err = "Invalid travel direction: " + str(travel_direction)
+    arcpy.AddError(err)
+    raise ValueError(err)
+
+
+def convert_geometry_at_cutoff_str_to_enum(geometry_at_cutoff):
+    """Convert a string representation of geometry at cutoff to an arcpy.nax enum.
+
+    Raises:
+        ValueError: If the string cannot be parsed as a valid arcpy.nax.ServiceAreaPolygonCutoffGeometry enum value.
+    """
+    if geometry_at_cutoff.lower() == "rings":
+        return arcpy.nax.ServiceAreaPolygonCutoffGeometry.Rings
+    if geometry_at_cutoff.lower() == "disks":
+        return arcpy.nax.ServiceAreaPolygonCutoffGeometry.Disks
+    # If we got to this point, the input was invalid.
+    err = "Invalid geometry at cutoff: " + str(geometry_at_cutoff)
+    arcpy.AddError(err)
+    raise ValueError(err)
+
+
+def convert_geometry_at_overlap_str_to_enum(geometry_at_overlap):
+    """Convert a string representation of geometry at cutoff to an arcpy.nax enum.
+
+    Raises:
+        ValueError: If the string cannot be parsed as a valid arcpy.nax.ServiceAreaOverlapGeometry enum value.
+    """
+    if geometry_at_overlap.lower() == "overlap":
+        return arcpy.nax.ServiceAreaOverlapGeometry.Overlap
+    if geometry_at_overlap.lower() == "dissolve":
+        return arcpy.nax.ServiceAreaOverlapGeometry.Dissolve
+    if geometry_at_overlap.lower() == "split":
+        return arcpy.nax.ServiceAreaOverlapGeometry.Split
+    # If we got to this point, the input was invalid.
+    err = "Invalid geometry at overlap: " + str(geometry_at_overlap)
     arcpy.AddError(err)
     raise ValueError(err)
 
@@ -193,26 +264,24 @@ def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input
 
 def add_TimeOfDay_field_to_sublayer(nalayer, sublayer_object, sublayer_name):
     '''Add a field called TimeOfDay of type DATE to an NA sublayer'''
-    time_field = "TimeOfDay"
-
     # Clean up any pre-existing fields with this name (unlikely case)
-    poly_fields = [f for f in arcpy.Describe(sublayer_object).fields if f.name == time_field]
+    poly_fields = [f for f in arcpy.Describe(sublayer_object).fields if f.name == TIME_FIELD]
     if poly_fields:
         for f in poly_fields:
-            if f.name == time_field and f.type != "Date":
+            if f.name == TIME_FIELD and f.type != "Date":
                 msg = "Your network analysis layer's %s sublayer already contained a field called %s of a type " + \
                       "other than Date.  This field will be deleted and replaced with a field of type Date used " + \
                       "for the output of this tool."
-                arcpy.AddWarning(msg % (sublayer_name, time_field))
-                arcpy.management.DeleteField(sublayer_object, time_field)
+                arcpy.AddWarning(msg % (sublayer_name, TIME_FIELD))
+                arcpy.management.DeleteField(sublayer_object, TIME_FIELD)
 
     # Add the TimeOfDay field to the sublayer.  If it already exists, this will do nothing.
-    arcpy.na.AddFieldToAnalysisLayer(nalayer, sublayer_name, time_field, "DATE")
+    arcpy.na.AddFieldToAnalysisLayer(nalayer, sublayer_name, TIME_FIELD, "DATE")
 
-    return time_field
+    return TIME_FIELD
 
 
 def calculate_TimeOfDay_field(sublayer_object, time_field, time_of_day):
     '''Set the TimeOfDay field to a specific time of day'''
-    expression = '"' + str(time_of_day) + '"' # Unclear why a DATE field requires a string expression, but it does.
+    expression = '"' + str(time_of_day) + '"'  # Unclear why a DATE field requires a string expression, but it does.
     arcpy.management.CalculateField(sublayer_object, time_field, expression, "PYTHON_9.3")

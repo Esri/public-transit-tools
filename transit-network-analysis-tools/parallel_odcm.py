@@ -855,9 +855,7 @@ def launch_parallel_od():
     # --cutoff parameter
     help_string = (
         "Impedance cutoff to limit the OD cost matrix search distance. Should be specified in the same units as the "
-        "time-units parameter if the travel mode's impedance is in units of time or in the same units as the "
-        "distance-units parameter if the travel mode's impedance is in units of distance. Otherwise, specify this in "
-        "the units of the travel mode's impedance attribute."
+        "time-units parameter"
     )
     parser.add_argument(
         "-co", "--cutoff", action="store", dest="cutoff", type=float, help=help_string, required=True)
