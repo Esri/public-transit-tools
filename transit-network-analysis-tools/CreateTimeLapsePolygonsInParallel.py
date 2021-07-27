@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 23 July 2021
+## Last updated: 27 July 2021
 ############################################################################
 """Run a Service Area analysis incrementing the time of day over a time window.
 Save the output polygons to a single feature class that can be used to generate
