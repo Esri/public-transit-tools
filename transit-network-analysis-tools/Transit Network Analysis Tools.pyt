@@ -310,6 +310,8 @@ class PrepareTimeLapsePolygonsPro(object):
         has been changed."""
         param_network = parameters[2]
         param_travel_mode = parameters[3]
+        param_cutoffs = parameters[4]
+        param_geom_at_cutoffs = parameters[12]
         param_precalculate = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
@@ -330,6 +332,13 @@ class PrepareTimeLapsePolygonsPro(object):
             except Exception:
                 # We couldn't get travel modes for this network for some reason.
                 pass
+
+        # Disable Geometry At Cutoff parameter if there's only one cutoff
+        if param_cutoffs.altered and param_cutoffs.value and len(param_cutoffs.values) > 1:
+            param_geom_at_cutoffs.enabled = True
+        else:
+            param_geom_at_cutoffs.enabled = False
+
         return
 
     def updateMessages(self, parameters):
