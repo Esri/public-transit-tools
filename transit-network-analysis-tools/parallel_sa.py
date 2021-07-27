@@ -496,7 +496,7 @@ class ParallelSACalculator():
         self._validate_sa_settings()
 
         # Compute Service Area in parallel
-        LOGGER.info("Solving Service Area chunks in parallel...")
+        LOGGER.info("Solving Service Areas in parallel...")
         completed_jobs = 0  # Track the number of jobs completed so far to use in logging
         # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the Service Areas
         with futures.ProcessPoolExecutor(max_workers=self.max_processes) as executor:
