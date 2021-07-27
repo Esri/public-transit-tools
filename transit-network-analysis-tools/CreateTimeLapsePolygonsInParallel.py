@@ -360,3 +360,10 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
 
         # Solve the analysis
         self._execute_solve()
+
+        # Delete temporary facilities (clean up)
+        try:
+            arcpy.management.Delete(self.temp_facilities)
+        except Exception:  # pylint: disable=broad-except
+            # If deletion doesn't work, just skip it. This does not need to kill the tool.
+            pass
