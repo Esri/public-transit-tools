@@ -30,6 +30,7 @@ TIME_UNITS = ["Days", "Hours", "Minutes", "Seconds"]
 MAX_AGOL_PROCESSES = 4  # AGOL concurrent processes are limited so as not to overload the service for other users.
 TIME_FIELD = "TimeOfDay"  # Used for the output of Prepare Time Lapse Polygons
 
+
 def validate_input_feature_class(feature_class):
     """Validate that the designated input feature class exists and is not empty.
 
@@ -41,11 +42,11 @@ def validate_input_feature_class(feature_class):
         ValueError: The input feature class has no rows.
     """
     if not arcpy.Exists(feature_class):
-        err = f"Input dataset {feature_class} does not exist."
+        err = "Input dataset %s does not exist." % feature_class
         arcpy.AddError(err)
         raise ValueError(err)
     if int(arcpy.management.GetCount(feature_class).getOutput(0)) <= 0:
-        err = f"Input dataset {feature_class} has no rows."
+        err = "Input dataset %s has no rows." % feature_class
         arcpy.AddError(err)
         raise ValueError(err)
 
