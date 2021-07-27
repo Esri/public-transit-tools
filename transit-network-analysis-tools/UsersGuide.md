@@ -126,10 +126,10 @@ There is no specific set-up required to run the tool, as the origins, destinatio
 * **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that an analysis will be performed for the time of day you enter here.
 * **Time Increment (minutes)**: Increment the OD Cost Matrix's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the OD Cost Matrix will be solved for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would calculate the OD Cost Matrix for 10:00, 10:02, 10:04, etc.
 * **Maximum Origins and Destinations per Chunk**: In order to solve large OD Cost Matrix problems efficiently, the tool can split up large numbers of inputs into chunks and solve the chunks in parallel across multiple cores of your computer. This parameter specifies the maximum number of origins and destinations that should be allowed in a single chunk. The optimal number depends on your computing resources. Larger chunks take longer to solve and require more memory, but there is some overhead associated with having more chunks.
-* **Maximum Number of Parallel Processes**: In order to solve large OD Cost Matrix problems efficiently, the tool solve the OD Cost Matrix for different start times in parallel across multiple cores of your machine. If the number of origins and destinations are large, it may also break them up into chunks and solve them in parallel as well. This parameter designates the number of parallel processes that can safely be used. You should select a number less than or equal to the number of virtual cores or processors your computer has.
+* **Maximum Number of Parallel Processes**: In order to solve large OD Cost Matrix problems efficiently, the tool solves the OD Cost Matrix for different start times in parallel across multiple cores of your machine. If the number of origins and destinations are large, it may also break them up into chunks and solve them in parallel as well. This parameter designates the number of parallel processes that can safely be used. You should select a number less than or equal to the number of virtual cores or processors your computer has.
 * **Destinations Weight Field**:  Optionally, choose a field from your Destinations table that will be used as a weight.  For example, if your destinations represent employment centers, the weight field could be the number of jobs available at each point. Only integer and double fields can be used for the weight field.  If you do not choose a weight field, each destination will be counted as 1.
 * **Barriers**: Optionally, choose layers with point, line, or polygon barriers to use in the OD Cost Matrix analysis.
-* **Precalculate Network Locations**: When doing an OD Cost Matrix analysis, the input origin and destination points must be ["located" on the network dataset](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/locating-analysis-inputs.htm). Because the tool parallelizes the OD Cost Matrix across multiple processes, using the same origins and destinations many times, it saves time to calculate the network locations in advance rather than repeating this calculation in every parallel process. The only time you should uncheck this parameter is if you have already calculated the network locations of your input origins and destinations for the network dataset and travel mode you are using, and you simply wish to re-use these. 
+* **Precalculate Network Locations**: When doing an OD Cost Matrix analysis, the input origin and destination points must be ["located" on the network dataset](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/locating-analysis-inputs.htm). Because the tool parallelizes the OD Cost Matrix across multiple processes, using the same origins and destinations many times, it saves time to calculate the network locations in advance rather than repeating this calculation in every parallel process. The only time you should uncheck this parameter is if you have already calculated the network locations of your input origins and destinations for the network dataset and travel mode you are using, and you simply wish to re-use these.
 
 Advanced users with specific analysis needs can modify additional OD Cost Matrix analysis properties in the CalculateAccessibilityMatrix_OD_config.py file. Note that you may need to close and re-open ArcGIS Pro in order for those changes to be used when the tool runs.
 
@@ -285,7 +285,15 @@ The results of analyses performed using your transit-enabled network dataset can
 
 A demonstration of this time dependency can be seen in [this video](https://youtu.be/tTSd6qJlans).  The video is a time lapse showing the area reachable within 15 minutes of travel time by walking and public transit from a point in Atlanta. Because the available transit service changes throughout the day, the area reachable changes significantly depending on the time of day you leave on your journey. For this video, I incremented the start time in one-minute intervals for each minute between 10:00 AM and 11:00 AM on a typical weekday and put the results in a time lapse.
 
-The *Prepare Time Lapse Polygons* tool will help you to make a video like this of your own.  This involves three steps:
+The *Prepare Time Lapse Polygons* tool will help you to make a video like this of your own. Or, you can use the results as input to the [*Create Percent Access Polygons*](#PercentAccess) tool for a more quantitative analysis.
+
+The ArcMap and ArcGIS Pro versions of this tool have different input parameters and require different setups. They are described separately below.
+- [Jump to the Prepare Time Lapse Polygons for ArcMap section](#TimeLapseArcMap)
+- [Jump to the Prepare Time Lapse Polygons for ArcGIS Pro section](#TimeLapsePro)
+
+### <a name="TimeLapseArcMap"></a>Prepare Time Lapse Polygons (ArcMap version)
+
+The workflow for running this tool involves three steps:
 
 1. Prepare a Service Area layer in the map
 2. Run the *Prepare Time Lapse Polygons* tool
@@ -293,29 +301,25 @@ The *Prepare Time Lapse Polygons* tool will help you to make a video like this o
 
 If you'd prefer to create a static output summarizing the results instead of or in addition to a video, you can use the [Create Percent Access Polygons](#PercentAccess) tool.
 
-### 1. Prepare a Service Area layer in the map
+#### 1. Prepare a Service Area layer in the map
 
-All Network Analyst layers, such as a Service Area analysis layer, must reference a network data source. To run this tool, you must create and configure an Origin-Destination Cost Matrix analysis layer referencing a transit-enabled network dataset created with either the downloadable [*Add GTFS to a Network Dataset* toolset](http://arcg.is/10jXez) in ArcMap or the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+All Network Analyst layers, such as a Service Area analysis layer, must reference a network data source. To run this tool, you must create and configure a Service Area analysis layer referencing a transit-enabled network dataset created with the downloadable [*Add GTFS to a Network Dataset* toolset](http://arcg.is/10jXez) in ArcMap.
+
+Make sure to [configure your analysis layer with correct settings](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step8) according to the *Add GTFS to a Network Dataset* tool's user's guide.
 
 - [Learn how to create and configure a Service Area analysis layer in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm)
-- [Learn how to create and configure a Service Area analysis layer in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/service-area-tutorial.htm)
 - [Learn how to configure Service Area properties in ArcMap.](https://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/service-area.htm#GUID-21ADEC62-F784-4180-8D4D-547FB50621FD)
-- [Learn how to configure Service Area properties in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/service-area-analysis-layer.htm#ESRI_SECTION1_D36A18B15D704F0DBA9B4C766A4A2719)
-
-If you're using ArcMap, first make sure to [configure your analysis layer with correct settings](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step8) according to the *Add GTFS to a Network Dataset* tool's user's guide.
 
 You can also save your Service Area analysis layer to a layer file to use as input for the tool.  This is useful if you want to run this tool in a standalone python script.
 
 - [Learn how to save a Network Analyst layer to a layer file in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm)
-- [Learn how to save a Network Analyst layer to a layer file in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/save-to-layer-file.htm)
 
-
-### 2. Run the *Prepare Time Lapse Polygons* tool
-Once your Service Area layer is prepared, run the *Prepare Time Lapse Polygons* tool to solve the service area for a range of start times and save the output polygons to a feature class.  You can use this feature class to make a time lapse video.
+#### 2. Run the *Prepare Time Lapse Polygons* tool
+Once your Service Area layer is prepared, run the *Prepare Time Lapse Polygons* tool to solve the service area for a range of start times and save the output polygons to a feature class.  You can use this feature class to make a time lapse video or as input to the *Create Percent Access Polygons* tool.
 
 ![Screenshot of tool dialog](./images/Screenshot_PrepareTimeLapsePolygons_Dialog.png)
 
-#### Inputs
+##### Inputs
 * **Service Area Layer**: A ready-to-solve Service Area layer in your map or saved as a layer file (see previous section on how to set this up).
 * **Output Polygons Feature Class**: A feature class that will be the output of this tool, which you will use to create your time lapse video.
 * **Start Day (Weekday or YYYYMMDD date)**: Day of the week or YYYYMMDD date for the first start time of your analysis.  [Learn when to use a generic weekday or a specific date.](#Dates)
@@ -324,23 +328,59 @@ Once your Service Area layer is prepared, run the *Prepare Time Lapse Polygons* 
 * **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that a Service Area polygon will be included in the results for the time of day you enter here.
 * **Time Increment (minutes)**: Increment the Service Area's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the results may include a Service Area polygon for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would generate Service Area polygons for 10:00, 10:02, 10:04, etc.
 
-#### Outputs
+##### Outputs
 The resulting polygons feature class will contain one row per Service Area per time of day solved when running the tool.  The feature class will contain a field called TimeOfDay indicating the traveler's start time.
 
 If you used a generic weekday instead of a specific date, the date portion of the TimeOfDay field will show dates in 1899 or 1900.  This is "correct", in that these are special reserved dates used by ArcGIS Network Analyst to indicate generic weekdays.
 
-### 3. Create your time lapse video
-Once you have generated your polygons feature class, you can use it to create a time lapse video in either ArcMap or ArcGIS Pro.
+#### 3. Create your time lapse video
+Once you have generated your polygons feature class, you can use it to create a time lapse video.
 
-#### ArcMap
 First, enable time on the output polygons layer.  Open the layer properties, go to the Time tab, and chose "Enable time on this layer".  Adjust the settings as shown in the screenshot.  Make sure to set the Time Step Interval to the number of minutes you used when you ran the *Prepare Time Lapse Polygons* tool.
 
 ![Screenshot of enabling time on a layer](./images/Screenshot_LayerEnableTime_10x.png)
 
 After you have done this, you can follow the steps in the ArcMap documentation for [exporting a time visualization to a video](http://desktop.arcgis.com/en/arcmap/latest/map/time/exporting-a-time-visualization-to-a-video.htm).  For some help using the Time Slider to prepare your video, check out [this documentation](http://desktop.arcgis.com/en/arcmap/latest/map/time/using-the-time-slider.htm).
 
-#### ArcGIS Pro
-[Learn how to create an animation in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/mapping/animation/animate-through-time.htm)
+
+### <a name="TimeLapsePro"></a>Prepare Time Lapse Polygons (ArcGIS Pro version)
+
+![Screenshot of tool dialog](./images/Screenshot_PrepareTimeLapsePolygons_Pro_Dialog.png)
+
+#### Inputs
+* **Facilities**: A feature class or layer of points you want to use as the starting or ending locations for your Service Area polygons.
+* **Output PTime Lapse Polygons**: Output feature class created by the tool.
+* **Network Data Source**: The network dataset or service URL to use for the calculation. You should use a transit-enabled network dataset created with the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm) or an ArcGIS Enterprise service created from such a network. Technically, however, the tool will work with any network dataset that has at least one time-based travel mode.
+* **Travel Mode**: The name of a time-based [travel mode](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/travel-modes.htm) on the network dataset you wish to use to calculate the Service Areas. Typically you should choose a travel mode modeling travel by public transit.
+* **Cutoff Times**: One or more travel time limits for the Service Area calculation. For example, if you want to create Service Area polygons showing the area reachable within 45 minutes of travel time, set the Cutoff Times to 45, and set the Cutoff Time Units to Minutes. You can enter more than one value.
+* **Cutoff Time Units**: The units of time in which to interpret the Cutoff Times.
+* **Start Day (Weekday or YYYYMMDD date)**: Day of the week or YYYYMMDD date for the first start time of your analysis.  [Learn when to use a generic weekday or a specific date.](#Dates)
+* **Start Time (HH:MM) (24 hour time)**: The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2 AM is 02:00, and 2 PM is 14:00.
+* **End Day (Weekday or YYYYMMDD date)**: If you're using a generic weekday for Start Day, you must use the same day for End Day.  If you want to run an analysis spanning multiple days, choose specific YYYYMMDD dates for both Start Day and End Day.
+* **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that a Service Area polygon will be included in the results for the time of day you enter here.
+* **Time Increment (minutes)**: Increment the Service Area's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the results may include a Service Area polygon for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would generate Service Area polygons for 10:00, 10:02, 10:04, etc.
+* **Travel Direction**: Indicates whether the direction of travel for the Service Area should be away from the facilities or toward the facilities. When traveling away from facilities, the times of day are interpreted as the time at which the traveler leaves the facility. When traveling toward facilities, the times of day are interpreted as the time at which the traveler arrives at the facility.
+* **Geometry At Cutoff**: Indicates how geometry will be handled when there are multiple cutoffs.You can choose to create concentric service area polygons as disks or rings. This parameter is irrelevant and hidden if you have only one cutoff.
+  * Rings: The polygons extend between the nearest cutoff values only. They do not include the area of smaller breaks. For example, if you specify cutoffs of 30 and 45 minutes, you will get one polygon representing the area reachable within 0 and 30 minutes and another polygon with the area representing the additional area reachable between 30 and 45 minutes.
+  * Disks: The polygons extend from the facility to the cutoff. For example, if you specify cutoffs of 30 and 45 minutes, you will get one polygon representing the area reachable within 0 and 30 minutes and another polygon representing the area reachable within 0 and 45 minutes.
+* **Geometry At Overlap**: Indicates how geometry will be handled when multiple Service Areas from different facilities overlap one another. This parameter is irrelevant if you have only one facility.
+  * Overlap: An individual polygon is created for each facility. The polygons can overlap each other.
+  * Dissolve: The Service Area polygons of multiple facilities that have the same cutoff values are merged into one polygon. If the polygons of a given break value don't touch, they are nonetheless merged into one multipart polygon.
+  * Split: This option creates individual polygons that are closest for each facility. The polygons do not overlap each other and may not extend to the full cutoff.
+* **Maximum Number of Parallel Processes**: For maximum efficiency, this tool solves the Service Area for different start times in parallel across multiple cores of your machine. This parameter designates the number of parallel processes that can safely be used. You should select a number less than or equal to the number of virtual cores or processors your computer has.
+* **Barriers**: Optionally, choose layers with point, line, or polygon barriers to use in the Service Area analysis.
+* **Precalculate Network Locations**: When doing a Service Area analysis, the input facilities must be ["located" on the network dataset](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/locating-analysis-inputs.htm). Because the tool parallelizes the Service Area across multiple processes, using the same facilities many times, it saves time to calculate the network locations in advance rather than repeating this calculation in every parallel process. The only time you should uncheck this parameter is if you have already calculated the network locations of your input facilities for the network dataset and travel mode you are using, and you simply wish to re-use these.
+
+Advanced users with specific analysis needs can modify additional Service Area analysis properties in the CreateTimeLapsePolygons_SA_config.py file. Note that you may need to close and re-open ArcGIS Pro in order for those changes to be used when the tool runs.
+
+#### Outputs
+The resulting polygons feature class will contain one row per Service Area per time of day solved when running the tool.  The feature class will contain a field called TimeOfDay indicating the traveler's start time.
+
+If you used a generic weekday instead of a specific date, the date portion of the TimeOfDay field will show dates in 1899 or 1900.  This is "correct", in that these are special reserved dates used by ArcGIS Network Analyst to indicate generic weekdays.
+
+You can use this output to create a time lapse video. [Learn how to create an animation in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/mapping/animation/animate-through-time.htm)
+
+You can also use this output as input to the [*Create Percent Access Polygons*](#PercentAccess) tool.
 
 
 ## <a name="Dates"></a>When to use a specific date or a generic weekday in your analysis
