@@ -24,7 +24,7 @@ The tools included are:
 
 ## Software requirements
 * ArcMap 10.2 or higher or ArcGIS Pro 2.4 or higher. A Desktop Basic license is sufficient.
-  * Note: The Calculate Accessibility Matrix tool has not been tested on versions of ArcGIS Pro prior to 2.8 and may not work properly. Upgrading to the latest version of ArcGIS Pro is always recommended.
+  * Note: The Calculate Accessibility Matrix and Prepare Time Lapse Polygons tools have not been tested on versions of ArcGIS Pro prior to 2.8 and may not work properly. Upgrading to the latest version of ArcGIS Pro is always recommended.
 * Network Analyst extension.
 
 ## Data requirements
@@ -349,7 +349,7 @@ After you have done this, you can follow the steps in the ArcMap documentation f
 
 #### Inputs
 * **Facilities**: A feature class or layer of points you want to use as the starting or ending locations for your Service Area polygons.
-* **Output PTime Lapse Polygons**: Output feature class created by the tool.
+* **Output Time Lapse Polygons**: Output feature class created by the tool.
 * **Network Data Source**: The network dataset or service URL to use for the calculation. You should use a transit-enabled network dataset created with the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm) or an ArcGIS Enterprise service created from such a network. Technically, however, the tool will work with any network dataset that has at least one time-based travel mode.
 * **Travel Mode**: The name of a time-based [travel mode](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/travel-modes.htm) on the network dataset you wish to use to calculate the Service Areas. Typically you should choose a travel mode modeling travel by public transit.
 * **Cutoff Times**: One or more travel time limits for the Service Area calculation. For example, if you want to create Service Area polygons showing the area reachable within 45 minutes of travel time, set the Cutoff Times to 45, and set the Cutoff Time Units to Minutes. You can enter more than one value.
