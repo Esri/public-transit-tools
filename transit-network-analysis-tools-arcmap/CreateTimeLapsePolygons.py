@@ -5,11 +5,7 @@
 ## Last updated: 17 June 2019
 ################################################################################
 '''Run a Service Area analysis incrementing the time of day. Save the polygons 
-to a feature class that can be used to generate a time lapse video.
-
-This is the layer-based version of the tool that works in ArcMap. ArcGIS Pro
-users are encouraged to use the Pro version that can handle larger problems
-and run faster.'''
+to a feature class that can be used to generate a time lapse video.'''
 ################################################################################
 '''Copyright 2019 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +20,7 @@ and run faster.'''
 ################################################################################
 
 import os
+import datetime
 import arcpy
 import AnalysisHelpers
 arcpy.env.overwriteOutput = True
