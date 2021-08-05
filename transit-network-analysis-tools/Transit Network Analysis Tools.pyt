@@ -149,13 +149,7 @@ class PrepareTimeLapsePolygons(object):
             ),
 
             # 14
-            arcpy.Parameter(
-                displayName="Maximum Number of Parallel Processes",
-                name="Max_Processes",
-                datatype="GPLong",
-                parameterType="Required",
-                direction="Input"
-            ),
+            make_parameter(param_parallel_processes),
 
             # 15
             arcpy.Parameter(
@@ -169,14 +163,7 @@ class PrepareTimeLapsePolygons(object):
             ),
 
             # 16
-            arcpy.Parameter(
-                displayName="Precalculate Network Locations",
-                name="Precalculate_Network_Locations",
-                datatype="GPBoolean",
-                parameterType="Optional",
-                direction="Input",
-                category="Advanced"
-            )
+            make_parameter(param_precalculate)
 
         ]
 
@@ -190,8 +177,6 @@ class PrepareTimeLapsePolygons(object):
         params[12].value = "Rings"
         params[13].filter.list = ["Overlap", "Dissolve", "Split"]
         params[13].value = "Overlap"
-        params[14].value = 4  # number of processes
-        params[16].value = True  # precalculate locations
 
         return params
 
@@ -705,13 +690,7 @@ class CalculateAccessibilityMatrix(object):
             ),
 
             # 13
-            arcpy.Parameter(
-                displayName="Maximum Number of Parallel Processes",
-                name="Max_Processes",
-                datatype="GPLong",
-                parameterType="Required",
-                direction="Input"
-            ),
+            make_parameter(param_parallel_processes),
 
             # 14
             arcpy.Parameter(
@@ -733,14 +712,7 @@ class CalculateAccessibilityMatrix(object):
             ),
 
             # 16
-            arcpy.Parameter(
-                displayName="Precalculate Network Locations",
-                name="Precalculate_Network_Locations",
-                datatype="GPBoolean",
-                parameterType="Optional",
-                direction="Input",
-                category="Advanced"
-            )
+            make_parameter(param_precalculate)
 
         ]
 
@@ -752,8 +724,6 @@ class CalculateAccessibilityMatrix(object):
         params[6].filter.list = TIME_UNITS
         params[6].value = "Minutes"
         params[12].value = 1000  # chunk size
-        params[13].value = 4  # number of processes
-        params[16].value = True  # precalculate locations
 
         return params
 
@@ -854,14 +824,15 @@ class CommonParameter(object):
     """Class for defining shared parameters across tools."""
 
     def __init__(self, displayName, name, datatype, parameterType, direction, multiValue=None, default_val=None,
-                 filter_list=None):
+                 filter_list=None, category=None):
         self.parameter_def = {
             "displayName": displayName,
             "name": name,
             "datatype": datatype,
             "parameterType": parameterType,
             "direction": direction,
-            "multiValue": multiValue
+            "multiValue": multiValue,
+            "category": category
             }
         self.default_val = default_val
         self.filter_list = filter_list
@@ -914,5 +885,22 @@ param_timeinc = CommonParameter(
     "Required",
     "Input",
     default_val="1")
+
+param_parallel_processes = CommonParameter(
+    "Maximum Number of Parallel Processes",
+    "Max_Processes",
+    "GPLong",
+    "Required",
+    "Input",
+    default_val=4)
+
+param_precalculate = CommonParameter(
+    "Precalculate Network Locations",
+    "Precalculate_Network_Locations",
+    "GPBoolean",
+    "Optional",
+    "Input",
+    default_val=True,
+    category="Advanced")
 
 # endregion parameters
