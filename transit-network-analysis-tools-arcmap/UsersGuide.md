@@ -15,6 +15,8 @@ The *Transit Network Analysis Tools* must be used with a transit-enabled network
 
 The *Transit Network Analysis Tools* download includes the "Transit Network Analysis Tools.pyt" toolbox. You can add this to ArcToolbox or simply access it in the folder tree in the Catalog pane.  The download also includes several associated files in the same folder as the .pyt file.  Keep these files together in the same folder.
 
+**This version of the toolbox is deprecated.** The tool author will no longer be making further enhancements or fixing major bugs. Instead, you should use the newer, faster version of this tool, which works with ArcGIS Pro only, and is available [here](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
+
 The tools included are:
 - [Calculate Accessibility Matrix](#AccessibilityMatrix)
 - [Calculate Travel Time Statistics](#Stats)
@@ -24,6 +26,7 @@ The tools included are:
 
 ## Software requirements
 * ArcMap 10.2 or higher or ArcGIS Pro 2.4 or higher. A Desktop Basic license is sufficient.
+  * Note: If you're using ArcGIS Pro, you should use the newer, faster version of this tool, which is available [here](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
 * Network Analyst extension.
 
 ## Data requirements
@@ -239,8 +242,7 @@ The following conditions will cause longer run times for the tool:
 - Smaller cell sizes
 - Larger input polygon extents (large area covered)
 
-If you are running this tool in ArcMap, you may also run into out-of-memory errors, or ArcMap may hang, if you have a very large extent and/or very small cell sizes.  Check the [Add GTFS to a Network Dataset Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md#Memory) for help with memory errors.  Note that if you use ArcGIS Server or the 64-bit Background Geoprocessing Extension to run this tool only, you do not need to register the transit evaluator with either of these products.  Run this tool in ArcGIS Pro to avoid memory errors.
-
+If you are running this tool in ArcMap, you may also run into out-of-memory errors, or ArcMap may hang, if you have a very large extent and/or very small cell sizes.  Check the [Add GTFS to a Network Dataset Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md#Memory) for help with memory errors.  Note that if you use ArcGIS Server or the 64-bit Background Geoprocessing Extension to run this tool only, you do not need to register the transit evaluator with either of these products.  Run this tool in ArcGIS Pro to avoid memory errors.  The best solution is to use the newer version of this tool, which is available [here](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
 
 
 ## <a name="TimeLapse"></a>Prepare Time Lapse Polygons
