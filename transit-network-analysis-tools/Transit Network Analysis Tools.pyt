@@ -174,7 +174,7 @@ class PrepareTimeLapsePolygons(object):
         params[11].filter.list = ["Away From Facilities", "Toward Facilities"]
         params[11].value = "Away From Facilities"
         params[12].filter.list = ["Rings", "Disks"]
-        params[12].value = "Rings"
+        params[12].value = "Disks"
         params[13].filter.list = ["Overlap", "Dissolve", "Split"]
         params[13].value = "Overlap"
 
