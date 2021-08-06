@@ -391,11 +391,6 @@ class CreatePercentAccessPolygons(object):
             in_polys = param_in_time_lapse_polys.valueAsText
             if arcpy.Exists(in_polys):
                 desc = arcpy.Describe(in_polys)
-                SR = desc.spatialReference
-                if SR.type != "Projected":
-                    param_in_time_lapse_polys.setErrorMessage(
-                        "Input time lapse polygons must be in a projected coordinate system."
-                        )
                 fields = set([f.name for f in desc.fields])
                 if not required_input_fields.issubset(fields):
                     param_in_time_lapse_polys.setErrorMessage(

@@ -5,7 +5,6 @@
 ##        and: Melinda Morang, Esri
 ## Last updated: 6 August 2021
 ################################################################################
-''''''
 ################################################################################
 '''Copyright 2018 Fehr & Peers
    Licensed under the Apache License, Version 2.0 (the "License");
