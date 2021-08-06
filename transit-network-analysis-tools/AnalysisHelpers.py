@@ -29,7 +29,12 @@ MSG_STR_SPLITTER = " | "
 TIME_UNITS = ["Days", "Hours", "Minutes", "Seconds"]
 MAX_AGOL_PROCESSES = 4  # AGOL concurrent processes are limited so as not to overload the service for other users.
 TIME_FIELD = "TimeOfDay"  # Used for the output of Prepare Time Lapse Polygons
-
+# Create Percent Access Polygons: Field names that must be in the input time lapse polygons
+FACILITY_ID_FIELD = "FacilityID"
+NAME_FIELD = "Name"
+FROM_BREAK_FIELD = "FromBreak"
+TO_BREAK_FIELD = "ToBreak"
+FIELDS_TO_PRESERVE = [FACILITY_ID_FIELD, NAME_FIELD, FROM_BREAK_FIELD, TO_BREAK_FIELD]
 
 def validate_input_feature_class(feature_class):
     """Validate that the designated input feature class exists and is not empty.

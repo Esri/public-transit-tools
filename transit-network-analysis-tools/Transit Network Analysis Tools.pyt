@@ -296,6 +296,7 @@ class CreatePercentAccessPolygons(object):
 
         params = [
 
+            # 0
             arcpy.Parameter(
                 displayName="Input time lapse polygons feature class",
                 name="Input_time_lapse_polygons_feature_class",
@@ -303,6 +304,7 @@ class CreatePercentAccessPolygons(object):
                 parameterType="Required",
                 direction="Input"),
 
+            # 1
             arcpy.Parameter(
                 displayName="Output percent access polygons feature class",
                 name="Output_percent_access_polygons_feature_class",
@@ -310,6 +312,7 @@ class CreatePercentAccessPolygons(object):
                 parameterType="Required",
                 direction="Output"),
 
+            # 2
             arcpy.Parameter(
                 displayName="Cell size",
                 name="Cell_size",
@@ -317,6 +320,7 @@ class CreatePercentAccessPolygons(object):
                 parameterType="Required",
                 direction="Input"),
 
+            # 3
             arcpy.Parameter(
                 displayName="Cell size units",
                 name="Cells_size_units",
@@ -324,6 +328,10 @@ class CreatePercentAccessPolygons(object):
                 parameterType="Optional",
                 direction="Input"),
 
+            # 4
+            make_parameter(param_parallel_processes),
+
+            # 5
             arcpy.Parameter(
                 displayName="Output threshold percentage feature class",
                 name="Output_threshold_percentage_feature_class",
@@ -331,6 +339,7 @@ class CreatePercentAccessPolygons(object):
                 parameterType="Optional",
                 direction="Output"),
 
+            # 6
             arcpy.Parameter(
                 displayName="Percentage thresholds",
                 name="Percentage_thresholds",
@@ -344,8 +353,8 @@ class CreatePercentAccessPolygons(object):
         params[1].symbology = os.path.join(os.path.dirname(__file__), 'Symbology_Cells.lyr')
         params[2].value = 100
         params[3].enabled = False
-        params[5].filter.type = "Range"
-        params[5].filter.list = [0, 100]
+        params[6].filter.type = "Range"
+        params[6].filter.list = [0, 100]
 
         return params
 
@@ -362,8 +371,8 @@ class CreatePercentAccessPolygons(object):
 
         param_in_time_lapse_polys = parameters[0]
         param_cell_size_units = parameters[3]
-        param_fc2 = parameters[4]
-        param_percents = parameters[5]
+        param_fc2 = parameters[5]
+        param_percents = parameters[6]
 
         if param_in_time_lapse_polys.altered and param_in_time_lapse_polys.value:
             in_polys = param_in_time_lapse_polys.valueAsText
@@ -387,8 +396,8 @@ class CreatePercentAccessPolygons(object):
         param_in_time_lapse_polys = parameters[0]
         param_cell_size = parameters[2]
         param_cell_size_units = parameters[3]
-        param_fc2 = parameters[4]
-        param_percents = parameters[5]
+        param_fc2 = parameters[5]
+        param_percents = parameters[6]
         required_input_fields = set(["FacilityID", "Name", "FromBreak", "ToBreak", "TimeOfDay"])
         unit_limits = {
             "Meter": 5,
@@ -434,13 +443,15 @@ class CreatePercentAccessPolygons(object):
         in_time_lapse_polys = parameters[0].value
         outfc = parameters[1].valueAsText
         cell_size = parameters[2].value
-        fc2 = parameters[4].valueAsText
-        percents = parameters[5].values
+        max_processes = parameters[4].value
+        fc2 = parameters[5].valueAsText
+        percents = parameters[6].values
 
         CreatePercentAccessPolygon.main(
             in_time_lapse_polys,
             outfc,
             cell_size,
+            max_processes,
             fc2,
             percents
             )
