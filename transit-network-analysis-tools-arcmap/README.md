@@ -4,6 +4,8 @@ The *Transit Network Analysis Tools* are a set of tools for performing transit-s
 
 The *Transit Network Analysis Tools* must be used with a transit-enabled network dataset created either with the downloadable [Add GTFS to a Network Dataset toolset](http://arcg.is/10jXez) in ArcMap or using the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
+**This version of the toolbox is deprecated.** The tool author will no longer be making further enhancements or fixing major bugs. Instead, you should use the newer version of this tool, which works with ArcGIS Pro only, and is available [here](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
+
 ## Features
 * Visualize transit service areas (transitsheds)
 * Study accessibility of destinations by transit.
@@ -18,13 +20,12 @@ The *Transit Network Analysis Tools* must be used with a transit-enabled network
 ## Requirements
 
 * ArcMap 10.2 or higher or ArcGIS Pro 2.4 or higher. A Desktop Basic license is sufficient.
-  * Note: The Calculate Accessibility Matrix and Prepare Time Lapse Polygons tools have not been tested on versions of ArcGIS Pro prior to 2.8 and may not work properly. Upgrading to the latest version of ArcGIS Pro is always recommended.
-* Network Analyst extension.
+  * Note: If you're using ArcGIS Pro, you should use the newer version of this tool, which is available [here](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
 * A transit-enabled network dataset created either with the downloadable [Add GTFS to a Network Dataset toolset](http://arcg.is/10jXez) in ArcMap or using the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
 ## Resources
 
-* [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools/UsersGuide.md)
+* [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools-arcmap/UsersGuide.md)
 
 ## Issues
 

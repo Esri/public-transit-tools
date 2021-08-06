@@ -2,10 +2,12 @@
 
 The *Transit Network Analysis Tools* are a set of tools for performing transit-specific network analysis. They are intended to supplement the ArcGIS Network Analyst extension by accounting for the time-dependent nature of public transit and to assist with analyses commonly needed by those working with public transit.  For example, the tools provided here can help you perform accessibility calculations and show how the area reachable by transit changes throughout the day.
 
-The *Transit Network Analysis Tools* must be used with a transit-enabled network dataset created either with the downloadable [Add GTFS to a Network Dataset toolset](http://arcg.is/10jXez) in ArcMap or using the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+The *Transit Network Analysis Tools* must be used with a transit-enabled network dataset created using [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+
+If you are looking for the older version of this toolbox that worked with ArcMap, it is located [here](#ADDLINK) and is deprecated. This new version is faster and better, so you are encouraged to upgrade to ArcGIS Pro. 
 
 ## Features
-* Visualize transit service areas (transitsheds)
+* Visualize transit service areas (also called isochrones or transitsheds)
 * Study accessibility of destinations by transit.
 * Calculate travel time statistics
 * ArcGIS toolbox - No coding is required to use this tool.  Use the tools like any other geoprocessing tools.
@@ -17,10 +19,10 @@ The *Transit Network Analysis Tools* must be used with a transit-enabled network
 
 ## Requirements
 
-* ArcMap 10.2 or higher or ArcGIS Pro 2.4 or higher. A Desktop Basic license is sufficient.
-  * Note: The Calculate Accessibility Matrix and Prepare Time Lapse Polygons tools have not been tested on versions of ArcGIS Pro prior to 2.8 and may not work properly. Upgrading to the latest version of ArcGIS Pro is always recommended.
+* ArcGIS Pro 2.8 or higher. A Desktop Basic license is sufficient.
+  * Note: The tools have not been tested on versions of ArcGIS Pro prior to 2.8 and may not work properly. Upgrading to the latest version of ArcGIS Pro is always recommended.
 * Network Analyst extension.
-* A transit-enabled network dataset created either with the downloadable [Add GTFS to a Network Dataset toolset](http://arcg.is/10jXez) in ArcMap or using the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+* A transit-enabled network dataset created using [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
 ## Resources
 
