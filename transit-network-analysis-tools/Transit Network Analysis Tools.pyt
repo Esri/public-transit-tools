@@ -21,7 +21,7 @@ suite.'''
 import os
 import arcpy
 import ToolValidator
-from AnalysisHelpers import TIME_UNITS, MAX_AGOL_PROCESSES, is_nds_service
+from AnalysisHelpers import TIME_UNITS, MAX_AGOL_PROCESSES, is_nds_service, cell_size_to_meters
 
 
 class Toolbox(object):
@@ -315,23 +315,16 @@ class CreatePercentAccessPolygons(object):
             # 2
             arcpy.Parameter(
                 displayName="Cell size",
-                name="Cell_size",
-                datatype="GPDouble",
-                parameterType="Required",
-                direction="Input"),
+                name="cell_size",
+                datatype="GPLinearUnit",
+                parameterType="Optional",
+                direction="Input"
+            ),
 
             # 3
-            arcpy.Parameter(
-                displayName="Cell size units",
-                name="Cells_size_units",
-                datatype="GPString",
-                parameterType="Optional",
-                direction="Input"),
-
-            # 4
             make_parameter(param_parallel_processes),
 
-            # 5
+            # 4
             arcpy.Parameter(
                 displayName="Output threshold percentage feature class",
                 name="Output_threshold_percentage_feature_class",
@@ -339,7 +332,7 @@ class CreatePercentAccessPolygons(object):
                 parameterType="Optional",
                 direction="Output"),
 
-            # 6
+            # 5
             arcpy.Parameter(
                 displayName="Percentage thresholds",
                 name="Percentage_thresholds",
@@ -351,10 +344,10 @@ class CreatePercentAccessPolygons(object):
 
         params[0].filter.list = ["Polygon"]
         params[1].symbology = os.path.join(os.path.dirname(__file__), 'Symbology_Cells.lyr')
-        params[2].value = 100
-        params[3].enabled = False
-        params[6].filter.type = "Range"
-        params[6].filter.list = [0, 100]
+        params[2].value = "100 Meters"
+        params[2].filter.list = ["Meters", "Kilometers", "Feet", "Yards", "Miles"]
+        params[5].filter.type = "Range"
+        params[5].filter.list = [0, 100]
 
         return params
 
@@ -368,18 +361,8 @@ class CreatePercentAccessPolygons(object):
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
-
-        param_in_time_lapse_polys = parameters[0]
-        param_cell_size_units = parameters[3]
-        param_fc2 = parameters[5]
-        param_percents = parameters[6]
-
-        if param_in_time_lapse_polys.altered and param_in_time_lapse_polys.value:
-            in_polys = param_in_time_lapse_polys.valueAsText
-            if arcpy.Exists(in_polys):
-                SR = arcpy.Describe(in_polys).spatialReference
-                # Populate the cell size units box with the linear units of the spatial reference
-                param_cell_size_units.value = SR.linearUnitName
+        param_fc2 = parameters[4]
+        param_percents = parameters[5]
 
         # Disable the percent list if no output feature class has been selected
         if param_fc2.value:
@@ -394,10 +377,8 @@ class CreatePercentAccessPolygons(object):
         parameter.  This method is called after internal validation."""
 
         param_in_time_lapse_polys = parameters[0]
-        param_cell_size = parameters[2]
-        param_cell_size_units = parameters[3]
-        param_fc2 = parameters[5]
-        param_percents = parameters[6]
+        param_fc2 = parameters[4]
+        param_percents = parameters[5]
         required_input_fields = set(["FacilityID", "Name", "FromBreak", "ToBreak", "TimeOfDay"])
         unit_limits = {
             "Meter": 5,
@@ -422,12 +403,7 @@ class CreatePercentAccessPolygons(object):
                         str(required_input_fields)
                         )
 
-        # Make sure the cell size is reasonable
-        if param_cell_size.altered and param_cell_size_units.value in unit_limits:
-            if float(param_cell_size.value) < unit_limits[param_cell_size_units.value]:
-                param_cell_size.setWarningMessage(
-                    "Your chosen cell size is very small. The tool may run slowly or run out of memory."
-                )
+        # TODO: Make sure the cell size is reasonable
 
         if param_fc2.value and not param_percents.value:
             param_percents.setWarningMessage(
@@ -440,21 +416,15 @@ class CreatePercentAccessPolygons(object):
     def execute(self, parameters, messages):
         """The source code of the tool."""
         import CreatePercentAccessPolygon
-        in_time_lapse_polys = parameters[0].value
-        outfc = parameters[1].valueAsText
-        cell_size = parameters[2].value
-        max_processes = parameters[4].value
-        fc2 = parameters[5].valueAsText
-        percents = parameters[6].values
-
-        CreatePercentAccessPolygon.main(
-            in_time_lapse_polys,
-            outfc,
-            cell_size,
-            max_processes,
-            fc2,
-            percents
-            )
+        cpap_calculator = CreatePercentAccessPolygon.PercentAccessPolygonCalculator(
+            parameters[0].value,  # in_time_lapse_polys
+            parameters[1].valueAsText,  # out_cell_counts_fc
+            cell_size_to_meters(parameters[2].valueAsText),  # cell_size_in_meters
+            parameters[3].value,  # max_processes
+            parameters[4].valueAsText,  # out_percents_fc
+            parameters[5].values  # percents
+        )
+        cpap_calculator.execute()
         return
 
 
