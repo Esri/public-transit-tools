@@ -4,7 +4,7 @@ The *Transit Network Analysis Tools* are a set of tools for performing transit-s
 
 The *Transit Network Analysis Tools* must be used with a transit-enabled network dataset created using [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
-If you are looking for the older version of this toolbox that worked with ArcMap, it is located [here](#ADDLINK) and is deprecated. This new version is faster and better, so you are encouraged to upgrade to ArcGIS Pro. 
+If you are looking for the older version of this toolbox that worked with ArcMap, it is located [here](https://arcg.is/1u8WKS) and is deprecated. This new version is faster and better, so you are encouraged to upgrade to ArcGIS Pro.
 
 ## Features
 * Visualize transit service areas (also called isochrones or transitsheds)
