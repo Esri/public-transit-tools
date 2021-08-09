@@ -107,6 +107,8 @@ For each origin-destination pair in an OD Cost Matrix layer or each route in a R
 
 You can also choose to save a feature class containing the combined network analysis output for the entire time window. 
 
+Note: Unlike the other tools in this toolbox, this tool has not been overhauled and optimized to run in parallel in ArcGIS Pro. If you are using this tool and performance is a concern for you, please leave a note in our GitHub repo or on our GeoNet page.
+
 Running this tool involves two steps:
 
 1. Prepare an OD Cost Matrix or Route layer in the map
@@ -161,6 +163,8 @@ Network analysis layers with large numbers of input features (origins, destinati
 Note that when this tool runs, if the input OD Cost Matrix layer and the network it references are in the map, these layers might re-draw over and over again, which impacts tool performance.  Before running the tool, turn off the layers in the map to prevent the re-draw behavior.
 
 The tool will run slower if you have chosen to save the combined network analysis results.
+
+Note: Unlike the other tools in this toolbox, this tool has not been overhauled and optimized to run in parallel in ArcGIS Pro. If you are using this tool and performance is a concern for you, please leave a note in our GitHub repo or on our GeoNet page.
 
 
 
