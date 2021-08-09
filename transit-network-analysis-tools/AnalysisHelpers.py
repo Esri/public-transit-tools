@@ -178,6 +178,21 @@ def get_catalog_path(layer):
         return layer
 
 
+def get_catalog_path_from_param(param):
+    """Get the catalog path for the designated input parameter if possible.
+
+    Args:
+        param (arcpy.Parameter): Parameter from which to retrieve the catalog path.
+
+    Returns:
+        string: Catalog path to the data
+    """
+    if hasattr(param.value, "dataSource"):
+        return param.value.dataSource
+    else:
+        return param.valueAsText
+
+
 def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input):
     '''Make a list of datetimes to use as input for a network analysis time of day run in a loop'''
 

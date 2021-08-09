@@ -148,8 +148,6 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
                 err = "Unable to check out Network Analyst extension license."
                 arcpy.AddError(err)
                 raise RuntimeError(err) from ex
-            # If the network dataset is a layer, convert it to a catalog path so we can pass it to the subprocess
-            self.network_data_source = AnalysisHelpers.get_catalog_path(self.network_data_source)
 
         # Validate Service Area settings and convert travel mode to a JSON string
         self.travel_mode = self._validate_sa_settings()
@@ -165,7 +163,6 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
                     "Online services. The maximum number of parallel processes has been reduced to "
                     f"{AnalysisHelpers.MAX_AGOL_PROCESSES}."))
                 self.max_processes = AnalysisHelpers.MAX_AGOL_PROCESSES
-            self._update_max_inputs_for_service()
             if self.should_precalc_network_locations:
                 arcpy.AddWarning(
                     "Cannot precalculate network location fields when the network data source is a service.")

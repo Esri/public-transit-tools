@@ -21,7 +21,8 @@ suite.'''
 import os
 import arcpy
 import ToolValidator
-from AnalysisHelpers import TIME_UNITS, MAX_AGOL_PROCESSES, is_nds_service, cell_size_to_meters
+from AnalysisHelpers import TIME_UNITS, MAX_AGOL_PROCESSES, is_nds_service, cell_size_to_meters, \
+                            get_catalog_path_from_param
 
 
 class Toolbox(object):
@@ -260,7 +261,7 @@ class PrepareTimeLapsePolygons(object):
         sa_solver = CreateTimeLapsePolygonsInParallel.ServiceAreaSolver(**{
             "facilities": parameters[0].value,
             "output_polygons": parameters[1].valueAsText,
-            "network_data_source": parameters[2].value,
+            "network_data_source": get_catalog_path_from_param(parameters[2]),
             "travel_mode": parameters[3].valueAsText,
             "cutoffs": parameters[4].values,
             "time_units": parameters[5].valueAsText,
@@ -776,7 +777,7 @@ class CalculateAccessibilityMatrix(object):
             "origins": parameters[0].value,
             "destinations": parameters[1].value,
             "output_origins": parameters[2].valueAsText,
-            "network_data_source": parameters[3].value,
+            "network_data_source": get_catalog_path_from_param(parameters[3]),
             "travel_mode": parameters[4].valueAsText,
             "cutoff": parameters[5].value,
             "time_units": parameters[6].valueAsText,
