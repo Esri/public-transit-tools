@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 27 July 2021
+## Last updated: 9 August 2021
 ############################################################################
 ''' Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
 suite.'''

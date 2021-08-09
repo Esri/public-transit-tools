@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 23 July 2021
+## Last updated: 9 August 2021
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
