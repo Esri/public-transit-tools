@@ -378,6 +378,8 @@ class CreatePercentAccessPolygons(object):
         parameter.  This method is called after internal validation."""
 
         param_in_time_lapse_polys = parameters[0]
+        param_out_fc = parameters[1]
+        param_cell_size = parameters[2]
         param_fc2 = parameters[4]
         param_percents = parameters[5]
         required_input_fields = set(["FacilityID", "Name", "FromBreak", "ToBreak", "TimeOfDay"])
@@ -387,7 +389,21 @@ class CreatePercentAccessPolygons(object):
             "Foot_US": 16.4
         }
 
-        # Make sure the input time lapse polygons are projected and have the correct fields
+        # Add error if the user tries to save output to a shapefile
+        if param_out_fc.altered and param_out_fc.value:
+            out_dir = os.path.dirname(param_out_fc.valueAsText)
+            if out_dir and os.path.exists(out_dir):
+                desc = arcpy.Describe(out_dir)
+                if desc.dataType == "Folder":
+                    param_out_fc.setErrorMessage("The output cannot be a shapefile.")
+        if param_fc2.altered and param_fc2.value:
+            out_dir = os.path.dirname(param_fc2.valueAsText)
+            if out_dir and os.path.exists(out_dir):
+                desc = arcpy.Describe(out_dir)
+                if desc.dataType == "Folder":
+                    param_fc2.setErrorMessage("The output cannot be a shapefile.")
+
+        # Make sure the input time lapse polygons have the correct fields
         if param_in_time_lapse_polys.altered and param_in_time_lapse_polys.value:
             in_polys = param_in_time_lapse_polys.valueAsText
             if arcpy.Exists(in_polys):
@@ -399,7 +415,11 @@ class CreatePercentAccessPolygons(object):
                         str(required_input_fields)
                         )
 
-        # TODO: Make sure the cell size is reasonable
+        # Make sure the cell size is reasonable
+        if param_cell_size.altered and param_cell_size.valueAsText:
+            cell_size_in_meters = cell_size_to_meters(param_cell_size.valueAsText)
+            if cell_size_in_meters < 5 or cell_size_in_meters > 1000:
+                param_cell_size.setErrorMessage("Cell size must be between 5 and 1000 meters.")
 
         if param_fc2.value and not param_percents.value:
             param_percents.setWarningMessage(
