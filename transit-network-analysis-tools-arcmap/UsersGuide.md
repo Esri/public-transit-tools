@@ -11,9 +11,11 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 ## What are the Transit Network Analysis Tools?
 The *Transit Network Analysis Tools* are a set of tools for performing transit-specific network analysis. They are intended to supplement the ArcGIS Network Analyst extension by accounting for the time-dependent nature of public transit and to assist with analyses commonly needed by those working with public transit.  For example, the tools provided here can help you perform accessibility calculations and show how the area reachable by transit changes throughout the day.
 
-The *Transit Network Analysis Tools* must be used with a transit-enabled network dataset created either using [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+The *Transit Network Analysis Tools* must be used with a transit-enabled network dataset created either with the downloadable [Add GTFS to a Network Dataset toolset](http://arcg.is/10jXez) in ArcMap or using the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
 The *Transit Network Analysis Tools* download includes the "Transit Network Analysis Tools.pyt" toolbox. You can add this to ArcToolbox or simply access it in the folder tree in the Catalog pane.  The download also includes several associated files in the same folder as the .pyt file.  Keep these files together in the same folder.
+
+**This version of the toolbox is deprecated.** The tool author will no longer be making further enhancements or fixing major bugs. Instead, you should use the newer, faster version of this tool, which works with ArcGIS Pro only, and is available [here](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
 
 The tools included are:
 - [Calculate Accessibility Matrix](#AccessibilityMatrix)
@@ -23,12 +25,12 @@ The tools included are:
 
 
 ## Software requirements
-* ArcGIS Pro 2.8 or higher. A Desktop Basic license is sufficient.
-  * Note: The tools have not been tested on versions of ArcGIS Pro prior to 2.8 and may not work properly. Upgrading to the latest version of ArcGIS Pro is always recommended.
+* ArcMap 10.2 or higher or ArcGIS Pro 2.4 or higher. A Desktop Basic license is sufficient.
+  * Note: If you're using ArcGIS Pro, you should use the newer, faster version of this tool, which is available [here](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
 * Network Analyst extension.
 
 ## Data requirements
-* A transit-enabled network dataset created either using [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+* A transit-enabled network dataset created either with the downloadable [Add GTFS to a Network Dataset toolset](http://arcg.is/10jXez) in ArcMap or using the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
 
 
@@ -39,36 +41,61 @@ The results of analyses performed using your GTFS-enabled network dataset can va
 
 The *Calculate Accessibility Matrix* tool attempts to account for the dynamic nature of transit schedules by solving an Origin-Destination Cost Matrix analysis for multiple times of day and summarizing the results.  The user specifies a time window, and the tool will run the analysis for each minute within the time window.  In addition to counting the total number of destinations reachable at least once during the time window, the tool output also shows the number of destinations reachable at least 10%, 20%, ...90% of start times during the time window.  More detail on the tool output is available below.
 
-The tool parallelizes the OD Cost Matrix solves across multiple processors on your computer for maximum efficiency.
+Running this tool involves three steps:
 
-There is no specific set-up required to run the tool, as the origins, destinations, and all relevant settings can be set in the tool's UI.  However, your origins and destinations must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the [Feature to Point](https://pro.arcgis.com/en/pro-app/latest/tool-reference/data-management/feature-to-point.htm) tool to do this.
+1. Prepare your Origin and Destination data
+2. Prepare an Origin-Destination Cost Matrix layer to use as input to the tool
+3. Run the *Calculate Accessibility Matrix* tool
+
+### 1. Prepare your Origin and Destination data
+
+Your origins and destinations must be point feature classes.  If, for example, you are using census blocks as destinations, please first calculate the centroids of the census block polygons to use as input to the tool.  You can use the Feature to Point tool to do this.
+- [Feature to Point - ArcMap](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/feature-to-point.htm)
+- [Feature to Point - ArcGIS Pro](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/feature-to-point.htm)
+
+### 2. Prepare an Origin-Destination Cost Matrix layer to use as input to the tool
+
+All Network Analyst layers, such as an Origin-Destination Cost Matrix analysis layer, must reference a network data source. To run this tool, you must create and configure an Origin-Destination Cost Matrix analysis layer referencing a transit-enabled network dataset created with either the downloadable [*Add GTFS to a Network Dataset* toolset](http://arcg.is/10jXez) in ArcMap or the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+
+- [Learn how to create and configure an Origin-Destination Cost Matrix analysis layer in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm)
+- [Learn how to create and configure an Origin-Destination Cost Matrix analysis layer in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/od-cost-matrix-tutorial.htm)
+
+Once you have created the Origin-Destination Cost Matrix analysis layer, you must configure it with settings appropriate for this tool, which are described below.
+
+- [Learn how to configure Origin-Destination Cost Matrix properties in ArcMap.](https://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/od-cost-matrix.htm#GUID-7C72D0E2-CB83-4CB5-A98B-EDA7D1EDAF19)
+- [Learn how to configure Origin-Destination Cost Matrix properties in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/od-cost-matrix-analysis-layer.htm#ESRI_SECTION1_D36A18B15D704F0DBA9B4C766A4A2719)
+
+If you're using ArcMap, first make sure to [configure your analysis layer with correct settings](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step8) according to the *Add GTFS to a Network Dataset* tool's user's guide.
+
+You do not need to set a time of day for your analysis because you will choose the time window when you run the *Calculate Accessibility Matrix* tool.
+
+You should **set a travel time limit**.  The tool will count the number of destinations reachable within this travel time limit, like 30 minutes or 60 minutes.
+
+You do not need to add any Origins or Destinations to your OD Cost Matrix layer at this point.  The *Calculate Accessibility Matrix* tool will add them for you.  However, if you want to add them just for testing purposes, you can do that.  They will be overwritten when you run the tool.
+
+You can also save your Origin-Destination Cost Matrix analysis layer to a layer file to use as input for the tool.  This is useful if you want to run this tool in a standalone python script.
+
+- [Learn how to save a Network Analyst layer to a layer file in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm)
+- [Learn how to save a Network Analyst layer to a layer file in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/save-to-layer-file.htm)
+
+### 3. Run the *Calculate Accessibility Matrix* tool
+Once your origin and destination feature classes and your OD Cost Matrix layer are prepared, run the *Calculate Accessibility Matrix* tool to calculate measures of accessibility.  Fields with these accessibility measures will be added to your input origins table.
 
 ![Screenshot of tool dialog](./images/Screenshot_CalculateAccessibilityMatrix_Dialog.png)
 
-### Inputs
+#### Inputs
+* **OD Cost Matrix Layer**: An OD Cost Matrix layer in your map or saved as a layer file (see previous section on how to set this up).
 * **Origins**: A point feature class representing the locations you want to calculate accessibility measures for.  For example, your origins might be census block centroids or the centroids of individual parcels.
 * **Destinations**: A point feature class representing the destinations your origins will travel to.  For example, if you want to measure your origins' level of accessibility to jobs, your Destinations could be the locations of employment centers.
-* **Output Updated Origins**: Output path. Your input origins will be copied to this location, and the output fields will be added.
-* **Network Data Source**: The network dataset or service URL to use for the calculation. You should use a transit-enabled network dataset created with [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm) or an ArcGIS Enterprise service created from such a network. Technically, however, the tool will work with any network dataset that has at least one time-based travel mode.
-* **Travel Mode**: The name of a time-based [travel mode](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/travel-modes.htm) on the network dataset you wish to use to calculate the OD Cost Matrix. Typically you should choose a travel mode modeling travel by public transit.
-* **Cutoff Time**: The maximum travel time allowed in your analysis. For example, if you want to analyze the number of jobs reachable within a 30-minute commute from your origins, set the Cutoff Time to 30, and set the Cutoff Time Units to Minutes.
-* **Cutoff Time Units**: The units of time in which to interpret the Cutoff Time.
+* **Destinations Weight Field**:  Optionally, choose a field from your Destinations table that will be used as a weight.  For example, if your destinations represent employment centers, the weight field could be the number of jobs available at each point. Only integer and double fields can be used for the weight field.  If you do not choose a weight field, each destination will be counted as 1.
 * **Start Day (Weekday or YYYYMMDD date)**: Day of the week or YYYYMMDD date for the first start time of your analysis.  [Learn when to use a generic weekday or a specific date.](#Dates)
 * **Start Time (HH:MM) (24 hour time)**: The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2 AM is 02:00, and 2 PM is 14:00.
 * **End Day (Weekday or YYYYMMDD date)**: If you're using a generic weekday for Start Day, you must use the same day for End Day.  If you want to run an analysis spanning multiple days, choose specific YYYYMMDD dates for both Start Day and End Day.
 * **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that an analysis will be performed for the time of day you enter here.
 * **Time Increment (minutes)**: Increment the OD Cost Matrix's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the OD Cost Matrix will be solved for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would calculate the OD Cost Matrix for 10:00, 10:02, 10:04, etc.
-* **Maximum Origins and Destinations per Chunk**: In order to solve large OD Cost Matrix problems efficiently, the tool can split up large numbers of inputs into chunks and solve the chunks in parallel across multiple cores of your computer. This parameter specifies the maximum number of origins and destinations that should be allowed in a single chunk. The optimal number depends on your computing resources. Larger chunks take longer to solve and require more memory, but there is some overhead associated with having more chunks.
-* **Maximum Number of Parallel Processes**: In order to solve large OD Cost Matrix problems efficiently, the tool solves the OD Cost Matrix for different start times in parallel across multiple cores of your machine. If the number of origins and destinations are large, it may also break them up into chunks and solve them in parallel as well. This parameter designates the number of parallel processes that can safely be used. You should select a number less than or equal to the number of virtual cores or processors your computer has.
-* **Destinations Weight Field**:  Optionally, choose a field from your Destinations table that will be used as a weight.  For example, if your destinations represent employment centers, the weight field could be the number of jobs available at each point. Only integer and double fields can be used for the weight field.  If you do not choose a weight field, each destination will be counted as 1.
-* **Barriers**: Optionally, choose layers with point, line, or polygon barriers to use in the OD Cost Matrix analysis.
-* **Precalculate Network Locations**: When doing an OD Cost Matrix analysis, the input origin and destination points must be ["located" on the network dataset](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/locating-analysis-inputs.htm). Because the tool parallelizes the OD Cost Matrix across multiple processes, using the same origins and destinations many times, it saves time to calculate the network locations in advance rather than repeating this calculation in every parallel process. The only time you should uncheck this parameter is if you have already calculated the network locations of your input origins and destinations for the network dataset and travel mode you are using, and you simply wish to re-use these.
 
-Advanced users with specific analysis needs can modify additional OD Cost Matrix analysis properties in the CalculateAccessibilityMatrix_OD_config.py file. Note that you may need to close and re-open ArcGIS Pro in order for those changes to be used when the tool runs.
-
-### <a name="AccessibilityMatrixOutputs"></a>Calculate Accessibility Matrix tool output fields
-
-The output Origins table contains the following fields:
+#### Outputs
+This tool does not produce a new output.  Instead, it adds the following fields to your input Origins table:
 - *TotalDests*
 - *PercDests*
 - *DsAL10Perc*, *DsAL20Perc*, ..., *DsAL90Perc*
@@ -96,6 +123,12 @@ If you care about a bare minimum of access, use the *TotalDests* field.  If you 
 
 **PsAL10Perc**, **PsAL20Perc**, ..., **PsAL90Perc**:  These are companion fields to *DsAL10Perc*, *DsAL20Perc*, etc. and have the same relationship that *PercDests* does to *TotalDests*.  For example, *PsAL10Perc* is *DsAL10Perc* divided by the total weighted number of destinations that were included in the analysis.
 
+#### Tool performance
+OD Cost Matrices with many origins and destinations may take a long time to solve, and since this tool solves the analysis once per start time within the time limit, this tool could take a very long time to complete.  If you want to solve a really massive problem, this tool might not be the most efficient way to do it.  Please contact me, and I can share some code samples for using multiprocessing to solve these analyses in parallel.
+
+Note that when this tool runs, if the input OD Cost Matrix layer and the network it references are in the map, these layers might re-draw over and over again, which impacts tool performance.  Before running the tool, turn off the layers in the map to prevent the re-draw behavior.
+
+
 
 ## <a name="Stats"></a>Calculate Travel Time Statistics
 The time it takes to travel between one location and other by public transit varies throughout the day depending on the transit schedule.  This tool calculates some simple statistics about the total transit travel time between locations over a time window and writes the output to a table.
@@ -107,8 +140,6 @@ For each origin-destination pair in an OD Cost Matrix layer or each route in a R
 
 You can also choose to save a feature class containing the combined network analysis output for the entire time window. 
 
-Note: Unlike the other tools in this toolbox, this tool has not been overhauled and optimized to run in parallel in ArcGIS Pro. If you are using this tool and performance is a concern for you, please leave a note in our GitHub repo or on our GeoNet page.
-
 Running this tool involves two steps:
 
 1. Prepare an OD Cost Matrix or Route layer in the map
@@ -116,15 +147,22 @@ Running this tool involves two steps:
 
 ### 1. Prepare an OD Cost Matrix or Route layer in the map
 
-All Network Analyst layers, such as an Origin-Destination Cost Matrix and Route analysis layer, must reference a network data source. To run this tool, you must create and configure an Origin-Destination Cost Matrix or Route analysis layer referencing a transit-enabled network dataset created using [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+All Network Analyst layers, such as an Origin-Destination Cost Matrix and Route analysis layer, must reference a network data source. To run this tool, you must create and configure an Origin-Destination Cost Matrix or Route analysis layer referencing a transit-enabled network dataset created with either the downloadable [*Add GTFS to a Network Dataset* toolset](http://arcg.is/10jXez) in ArcMap or the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
-Learn how to create and configure an [Origin-Destination Cost Matrix](https://pro.arcgis.com/en/pro-app/help/analysis/networks/od-cost-matrix-tutorial.htm) or [Route analysis](https://pro.arcgis.com/en/pro-app/help/analysis/networks/route-tutorial.htm) layer in ArcGIS Pro.
+- Learn how to create and configure an [Origin-Destination Cost Matrix](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm) or [Route](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-3-finding-the-best-route-using-a-network-dataset.htm) analysis layer in ArcMap.
+- Learn how to create and configure an [Origin-Destination Cost Matrix](https://pro.arcgis.com/en/pro-app/help/analysis/networks/od-cost-matrix-tutorial.htm) or [Route analysis](https://pro.arcgis.com/en/pro-app/help/analysis/networks/route-tutorial.htm) layer in ArcGIS Pro.
+- Learn how to configure [Origin-Destination Cost Matrix](https://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/od-cost-matrix.htm#GUID-7C72D0E2-CB83-4CB5-A98B-EDA7D1EDAF19) or [Route](https://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/route.htm#GUID-85558AB7-6AD6-493A-A147-9DD7155E4670) properties in ArcMap.
+- Learn how to configure [Origin-Destination Cost Matrix](https://pro.arcgis.com/en/pro-app/help/analysis/networks/od-cost-matrix-analysis-layer.htm#ESRI_SECTION1_D36A18B15D704F0DBA9B4C766A4A2719) or [Route](https://pro.arcgis.com/en/pro-app/help/analysis/networks/route-analysis-layer.htm#ESRI_SECTION1_D36A18B15D704F0DBA9B4C766A4A2719) properties in ArcGIS Pro.
 
-Learn how to configure [Origin-Destination Cost Matrix](https://pro.arcgis.com/en/pro-app/help/analysis/networks/od-cost-matrix-analysis-layer.htm#ESRI_SECTION1_D36A18B15D704F0DBA9B4C766A4A2719) or [Route](https://pro.arcgis.com/en/pro-app/help/analysis/networks/route-analysis-layer.htm#ESRI_SECTION1_D36A18B15D704F0DBA9B4C766A4A2719) properties in ArcGIS Pro.
+
+If you're using ArcMap, first make sure to [configure your analysis layer with correct settings](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step8) according to the *Add GTFS to a Network Dataset* tool's user's guide.
 
 The *Calculate Travel Time Statistics* tool does not use the geometry of the solved network analysis layers when calculating statistics.  To improve tool performance, set the Output Shape Type setting to "None".
 
-You can also save your Origin-Destination Cost Matrix analysis layer to a layer file to use as input for the tool.  This is useful if you want to run this tool in a standalone python script. [Learn how to save a Network Analyst layer to a layer file in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/save-to-layer-file.htm)
+You can also save your Origin-Destination Cost Matrix analysis layer to a layer file to use as input for the tool.  This is useful if you want to run this tool in a standalone python script.
+
+- [Learn how to save a Network Analyst layer to a layer file in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm)
+- [Learn how to save a Network Analyst layer to a layer file in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/save-to-layer-file.htm)
 
 
 ### 2. Run the *Calculate Travel Time Statistics* tool
@@ -164,8 +202,6 @@ Note that when this tool runs, if the input OD Cost Matrix layer and the network
 
 The tool will run slower if you have chosen to save the combined network analysis results.
 
-Note: Unlike the other tools in this toolbox, this tool has not been overhauled and optimized to run in parallel in ArcGIS Pro. If you are using this tool and performance is a concern for you, please leave a note in our GitHub repo or on our GeoNet page.
-
 
 
 ## <a name="PercentAccess"></a>Create Percent Access Polygons
@@ -179,15 +215,13 @@ The tool output will show you the percentage of times any given area was reached
 
 The input to the *Create Percent Access Polygons* is a polygon feature class created using the [*Prepare Time Lapse Polygons* tool](#TimeLapse).
 
-The tool parallelizes the calculations across multiple processors on your computer for maximum efficiency.
-
 ![Screenshot of tool dialog](./images/Screenshot_CreatePercentAccessPolygons_Dialog.png)
 
 ### Inputs
-* **Input time lapse polygons feature class**: A polygon feature class created using the [*Prepare Time Lapse Polygons* tool](#TimeLapse) that you wish to summarize.
+* **Input time lapse polygons feature flass**: A polygon feature class created using the [*Prepare Time Lapse Polygons* tool](#TimeLapse) that you wish to summarize.  The feature class must be in a projected coordinate system; for best results, use a projected coordinate system that preserves area.  If your *Prepare Time Lapse Polygons* is not projected, you can use the Project tool ([Project in ArcMap](https://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/project.htm), [Project in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/project.htm)) to project it into an appropriate spatial reference.
 * **Output percent access polygons feature class**: The main output feature class of the tool.  This output is a raw raster-like polygon feature class showing the number and percentage of time each area covered by your time lapse polygons was reached, intended primarily for visualization.  The individual polygons are dissolved so that all areas reached the same number of times for a unique combination of FacilityID, FromBreak, and ToBreak are combined into one multipart polygon.  The output feature class must be in a geodatabase; it cannot be a shapefile.
-* **Cell Size**: This tool rasterizes the input polygons, essentially turning the study area into little squares.  Choose a size for these squares.  The cell size refers to the width or length of the cell, not the area.  Your cell size choice should relate to how pedestrians travel in the real world. You could base your cell size choice on the size of your city blocks or parcels or the distance a pedestrian can walk in less than a minute. Smaller cells are more accurate but take longer to process, and really tiny cells are probably not analytically meaningful.
-* **Maximum Number of Parallel Processes**: For maximum efficiency, this tool performs calculations in parallel across multiple cores of your machine. This parameter designates the number of parallel processes that can safely be used. You should select a number less than or equal to the number of virtual cores or processors your computer has. Note that if you are only processing a single input facility/from break/to break combination, there is nothing to parallelize, so you will get no advantage from increasing the number of processes.
+* **Cell Size**: This tool rasterizes the input polygons, essentially turning the study area into little squares.  Choose a size for these squares.  The cell size refers to the width or length of the cell, not the area.  The units for the cell size are the linear units of the projected coordinate system of the input time lapse polygons and are displayed in the Cell Size Units parameter below.  Smaller cell sizes will increase the tool's run time, and you may run out of memory.  Anything smaller than the size of a typical parcel in your city is probably not very useful.
+* **Cell Size Units**: This parameter is for informational purposes only and cannot be set.  It displays the linear units of your input time lapse polygon feature class's spatial reference so that you know what units your Cell Size refers to. This parameter is not visible in ArcGIS Pro.
 * **Output threshold percentage feature class** This is an optional output you can choose to produce that further summarizes the output percent access polygons feature class.  If you specify one or more percentage thresholds, this output contains polygons showing the area reached at least as often as your designated percentage thresholds. There will be a separate feature for each percentage threshold for each unique combination of FacilityID, FromBreak, and ToBreak in the input data.
 * **Percentage Thresholds**: You can choose to summarize the tool's raw output for different percentage thresholds.  For example, you can find out what area can be reached at least 75% of start times by setting 75 as one of your percentage thresholds.  More explanation of tool outputs is given below.
 
@@ -198,7 +232,9 @@ In the output threshold percentage feature class, the "Percent" field refers to 
 
 In both outputs, the time lapse polygon FacilityID, Name, FromBreak, and ToBreak fields are preserved for informational purposes.
 
-Note that if your input time lapse polygons contain multiple facilities or multiple FromBreak and ToBreak combinations, the outputs may contain multiple overlapping features that may be visually confusing in the map.  You can use a definition query to display only a subset of these features at a time. [Learn how to set up a definition query in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/mapping/layer-properties/definition-query.htm)
+Note that if your input time lapse polygons contain multiple facilities or multiple FromBreak and ToBreak combinations, the outputs may contain multiple overlapping features that may be visually confusing in the map.  You can use a definition query to display only a subset of these features at a time.
+- [Learn how to set up a definition query in ArcMap.](https://desktop.arcgis.com/en/arcmap/latest/map/working-with-layers/displaying-a-subset-of-features-in-a-layer.htm)
+- [Learn how to set up a definition query in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/mapping/layer-properties/definition-query.htm)
 
 ### Tool performance
 The following conditions will cause longer run times for the tool:
@@ -206,7 +242,7 @@ The following conditions will cause longer run times for the tool:
 - Smaller cell sizes
 - Larger input polygon extents (large area covered)
 
-The tool parallelizes the calculations across multiple processors on your computer for maximum efficiency. You will get the best performance on a tool with many cores, a fast CPU, and a solid-state hard disk.
+If you are running this tool in ArcMap, you may also run into out-of-memory errors, or ArcMap may hang, if you have a very large extent and/or very small cell sizes.  Check the [Add GTFS to a Network Dataset Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md#Memory) for help with memory errors.  Note that if you use ArcGIS Server or the 64-bit Background Geoprocessing Extension to run this tool only, you do not need to register the transit evaluator with either of these products.  Run this tool in ArcGIS Pro to avoid memory errors.  The best solution is to use the newer version of this tool, which is available [here](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
 
 
 ## <a name="TimeLapse"></a>Prepare Time Lapse Polygons
@@ -214,46 +250,62 @@ The results of analyses performed using your transit-enabled network dataset can
 
 A demonstration of this time dependency can be seen in [this video](https://youtu.be/tTSd6qJlans).  The video is a time lapse showing the area reachable within 15 minutes of travel time by walking and public transit from a point in Atlanta. Because the available transit service changes throughout the day, the area reachable changes significantly depending on the time of day you leave on your journey. For this video, I incremented the start time in one-minute intervals for each minute between 10:00 AM and 11:00 AM on a typical weekday and put the results in a time lapse.
 
-The *Prepare Time Lapse Polygons* tool will help you to make a video like this of your own. Or, you can use the results as input to the [*Create Percent Access Polygons*](#PercentAccess) tool for a more quantitative analysis.
+The *Prepare Time Lapse Polygons* tool will help you to make a video like this of your own.  This involves three steps:
 
-The tool parallelizes the Service Area solves across multiple processors on your computer for maximum efficiency.
+1. Prepare a Service Area layer in the map
+2. Run the *Prepare Time Lapse Polygons* tool
+3. Create your time lapse video from the resulting polygon feature class in ArcMap or ArcGIS Pro.
+
+If you'd prefer to create a static output summarizing the results instead of or in addition to a video, you can use the [Create Percent Access Polygons](#PercentAccess) tool.
+
+### 1. Prepare a Service Area layer in the map
+
+All Network Analyst layers, such as a Service Area analysis layer, must reference a network data source. To run this tool, you must create and configure an Origin-Destination Cost Matrix analysis layer referencing a transit-enabled network dataset created with either the downloadable [*Add GTFS to a Network Dataset* toolset](http://arcg.is/10jXez) in ArcMap or the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+
+- [Learn how to create and configure a Service Area analysis layer in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-5-calculating-service-area-and-creating-an-od-cost-matrix.htm)
+- [Learn how to create and configure a Service Area analysis layer in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/service-area-tutorial.htm)
+- [Learn how to configure Service Area properties in ArcMap.](https://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/service-area.htm#GUID-21ADEC62-F784-4180-8D4D-547FB50621FD)
+- [Learn how to configure Service Area properties in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/service-area-analysis-layer.htm#ESRI_SECTION1_D36A18B15D704F0DBA9B4C766A4A2719)
+
+If you're using ArcMap, first make sure to [configure your analysis layer with correct settings](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step8) according to the *Add GTFS to a Network Dataset* tool's user's guide.
+
+You can also save your Service Area analysis layer to a layer file to use as input for the tool.  This is useful if you want to run this tool in a standalone python script.
+
+- [Learn how to save a Network Analyst layer to a layer file in ArcMap.](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/save-to-layer-file.htm)
+- [Learn how to save a Network Analyst layer to a layer file in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/tool-reference/data-management/save-to-layer-file.htm)
+
+
+### 2. Run the *Prepare Time Lapse Polygons* tool
+Once your Service Area layer is prepared, run the *Prepare Time Lapse Polygons* tool to solve the service area for a range of start times and save the output polygons to a feature class.  You can use this feature class to make a time lapse video.
 
 ![Screenshot of tool dialog](./images/Screenshot_PrepareTimeLapsePolygons_Dialog.png)
 
-### Inputs
-* **Facilities**: A feature class or layer of points you want to use as the starting or ending locations for your Service Area polygons.
-* **Output Time Lapse Polygons**: Output feature class created by the tool.
-* **Network Data Source**: The network dataset or service URL to use for the calculation. You should use a transit-enabled network dataset created with the [tools available natively in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm) or an ArcGIS Enterprise service created from such a network. Technically, however, the tool will work with any network dataset that has at least one time-based travel mode.
-* **Travel Mode**: The name of a time-based [travel mode](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/travel-modes.htm) on the network dataset you wish to use to calculate the Service Areas. Typically you should choose a travel mode modeling travel by public transit.
-* **Cutoff Times**: One or more travel time limits for the Service Area calculation. For example, if you want to create Service Area polygons showing the area reachable within 45 minutes of travel time, set the Cutoff Times to 45, and set the Cutoff Time Units to Minutes. You can enter more than one value.
-* **Cutoff Time Units**: The units of time in which to interpret the Cutoff Times.
+#### Inputs
+* **Service Area Layer**: A ready-to-solve Service Area layer in your map or saved as a layer file (see previous section on how to set this up).
+* **Output Polygons Feature Class**: A feature class that will be the output of this tool, which you will use to create your time lapse video.
 * **Start Day (Weekday or YYYYMMDD date)**: Day of the week or YYYYMMDD date for the first start time of your analysis.  [Learn when to use a generic weekday or a specific date.](#Dates)
 * **Start Time (HH:MM) (24 hour time)**: The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2 AM is 02:00, and 2 PM is 14:00.
 * **End Day (Weekday or YYYYMMDD date)**: If you're using a generic weekday for Start Day, you must use the same day for End Day.  If you want to run an analysis spanning multiple days, choose specific YYYYMMDD dates for both Start Day and End Day.
 * **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that a Service Area polygon will be included in the results for the time of day you enter here.
 * **Time Increment (minutes)**: Increment the Service Area's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the results may include a Service Area polygon for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would generate Service Area polygons for 10:00, 10:02, 10:04, etc.
-* **Travel Direction**: Indicates whether the direction of travel for the Service Area should be away from the facilities or toward the facilities. When traveling away from facilities, the times of day are interpreted as the time at which the traveler leaves the facility. When traveling toward facilities, the times of day are interpreted as the time at which the traveler arrives at the facility.
-* **Geometry At Cutoff**: Indicates how geometry will be handled when there are multiple cutoffs.You can choose to create concentric service area polygons as disks or rings. This parameter is irrelevant and hidden if you have only one cutoff.
-  * Rings: The polygons extend between the nearest cutoff values only. They do not include the area of smaller breaks. For example, if you specify cutoffs of 30 and 45 minutes, you will get one polygon representing the area reachable within 0 and 30 minutes and another polygon with the area representing the additional area reachable between 30 and 45 minutes.
-  * Disks: The polygons extend from the facility to the cutoff. For example, if you specify cutoffs of 30 and 45 minutes, you will get one polygon representing the area reachable within 0 and 30 minutes and another polygon representing the area reachable within 0 and 45 minutes.
-* **Geometry At Overlap**: Indicates how geometry will be handled when multiple Service Areas from different facilities overlap one another. This parameter is irrelevant if you have only one facility.
-  * Overlap: An individual polygon is created for each facility. The polygons can overlap each other.
-  * Dissolve: The Service Area polygons of multiple facilities that have the same cutoff values are merged into one polygon. If the polygons of a given break value don't touch, they are nonetheless merged into one multipart polygon.
-  * Split: This option creates individual polygons that are closest for each facility. The polygons do not overlap each other and may not extend to the full cutoff.
-* **Maximum Number of Parallel Processes**: For maximum efficiency, this tool solves the Service Area for different start times in parallel across multiple cores of your machine. This parameter designates the number of parallel processes that can safely be used. You should select a number less than or equal to the number of virtual cores or processors your computer has.
-* **Barriers**: Optionally, choose layers with point, line, or polygon barriers to use in the Service Area analysis.
-* **Precalculate Network Locations**: When doing a Service Area analysis, the input facilities must be ["located" on the network dataset](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/locating-analysis-inputs.htm). Because the tool parallelizes the Service Area across multiple processes, using the same facilities many times, it saves time to calculate the network locations in advance rather than repeating this calculation in every parallel process. The only time you should uncheck this parameter is if you have already calculated the network locations of your input facilities for the network dataset and travel mode you are using, and you simply wish to re-use these.
 
-Advanced users with specific analysis needs can modify additional Service Area analysis properties in the CreateTimeLapsePolygons_SA_config.py file. Note that you may need to close and re-open ArcGIS Pro in order for those changes to be used when the tool runs.
-
-### Outputs
+#### Outputs
 The resulting polygons feature class will contain one row per Service Area per time of day solved when running the tool.  The feature class will contain a field called TimeOfDay indicating the traveler's start time.
 
 If you used a generic weekday instead of a specific date, the date portion of the TimeOfDay field will show dates in 1899 or 1900.  This is "correct", in that these are special reserved dates used by ArcGIS Network Analyst to indicate generic weekdays.
 
-You can use this output to create a time lapse video. [Learn how to create an animation in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/mapping/animation/animate-through-time.htm)
+### 3. Create your time lapse video
+Once you have generated your polygons feature class, you can use it to create a time lapse video in either ArcMap or ArcGIS Pro.
 
-You can also use this output as input to the [*Create Percent Access Polygons*](#PercentAccess) tool.
+#### ArcMap
+First, enable time on the output polygons layer.  Open the layer properties, go to the Time tab, and chose "Enable time on this layer".  Adjust the settings as shown in the screenshot.  Make sure to set the Time Step Interval to the number of minutes you used when you ran the *Prepare Time Lapse Polygons* tool.
+
+![Screenshot of enabling time on a layer](./images/Screenshot_LayerEnableTime_10x.png)
+
+After you have done this, you can follow the steps in the ArcMap documentation for [exporting a time visualization to a video](http://desktop.arcgis.com/en/arcmap/latest/map/time/exporting-a-time-visualization-to-a-video.htm).  For some help using the Time Slider to prepare your video, check out [this documentation](http://desktop.arcgis.com/en/arcmap/latest/map/time/using-the-time-slider.htm).
+
+#### ArcGIS Pro
+[Learn how to create an animation in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/mapping/animation/animate-through-time.htm)
 
 
 ## <a name="Dates"></a>When to use a specific date or a generic weekday in your analysis

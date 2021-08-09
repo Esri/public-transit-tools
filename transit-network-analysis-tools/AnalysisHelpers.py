@@ -1,7 +1,7 @@
 ################################################################################
 ## Toolbox: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 23 July 2021
+## Last updated: 9 August 2021
 ################################################################################
 '''Helper methods for analysis tools.'''
 ################################################################################
@@ -29,7 +29,12 @@ MSG_STR_SPLITTER = " | "
 TIME_UNITS = ["Days", "Hours", "Minutes", "Seconds"]
 MAX_AGOL_PROCESSES = 4  # AGOL concurrent processes are limited so as not to overload the service for other users.
 TIME_FIELD = "TimeOfDay"  # Used for the output of Prepare Time Lapse Polygons
-
+# Create Percent Access Polygons: Field names that must be in the input time lapse polygons
+FACILITY_ID_FIELD = "FacilityID"
+NAME_FIELD = "Name"
+FROM_BREAK_FIELD = "FromBreak"
+TO_BREAK_FIELD = "ToBreak"
+FIELDS_TO_PRESERVE = [FACILITY_ID_FIELD, NAME_FIELD, FROM_BREAK_FIELD, TO_BREAK_FIELD]
 
 def validate_input_feature_class(feature_class):
     """Validate that the designated input feature class exists and is not empty.
@@ -173,6 +178,21 @@ def get_catalog_path(layer):
         return layer
 
 
+def get_catalog_path_from_param(param):
+    """Get the catalog path for the designated input parameter if possible.
+
+    Args:
+        param (arcpy.Parameter): Parameter from which to retrieve the catalog path.
+
+    Returns:
+        string: Catalog path to the data
+    """
+    if hasattr(param.value, "dataSource"):
+        return param.value.dataSource
+    else:
+        return param.valueAsText
+
+
 def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input):
     '''Make a list of datetimes to use as input for a network analysis time of day run in a loop'''
 
@@ -285,3 +305,58 @@ def calculate_TimeOfDay_field(sublayer_object, time_field, time_of_day):
     '''Set the TimeOfDay field to a specific time of day'''
     expression = '"' + str(time_of_day) + '"'  # Unclear why a DATE field requires a string expression, but it does.
     arcpy.management.CalculateField(sublayer_object, time_field, expression, "PYTHON_9.3")
+
+
+def cell_size_to_meters(cell_size_param_value):
+    """Convert the cell size tool parameter string value to a numerical value in units of meters.
+
+    Args:
+        cell_size_param_value (str): cell size tool parameter string value
+
+    Raises:
+        ValueError: If the units are invalid.
+
+    Returns:
+        Optional[float]: Cell size numerical value in units of meters. If the input is empty, return None.
+    """
+    if not cell_size_param_value:
+        return None
+    # Split the cell size string value from the tool parameter into its numerical value and units.
+    # This text splitting behavior works adequately even with language packs and RTL languages because the
+    # Linear Unit type parameter always reads in the valueAsText as "[number] [English units]"
+    cell_size, units = cell_size_param_value.split(" ")
+    # Locales that use a comma as a decimal may return numbers like 10,5, so replace commas with periods before
+    # converting to float.
+    cell_size = float(cell_size.replace(",", "."))
+
+    # Convert the numerical value to meters
+    if units == "Meters":
+        return cell_size
+    if units == "Kilometers":
+        return cell_size * 1000.0
+    if units == "Feet":
+        return cell_size / 3.28084
+    if units == "Yards":
+        return cell_size / 1.0936133
+    if units == "Miles":
+        return cell_size / 0.0006213712121
+    # If we got this far, units are invalid. Tool validation should ensure this never happens, but raise an error
+    # just in case.
+    raise ValueError(f"Invalid cell size units: {units}")
+
+
+class GPError(Exception):
+    """Class for passing through exceptions raised in tool code.
+
+    Used for catching a failed GP tool run within a script and failing out nicely
+    without throwing a traceback.
+    """
+
+    def __init__(self):  # pylint:disable=super-init-not-called
+        """Raise an error."""
+        # Use AddReturnMessage to pass through GP errors.
+        # This ensures that the hyperlinks to the message IDs will work in the UI.
+        for msg in range(0, arcpy.GetMessageCount()):
+            if arcpy.GetSeverity(msg) == 2:
+                arcpy.AddReturnMessage(msg)
+        sys.exit()

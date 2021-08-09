@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 23 July 2021
+## Last updated: 9 August 2021
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -162,8 +162,6 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
                 err = "Unable to check out Network Analyst extension license."
                 arcpy.AddError(err)
                 raise RuntimeError(err) from ex
-            # If the network dataset is a layer, convert it to a catalog path so we can pass it to the subprocess
-            self.network_data_source = AnalysisHelpers.get_catalog_path(self.network_data_source)
 
         # Validate OD Cost Matrix settings and convert travel mode to a JSON string
         self.travel_mode = self._validate_od_settings()
@@ -281,17 +279,22 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
 
     def _update_max_inputs_for_service(self):
         """Check the user's specified max origins and destinations and reduce max to portal limits if required."""
-        lim_max_origins = int(self.service_limits["maximumOrigins"])
-        if lim_max_origins < self.max_origins:
-            self.max_origins = lim_max_origins
-            arcpy.AddMessage(
-                f"Max origins per chunk has been updated to {self.max_origins} to accommodate service limits.")
-        lim_max_destinations = int(self.service_limits["maximumDestinations"])
-        if lim_max_destinations < self.max_destinations:
-            self.max_destinations = lim_max_destinations
-            arcpy.AddMessage(
-                f"Max destinations per chunk has been updated to {self.max_destinations} to accommodate service limits."
-            )
+        lim_max_origins = self.service_limits["maximumOrigins"]
+        if lim_max_origins:
+            lim_max_origins = int(lim_max_origins)
+            if lim_max_origins < self.max_origins:
+                self.max_origins = lim_max_origins
+                arcpy.AddMessage(
+                    f"Max origins per chunk has been updated to {self.max_origins} to accommodate service limits.")
+        lim_max_destinations = self.service_limits["maximumDestinations"]
+        if lim_max_destinations:
+            lim_max_destinations = int(lim_max_destinations)
+            if lim_max_destinations < self.max_destinations:
+                self.max_destinations = lim_max_destinations
+                arcpy.AddMessage((
+                    f"Max destinations per chunk has been updated to {self.max_destinations} to accommodate service "
+                    "limits."
+                ))
 
     def _precalculate_network_locations(self, input_features):
         """Precalculate network location fields if possible for faster loading and solving later.
