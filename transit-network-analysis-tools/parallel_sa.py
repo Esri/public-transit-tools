@@ -532,7 +532,7 @@ class ParallelSACalculator():
         if not self.sa_poly_fcs:
             LOGGER.error("All Service Area calculations failed. No output will be written.")
             return
-        LOGGER.debug("Merging Service Area results...")
+        LOGGER.info("Merging Service Area results...")
         run_gp_tool(arcpy.management.Merge, [self.sa_poly_fcs, self.output_polygons])
         LOGGER.info(f"Results written to {self.output_polygons}.")
 
