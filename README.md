@@ -1,14 +1,9 @@
 # public-transit-tools
-This project contains tools for working with public transit data in ArcGIS.  Each folder contains a different tool with documentation.
+This project contains tools for working with public transit data in ArcGIS.
 
-- [add-GTFS-to-a-network-dataset](add-GTFS-to-a-network-dataset/README.md)
 - [transit-network-analysis-tools](transit-network-analysis-tools/README.md)
-- [transit-network-analysis-tools-arcmap](transit-network-analysis-tools-arcmap/README.md)
-- [better-bus-buffers](better-bus-buffers/README.md)
-- [display-GTFS-in-ArcGIS](display-GTFS-in-ArcGIS/README.md)
-- [edit-GTFS-stop-locations](edit-GTFS-stop-locations/README.md)
-- [generate-GTFS-shapes](generate-GTFS-shapes/README.md)
 - [send-GTFS-rt-to-GeoEvent](send-GTFS-rt-to-GeoEvent/README.md)
+- [deprecated-tools](deprecated-tools/README.md)
 
 ## Resources
 
