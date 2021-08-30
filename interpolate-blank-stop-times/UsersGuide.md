@@ -75,4 +75,4 @@ This method is fairly simplistic, but it should provide a reasonable estimate fo
 * The tool takes forever to run: For small stop_times.txt files and for files with only a small number of blank stop times, this tool will run fairly quickly.  However, this tool will take a considerable time to run for very large datasets with a large number of blank times.  It may take many hours to complete.  Progress is reported in  increments of 10%.
 
 ## Questions or problems?
-Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+Search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).

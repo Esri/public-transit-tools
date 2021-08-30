@@ -30,7 +30,7 @@ If you are looking for the older version of this toolbox that worked with ArcMap
 
 ## Issues
 
-Find a bug or want to request a new feature?  Please let us know by submitting an issue, or post a question in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+Find a bug or want to request a new feature?  Please let us know by submitting an issue, or post a question in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).
 
 ## Contributing
 

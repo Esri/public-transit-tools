@@ -72,4 +72,4 @@ For detailed information on editing in ArcGIS Pro, read about editing in the [Ar
 - **[Your designated output stops.txt file]**: The new stops.txt file that incorporates the edits you made to the stop locations and attributes.  The stop_lon and stop_lat fields will be automatically updated with the new stop locations. *Note: If you used a shapefile for your stops feature class and you had field names longer than 10 characters that aren't part of the standard GTFS specification, these field names will be truncated to 10 characters in the resulting stops.txt file, and you will have to manually correct them.*
 
 ## Questions or problems?
-Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+Search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).

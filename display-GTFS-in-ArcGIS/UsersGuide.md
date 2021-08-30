@@ -89,4 +89,4 @@ If you want to rearrange the draw order of your different transit shapes, do the
 Coming soon...
 
 ## Questions or problems?
-Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+Search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).

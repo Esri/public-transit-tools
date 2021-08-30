@@ -16,7 +16,7 @@ This project contains tools for working with public transit data in ArcGIS.  Eac
 
 ## Issues
 
-Find a bug or want to request a new feature?  Please let us know by submitting an [issue](../../issues), or post a question in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+Find a bug or want to request a new feature?  Please let us know by submitting an [issue](../../issues), or post a question in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).
 
 ## Contributing
 
