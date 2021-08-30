@@ -288,4 +288,4 @@ This tool will run very quickly for small GTFS datasets or if you are only updat
 * **I got a warning message saying "Warning! Some shapes had no geometry or 0 length. These shapes were written to shapes.txt, but all shape_dist_traveled values for the shape will have a value of 0.0."**: This occurs if one of the shapes in your Shapes feature class has 0 length or no geometry.  This could occur if the transit line has only two stops, both of which are in the same location.  This is probably an error in the GTFS data.
 
 ## Questions or problems?
-Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+Search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).

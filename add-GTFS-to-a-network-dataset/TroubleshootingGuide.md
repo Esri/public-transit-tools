@@ -33,7 +33,7 @@ This document describes some common problems encountered by users of *Add GTFS t
   - [I upgraded ArcMap to a new version, and now Add GTFS to a Network Dataset.tbx and Transit Analysis Tools.tbx are no longer in ArcToolbox](#ArcMapUpgrade)
   - [The Network Identify tool always shows a cost of -1 for TransitLines edges in my network](#NetworkIdentify)
 
-If you haven't found your answer here, search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+If you haven't found your answer here, search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).
 
 
 ## <a name="Registration"></a>I can't register/install the transit evaluator

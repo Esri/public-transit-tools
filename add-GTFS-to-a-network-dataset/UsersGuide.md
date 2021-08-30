@@ -488,4 +488,4 @@ These tools are exploratory prototypes designed to help Esri further its develop
 Because these are prototype tools and have not been extensively tested, we cannot guarantee that the results of your analyses will be accurate.  Please keep this in mind if you plan to use your analyses your research or publications. You are welcome to contact us to discuss questions or concerns or if you would like more detailed information about how the tools work.
 
 ## Questions or problems?
-Check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md).  If you're still having trouble, search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+Check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md).  If you're still having trouble, search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).

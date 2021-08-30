@@ -81,7 +81,7 @@ The *Preprocess GTFS* tool converts your GTFS dataset(s) into a SQL database.  T
   * Alternatively, if you do not wish to use a specific date for your analysis, you can make a copy of your calendar.txt file and modify the data in the file to remove the non-overlapping date ranges.  For example, if your file has a set of service_ids for the summer months and a set for the winter months, and you're interested in analyzing the summer months, delete all the rows with date ranges for the winter months.  Make sure your cleaned up file is still called calendar.txt so the tool recognizes it.
   * If you are analyzing multiple GTFS datasets at a time, and the datasets have non-overlapping date ranges, you will get the same error as you will if service_ids in one dataset have non-overlapping date ranges.  The date range problem is less of an issue (or not an issue at all) if it occurs in different datasets, but you should double-check anyway to make sure you understand your data.
 
-Still having problems?  Search for answers and post questions in our [GeoNet group](https://community.esri.com/community/arcgis-for-public-transit).
+Still having problems?  Search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).
 
 
 ## <a name="CountTripsForIndividualRoute"></a>Running *Count Trips for Individual Route*
