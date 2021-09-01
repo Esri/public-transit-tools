@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta content="IE=edge" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, user-scalable=no">
-    <title>View live GTFS Realtime data | Public Transit in ArcGIS</title>
+    <title>Model travel by public transit in a network | Public Transit in ArcGIS</title>
     <link rel="shortcut icon" href="/img/favicon.ico">
     <!-- get calcite-web css from the cdn (use latest version) -->
     <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/css/calcite-web.min.css">
@@ -36,21 +36,21 @@
     <div class="column-24">
       <h1 class="sub-nav-title text-white"><span class="banner-title">Tools</span></h1>
       <select class="phone-show select-full trailer-half js-select-nav">
-<option value="./NetworkAnalysis.html">Model travel by public transit in a network</option>
+<option value="./NetworkAnalysis.html" selected>Model travel by public transit in a network</option>
 <option value="./CalculateFrequency.html">Analyze the frequency of transit service</option>
 <option value="./VisualizeGTFS.html">Visualize GTFS data in a map</option>
 <option value="./EditGTFS.html">Create and edit GTFS data</option>
 <option value="./TransitSolution.html">Engage with riders and monitor safety</option>
-<option value="./GTFSRTConnector.html" selected>View live GTFS Realtime data</option>
+<option value="./GTFSRTConnector.html">View live GTFS Realtime data</option>
 <option value="./DeprecatedTools.html">Deprecated tools</option>
 </select>
 <nav class="sub-nav-list phone-hide" aria-labelledby="subnav">
-<a class="sub-nav-link" href="./NetworkAnalysis.html">Model travel by public transit in a network</a>
+<a class="sub-nav-link is-active" href="./NetworkAnalysis.html">Model travel by public transit in a network</a>
 <a class="sub-nav-link" href="./CalculateFrequency.html">Analyze the frequency of transit service</a>
 <a class="sub-nav-link" href="./VisualizeGTFS.html">Visualize GTFS data in a map</a>
 <a class="sub-nav-link" href="./EditGTFS.html">Create and edit GTFS data</a>
 <a class="sub-nav-link" href="./TransitSolution.html">Engage with riders and monitor safety</a>
-<a class="sub-nav-link is-active" href="./GTFSRTConnector.html">View live GTFS Realtime data</a>
+<a class="sub-nav-link" href="./GTFSRTConnector.html">View live GTFS Realtime data</a>
 <a class="sub-nav-link" href="./DeprecatedTools.html">Deprecated tools</a>
 </nav>
     </div>
@@ -61,14 +61,13 @@
 
   <div class="column-7">
 
-    <img src="./images/GTFSRTConnector.png" alt="View live GTFS Realtime data screenshot">
+    <img src="./images/NetworkAnalysis.png" alt="Model travel by public transit in a network screenshot">
 
     <aside class="side-nav" id="sidenav">
 
       <nav aria-labelledby="sidenav">
 
-        <a href="https://arcg.is/1T8j4X" rel="noopener" target="_blank" class="side-nav-link">Download</a>
-<a href="https://github.com/Esri/gtfsrealtime-for-geoevent" rel="noopener" target="_blank" class="side-nav-link">GitHub</a>
+        <a href="https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/create-and-use-a-network-dataset-with-public-transit-data.htm" rel="noopener" target="_blank" class="side-nav-link">Tutorial</a>
 
       </nav>
 
@@ -79,18 +78,42 @@
   <!-- main content -->
   <div class="column-16 pre-1">
 
-    <h2 class="leader-1">View live GTFS Realtime data</h2>
+    <h2 class="leader-1">Model travel by public transit in a network</h2>
 
-    <p><strong>Use the GTFS Realtime Connector for GeoEvent to view GTFS Realtime trip updates, service alerts, and vehicle positions in a map.</strong></p>
+    <p><strong>Include your GTFS data in a network dataset and use the Network Analyst extension in ArcGIS Pro to model trips by public transit to study things like access to jobs, commute times, and disparities in access.</strong></p>
 
-    <p><a href="https://developers.google.com/transit/gtfs-realtime/" rel="noopener" target="_blank">GTFS Realtime</a> is an extension to static GTFS that provides a standard format for the real time status of a transit system, such as the positions of buses and trains, information about delays, and service alerts.  The GTFS Realtime Connector for <a href="https://server.arcgis.com/en/geoevent/" rel="noopener" target="_blank">GeoEvent Server</a> allows you to ingest GTFS Realtime feeds and display them in a map.</p>
-
-    <p>The GTFS Realtime Connector for GeoEvent Server can poll and process the three feed types listed below:</p>
-    <ul>
-      <li>Trip updates – delays, cancellations, updated routes, etc.</li>
-      <li>Service alerts – stop moved, unforeseen events affecting a station, route, or the entire network, etc.</li>
-      <li>Vehicle positions – information about transit vehicles including location and congestion level.</li>
-    </ul>
+    <p>The <a href="https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/what-is-network-analyst-.htm" target="_blank" rel="noopener">Network Analyst</a>
+        extension in ArcGIS includes tools for transportation analysis and routing, particularly
+        for modeling and optimizing travel through a transportation network. You can include public transit schedule
+        data in your transportation network in order to model travel by public transit for a variety of workflows in
+        transportation and urban planning, public health, economic development, and so on.
+    </p>
+    <p>You can learn more about network analysis with public transit in ArcGIS Pro
+        <a href="https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/network-analysis-with-public-transit-data.htm" target="_blank" rel="noopener">here</a>
+        and <a href="https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/create-and-use-a-network-dataset-with-public-transit-data.htm" target="_blank" rel="noopener">follow this tutorial</a>
+        to prepare a routable network dataset using GTFS data and your street centerlines.
+    </p>
+    <p>Once you have created your transit-enabled network dataset using the tools provided in ArcGIS Pro, you may be
+        interested in doing some further analysis. The downloadable Transit Network Analysis Tools are a set of tools
+        for performing transit-specific network analysis. They are intended to supplement the Network Analyst extension
+        with functionality not available out of the box. In particular, the tools account for the time-dependent nature
+        of public transit and assist with analyses commonly needed by those working with public transit. You can
+        download this free toolbox from
+        <a href="https://www.arcgis.com/home/item.html?id=23cc1b720eb0418db4d0e61955b8fe43" target="_blank" rel="noopener">ArcGIS Online</a> or
+        <a href="https://github.com/Esri/public-transit-tools/tree/master/transit-network-analysis-tools" target="_blank" rel="noopener">GitHub</a>.
+        <ul>
+            <li><em>Calculate Accessibility Matrix</em> solves an Origin-Destination Cost Matrix analysis incrementally
+                over a time window and summarizes the results. It can be used to count the number of jobs accessible
+                to a set of origins within a reasonable commute time.
+            </li>
+            <li><em>Calculate Travel Time Statistics</em> calculates some simple statistics about the total transit
+                travel time between locations over a time window and writes the output to a table.
+            </li>
+            <li><em>Create Percent Access Polygons</em> and <em>Create Percent Access Polygons</em> help you visualize
+                the area reachable by transit across a time window.
+            </li>
+        </ul>
+    </p>
 
   </div>
 

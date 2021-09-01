@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta content="IE=edge" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, user-scalable=no">
-    <title>View live GTFS Realtime data | Public Transit in ArcGIS</title>
+    <title>Create and edit GTFS data | Public Transit in ArcGIS</title>
     <link rel="shortcut icon" href="/img/favicon.ico">
     <!-- get calcite-web css from the cdn (use latest version) -->
     <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/css/calcite-web.min.css">
@@ -39,18 +39,18 @@
 <option value="./NetworkAnalysis.html">Model travel by public transit in a network</option>
 <option value="./CalculateFrequency.html">Analyze the frequency of transit service</option>
 <option value="./VisualizeGTFS.html">Visualize GTFS data in a map</option>
-<option value="./EditGTFS.html">Create and edit GTFS data</option>
+<option value="./EditGTFS.html" selected>Create and edit GTFS data</option>
 <option value="./TransitSolution.html">Engage with riders and monitor safety</option>
-<option value="./GTFSRTConnector.html" selected>View live GTFS Realtime data</option>
+<option value="./GTFSRTConnector.html">View live GTFS Realtime data</option>
 <option value="./DeprecatedTools.html">Deprecated tools</option>
 </select>
 <nav class="sub-nav-list phone-hide" aria-labelledby="subnav">
 <a class="sub-nav-link" href="./NetworkAnalysis.html">Model travel by public transit in a network</a>
 <a class="sub-nav-link" href="./CalculateFrequency.html">Analyze the frequency of transit service</a>
 <a class="sub-nav-link" href="./VisualizeGTFS.html">Visualize GTFS data in a map</a>
-<a class="sub-nav-link" href="./EditGTFS.html">Create and edit GTFS data</a>
+<a class="sub-nav-link is-active" href="./EditGTFS.html">Create and edit GTFS data</a>
 <a class="sub-nav-link" href="./TransitSolution.html">Engage with riders and monitor safety</a>
-<a class="sub-nav-link is-active" href="./GTFSRTConnector.html">View live GTFS Realtime data</a>
+<a class="sub-nav-link" href="./GTFSRTConnector.html">View live GTFS Realtime data</a>
 <a class="sub-nav-link" href="./DeprecatedTools.html">Deprecated tools</a>
 </nav>
     </div>
@@ -61,14 +61,16 @@
 
   <div class="column-7">
 
-    <img src="./images/GTFSRTConnector.png" alt="View live GTFS Realtime data screenshot">
+    <img src="./images/EditGTFS.png" alt="Create and edit GTFS data screenshot">
 
     <aside class="side-nav" id="sidenav">
 
       <nav aria-labelledby="sidenav">
 
-        <a href="https://arcg.is/1T8j4X" rel="noopener" target="_blank" class="side-nav-link">Download</a>
-<a href="https://github.com/Esri/gtfsrealtime-for-geoevent" rel="noopener" target="_blank" class="side-nav-link">GitHub</a>
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/gtfs-stops-to-features.htm" rel="noopener" target="_blank" class="side-nav-link">GTFS Stops To Features</a>
+<a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/features-to-gtfs-stops.htm" rel="noopener" target="_blank" class="side-nav-link">Features To GTFS Stops</a>
+<a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/generate-shapes-features-from-gtfs.htm" rel="noopener" target="_blank" class="side-nav-link">Generate Shapes Features From GTFS</a>
+<a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/features-to-gtfs-shapes.htm" rel="noopener" target="_blank" class="side-nav-link">Features To GTFS Shapes</a>
 
       </nav>
 
@@ -79,18 +81,28 @@
   <!-- main content -->
   <div class="column-16 pre-1">
 
-    <h2 class="leader-1">View live GTFS Realtime data</h2>
+    <h2 class="leader-1">Create and edit GTFS data</h2>
 
-    <p><strong>Use the GTFS Realtime Connector for GeoEvent to view GTFS Realtime trip updates, service alerts, and vehicle positions in a map.</strong></p>
+    <p><strong>Create and edit GTFS stops.txt and shapes.txt files using the geographic capabilities of ArcGIS Pro.</strong></p>
 
-    <p><a href="https://developers.google.com/transit/gtfs-realtime/" rel="noopener" target="_blank">GTFS Realtime</a> is an extension to static GTFS that provides a standard format for the real time status of a transit system, such as the positions of buses and trains, information about delays, and service alerts.  The GTFS Realtime Connector for <a href="https://server.arcgis.com/en/geoevent/" rel="noopener" target="_blank">GeoEvent Server</a> allows you to ingest GTFS Realtime feeds and display them in a map.</p>
-
-    <p>The GTFS Realtime Connector for GeoEvent Server can poll and process the three feed types listed below:</p>
-    <ul>
-      <li>Trip updates – delays, cancellations, updated routes, etc.</li>
-      <li>Service alerts – stop moved, unforeseen events affecting a station, route, or the entire network, etc.</li>
-      <li>Vehicle positions – information about transit vehicles including location and congestion level.</li>
-    </ul>
+    <p>Although ArcGIS doesn't have a comprehensive GTFS editing or creation tool, you can create and edit the
+        geographic components of a GTFS dataset in ArcGIS Pro.
+    </p>
+    <p>You can import your GTFS stops.txt file to ArcGIS Pro using the
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/gtfs-stops-to-features.htm" target="_blank" rel="noopener">GTFS Stops To Features</a> tool,
+        use the standard editing tools to update stop locations or attributes, and export the edits to an updated
+        stops.txt file using the
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/features-to-gtfs-stops.htm" target="_blank" rel="noopener">Features To GTFS Stops</a>
+        tool.
+    </p>
+    <p>You to create a shapes.txt file for your GTFS dataset based on the existing stop, route, and schedule information
+        using the
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/generate-shapes-features-from-gtfs.htm" target="_blank" rel="noopener">Generate Shapes Features From GTFS</a> and
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/features-to-gtfs-shapes.htm" target="_blank" rel="noopener">Features To GTFS Shapes</a>
+        tools. Generate Shapes Features From GTFS generates good estimates for the geographic paths used by vehicles in
+        the transit system and writes the output to a feature class. You can review and edit these line features before
+        running the Features To GTFS Shapes tool, which exports the shapes into a new shapes.txt file.
+    </p>
 
   </div>
 
