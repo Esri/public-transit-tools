@@ -1,8 +1,8 @@
 # Add GTFS to a Network Dataset Troubleshooting Guide
 
-Created by Melinda Morang, Esri  
+Created by Melinda Morang, Esri
 
-Copyright 2018 Esri  
+Copyright 2018 Esri
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 
@@ -67,7 +67,7 @@ If one of the steps above fails, it's likely that ArcMap's reference to python i
 ## <a name="LineShape"></a>My TransitLines feature class has diagonal lines everywhere and doesn't look like the actual transit system
 This is correct.  The TransitLines feature class contains straight-line connections between transit stops that are directly connected by transit service.  They are meant to conceptually represent the connection rather than the actual paths taken by transit vehicles.
 
-The Add GTFS to a Network Dataset toolbox produces data designed specifically to be incorporated into a network dataset to be used for transit network analysis.  Because the network dataset will use travel times derived from the GTFS schedules, the geometry of the TransitLines features is actually irrelevant to the analysis.  
+The Add GTFS to a Network Dataset toolbox produces data designed specifically to be incorporated into a network dataset to be used for transit network analysis.  Because the network dataset will use travel times derived from the GTFS schedules, the geometry of the TransitLines features is actually irrelevant to the analysis.
 
 If you wish to create a nice-looking visual representation of your transit lines, you should instead use the [Display GTFS in ArcGIS](http://esri.github.io/public-transit-tools/DisplayGTFSinArcGIS.html) toolbox.
 
@@ -136,7 +136,7 @@ You might see this error if the network dataset is stored on a shared network dr
 
 
 ## <a name="noEIDs"></a>During schedule caching, I got an error that said "All EIDs were null in the transit schedule table. Please run Get Network EIDs."
-The most straightforward cause of this error is that you simply forgot to run the [Get Network EIDs tool](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#Step7) after building (or re-building) your network dataset.  If this is the case, just run that tool and try again.
+The most straightforward cause of this error is that you simply forgot to run the [Get Network EIDs tool](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/UsersGuide.md#Step7) after building (or re-building) your network dataset.  If this is the case, just run that tool and try again.
 
 If you still see this error after successfully running the Get Network EIDs tool, it's possible that your network dataset was never successfully built, probably due to unresolved [build errors](#BuildErrors).  A likely culprit is that you have a [Hierarchy attribute](#Hierarchy) that is generating a large number of errors.
 
@@ -184,10 +184,10 @@ If you are solving a Service Area analysis, you need to prevent service areas fr
 
 
 ## <a name="Directions"></a>How can I generate directions with transit?
-Unfortunately, ArcMap's directions engine does not support directions with public transit. If you attempt to generate directions using a Route or Closest Facility, you will not see directions that make sense for public transit.  Your only option would be to post-process your results using the [Copy Traversed Source Features (with Transit)](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md#CopyTraversed) tool and generate your own directions using the output from that tool, which would be a significant effort.
+Unfortunately, ArcMap's directions engine does not support directions with public transit. If you attempt to generate directions using a Route or Closest Facility, you will not see directions that make sense for public transit.  Your only option would be to post-process your results using the [Copy Traversed Source Features (with Transit)](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md#CopyTraversed) tool and generate your own directions using the output from that tool, which would be a significant effort.
 
 ## <a name="CopyTraversed"></a>How can I find out which transit lines were used in my Route or Closest Facility analysis?
-When you solve a Route or Closest Facility analysis, the resulting routes are given as a single line feature with attributes that describe the entire journey.  If you would like to find out which individual transit stops and lines were used in this journey, you can use the [Copy Traversed Source Features (with Transit)](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md#CopyTraversed) tool in the Transit Analysis Tools toolbox that is included in the Add GTFS to a Network Dataset download.
+When you solve a Route or Closest Facility analysis, the resulting routes are given as a single line feature with attributes that describe the entire journey.  If you would like to find out which individual transit stops and lines were used in this journey, you can use the [Copy Traversed Source Features (with Transit)](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/UsersGuide_TransitAnalysisTools.md#CopyTraversed) tool in the Transit Analysis Tools toolbox that is included in the Add GTFS to a Network Dataset download.
 
 ## <a name="Memory"></a>I got a Memory Error, or ArcMap hung or crashed
 ArcMap is a 32-bit application, which means that even if you have a powerful computer with lots of memory, ArcMap cannot make use of all those resources.  Memory errors (or hanging or crashing) are not uncommon when solving large network analysis problems.
@@ -195,8 +195,8 @@ ArcMap is a 32-bit application, which means that even if you have a powerful com
 The way around this is to install ArcGIS Server or the 64-bit Background Geoprocessing extension.  In ArcMap, enable background processing (Geoprocessing menu -> Geoprocessing Options -> Background Processing -> Enable).  Now, when you run geoprocessing tools, they will run in the background in a 64-bit environment and will be able to use your computer's full memory resources.  Note that if you want to solve a network analysis layer in the 64-bit environment, you must use the Solve geoprocessing tool instead of the Solve button on the Network Analyst toolbar.
 
 Before you can use your transit-enabled network dataset successfully in the 64-bit environment, you have to additionally register the transit evaluator against ArcGIS Server or the 64-bit Background Geoprocessing extension, as appropriate.  Instructions for this are in the user's guide:
-- [Registering the evaluator with ArcGIS Server](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#using-your-network-dataset-with-arcgis-server)
-- [Registering the evaluator with the 64-bit Background Geoprocessing extension](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md#using-your-network-dataset-with-64-bit-background-geoprocessing)
+- [Registering the evaluator with ArcGIS Server](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/UsersGuide.md#using-your-network-dataset-with-arcgis-server)
+- [Registering the evaluator with the 64-bit Background Geoprocessing extension](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/UsersGuide.md#using-your-network-dataset-with-64-bit-background-geoprocessing)
 
 
 With one of these products installed, you can also run scripts in standalone python in the 64-bit environment.  To do this, you simply need to run the script against the 64-bit python installation that was installed when you installed ArcGIS Server or the 64-bit Background Geoprocessing extension.  Typically the python executable can be found at C:\Python27\ArcGISx6410.6\python.exe, or equivalent.
