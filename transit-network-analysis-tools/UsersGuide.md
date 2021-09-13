@@ -101,6 +101,7 @@ This tool performs a large number of calculations and post-processes a large amo
 
 When performing the OD Cost Matrix calculation, the tool chunks up the problem and parallelizes it, utilizing multiple cores on your machine. It writes the intermediate output to disk in a scratch folder. When all the OD Cost Matrix calculations are finished, it reads in these intermediate output and post-processes them. These processes require both sufficient memory resources and free disk space. The required memory resources are hard to estimate, but if you are running this tool for a large problem and have concerns about memory, it would be best to close all other applications so the tool doesn't have to compete for resources with other programs. The intermediate outputs saved in the scratch folder can be on the order of several gigabytes of data. They are deleted when the tool finishes. 
 
+You will get better performance with this tool if you have more memory, a faster CPU with a larger number of cores, and a solid state disk drive with plenty of space for intermediate outputs to be written and read.
 
 ## <a name="Stats"></a>Calculate Travel Time Statistics
 The time it takes to travel between one location and other by public transit varies throughout the day depending on the transit schedule.  This tool calculates some simple statistics about the total transit travel time between locations over a time window and writes the output to a table.
