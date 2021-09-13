@@ -288,7 +288,7 @@ class CreatePercentAccessPolygons(object):
         self.description = (
             "This script will compute the percentage of times an isochrone represents an areas transit access based ",
             "on the union of time lapsed polygons. It will provide a polyon representation of transit's range of ",
-            "access that can be used for weighted accessibilty calculations."
+            "access that can be used for weighted accessibility calculations."
         )
         self.canRunInBackground = True
 
