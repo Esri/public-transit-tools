@@ -96,6 +96,11 @@ If you care about a bare minimum of access, use the *TotalDests* field.  If you 
 
 **PsAL10Perc**, **PsAL20Perc**, ..., **PsAL90Perc**:  These are companion fields to *DsAL10Perc*, *DsAL20Perc*, etc. and have the same relationship that *PercDests* does to *TotalDests*.  For example, *PsAL10Perc* is *DsAL10Perc* divided by the total weighted number of destinations that were included in the analysis.
 
+### Tool performance
+This tool performs a large number of calculations and post-processes a large amount of output data, so it can often take a very long time to run and use substantial computational resources. Larger numbers of origins and destinations and large time windows will make the tool run more slowly. Expect the tool to take several hours to run for a dense analysis of a metropolitan area (example: counting the number of jobs accessible to every census block centroid in a city).
+
+When performing the OD Cost Matrix calculation, the tool chunks up the problem and parallelizes it, utilizing multiple cores on your machine. It writes the intermediate output to disk in a scratch folder. When all the OD Cost Matrix calculations are finished, it reads in these intermediate output and post-processes them. These processes require both sufficient memory resources and free disk space. The required memory resources are hard to estimate, but if you are running this tool for a large problem and have concerns about memory, it would be best to close all other applications so the tool doesn't have to compete for resources with other programs. The intermediate outputs saved in the scratch folder can be on the order of several gigabytes of data. They are deleted when the tool finishes. 
+
 
 ## <a name="Stats"></a>Calculate Travel Time Statistics
 The time it takes to travel between one location and other by public transit varies throughout the day depending on the transit schedule.  This tool calculates some simple statistics about the total transit travel time between locations over a time window and writes the output to a table.
