@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 9 August 2021
+## Last updated: 13 September 2021
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -104,6 +104,8 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
             arcpy.env.scratchGDB,  # pylint: disable=no-member
             arcpy.CreateUniqueName("TempDests", arcpy.env.scratchGDB)  # pylint: disable=no-member
         )
+        # If the input origins are polygons, this variable will be set differently and post-processed
+        self.origins_for_od = self.output_origins
 
         self.time_window_start_day = time_window_start_day
         self.time_window_start_time = time_window_start_time
@@ -113,12 +115,19 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
 
         self.same_origins_destinations = bool(self.origins == self.destinations)
 
+        self.origin_shape_type = None
+        self.destination_shape_type = None
+
         self.max_origins = self.chunk_size
         self.max_destinations = self.chunk_size
 
         self.is_service = AnalysisHelpers.is_nds_service(self.network_data_source)
         self.service_limits = None
         self.is_agol = False
+
+        self.out_fields = ["TotalDests", "PercDests"] + \
+                          [f"DsAL{perc}Perc" for perc in range(10, 100, 10)] + \
+                          [f"PsAL{perc}Perc" for perc in range(10, 100, 10)]
 
     def _validate_inputs(self):
         """Validate the OD Cost Matrix inputs."""
@@ -144,6 +153,8 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
         AnalysisHelpers.validate_input_feature_class(self.origins)
         AnalysisHelpers.validate_input_feature_class(self.destinations)
         self._validate_weight_field()
+        self.origin_shape_type = arcpy.Describe(self.origins).shapeType
+        self.destination_shape_type = arcpy.Describe(self.destinations).shapeType
         for barrier_fc in self.barriers:
             AnalysisHelpers.validate_input_feature_class(barrier_fc)
         # If the barriers are layers, convert them to catalog paths so we can pass them to the subprocess
@@ -331,36 +342,73 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
 
     def _preprocess_inputs(self):
         """Preprocess the input feature classes to prepare them for use in the OD Cost Matrix."""
-        # Copy Origins to output and copy Destinations to a temporary location
+        # Copy Origins to output
         arcpy.AddMessage("Copying origins to output...")
         arcpy.conversion.FeatureClassToFeatureClass(
             self.origins,
             os.path.dirname(self.output_origins),
             os.path.basename(self.output_origins)
         )
-        if not self.same_origins_destinations:
-            arcpy.conversion.FeatureClassToFeatureClass(
-                self.destinations,
-                os.path.dirname(self.temp_destinations),
-                os.path.basename(self.temp_destinations)
+        self._delete_existing_output_fields(self.output_origins)
+        if self.origin_shape_type == "Polygon":
+            # Special handling if the input origins were polygons. In this case, convert the polygons to points
+            # for use with the OD Cost Matrix. Later, we will rejoin the output fields to the output polygons.
+            self.origins_for_od = os.path.join(
+                arcpy.env.scratchGDB,  # pylint: disable=no-member
+                arcpy.CreateUniqueName("TempOrigins", arcpy.env.scratchGDB)  # pylint: disable=no-member
             )
+            self._polygons_to_points(self.output_origins, self.origins_for_od)
+
+        # Make a temporary copy of the destinations so location fields can be calculated without modifying
+        # the input. Also convert from polygons if needed.
+        if not self.same_origins_destinations:
+            arcpy.AddMessage("Copying destinations...")
+            if self.destination_shape_type == "Polygon":
+                self._polygons_to_points(self.destinations, self.temp_destinations)
+            else:
+                arcpy.conversion.FeatureClassToFeatureClass(
+                    self.destinations,
+                    os.path.dirname(self.temp_destinations),
+                    os.path.basename(self.temp_destinations)
+                )
 
         # Precalculate network location fields for inputs
         if not self.is_service and self.should_precalc_network_locations:
-            self._precalculate_network_locations(self.output_origins)
+            self._precalculate_network_locations(self.origins_for_od)
             if not self.same_origins_destinations:
                 self._precalculate_network_locations(self.temp_destinations)
             for barrier_fc in self.barriers:
                 self._precalculate_network_locations(barrier_fc)
 
-        # Delete pre-existing output fields in origins. This way we can calculate them afresh and ensure correct type.
-        origin_fields = [f.name for f in arcpy.ListFields(self.output_origins)]
-        out_fields = ["TotalDests", "PercDests"] + \
-                     [f"DsAL{perc}Perc" for perc in range(10, 100, 10)] + \
-                     [f"PsAL{perc}Perc" for perc in range(10, 100, 10)]
-        fields_to_delete = [f for f in origin_fields if f in out_fields]
+    @staticmethod
+    def _polygons_to_points(in_fc, out_fc):
+        """Convert polygon inputs to a point feature class."""
+        arcpy.AddMessage(
+            f"Converting polygon-based input {in_fc} to points for use in the OD Cost Matrix analysis...")
+        try:
+            arcpy.management.FeatureToPoint(in_fc, out_fc, "INSIDE")
+        except arcpy.ExecuteError:
+            # Weird geometry problems in the input polygons can cause Feature To Point to fail. The user should run
+            # Repair Geometry and try again.
+            arcpy.AddError((
+                f"Failed to convert polygon-based input {in_fc} to points for use in the OD Cost Matrix analysis. "
+                "Try running the Repair Geometry tool on the input polygons."
+            ))
+            # Use AddReturnMessage to pass through GP errors.
+            # This ensures that the hyperlinks to the message IDs will work in the UI.
+            for msg in range(0, arcpy.GetMessageCount()):
+                if arcpy.GetSeverity(msg) == 2:
+                    arcpy.AddReturnMessage(msg)
+                raise arcpy.ExecuteError
+
+    def _delete_existing_output_fields(self, origin_fc):
+        """Delete pre-existing output fields in origins."""
+        # This way we can calculate them afresh and ensure correct type.
+        origin_fields = [f.name for f in arcpy.ListFields(origin_fc)]
+        fields_to_delete = [f for f in origin_fields if f in self.out_fields + ["ORIG_FID"]]
         if fields_to_delete:
-            arcpy.management.DeleteField(self.output_origins, fields_to_delete)
+            arcpy.AddMessage("Deleting pre-existing output fields...")
+            arcpy.management.DeleteField(origin_fc, fields_to_delete)
 
     def _execute_solve(self):
         """Solve the OD Cost Matrix analysis."""
@@ -370,7 +418,7 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
         odcm_inputs = [
             os.path.join(sys.exec_prefix, "python.exe"),
             os.path.join(cwd, "parallel_odcm.py"),
-            "--origins", self.output_origins,
+            "--origins", self.origins_for_od,
             "--destinations", self.temp_destinations,
             "--network-data-source", self.network_data_source,
             "--travel-mode", self.travel_mode,
@@ -426,6 +474,30 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
             if return_code != 0:
                 arcpy.AddError("OD Cost Matrix script failed.")
 
+        # If the input origins were polygons, post-process the OD points to join the output fields back
+        # to the polygon feature class
+        if self.output_origins != self.origins_for_od:
+            arcpy.AddMessage("Joining output fields to final polygon output Origins...")
+            origins_oid = arcpy.Describe(self.output_origins).oidFieldName
+            arcpy.management.JoinField(
+                self.output_origins, origins_oid,
+                self.origins_for_od, "ORIG_FID",
+                self.out_fields
+            )
+
+    def _delete_intermediate_outputs(self):
+        """Clean up intermediate outputs."""
+        arcpy.AddMessage("Deleting temporary origins and destinations...")
+        try:
+            arcpy.management.Delete(self.temp_destinations)
+            if self.output_origins != self.origins_for_od:
+                # This is the case when polygon origins were converted temporarily to points.
+                # Delete the temporary points.
+                arcpy.management.Delete(self.origins_for_od)
+        except Exception:  # pylint: disable=broad-except
+            # If deletion doesn't work, just throw a warning and move on. This does not need to kill the tool.
+            arcpy.AddWarning("Unable to delete intermediate origin or destination feature class.")
+
     def solve_large_od_cost_matrix(self):
         """Solve the large OD Cost Matrix in parallel."""
         try:
@@ -440,3 +512,6 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
 
         # Solve the analysis
         self._execute_solve()
+
+        # Clean up
+        self._delete_intermediate_outputs()
