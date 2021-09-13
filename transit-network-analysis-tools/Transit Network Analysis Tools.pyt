@@ -713,8 +713,8 @@ class CalculateAccessibilityMatrix(object):
 
         ]
 
-        params[0].filter.list = ["Point"]
-        params[1].filter.list = ["Point"]
+        params[0].filter.list = ["Point", "Polygon"]
+        params[1].filter.list = ["Point", "Polygon"]
         params[14].filter.list = ["Short", "Long", "Double"]  # destination weight field
         params[14].parameterDependencies = [params[1].name]  # destination weight field
         # params[4].parameterDependencies = [params[3].name]  # travel mode
