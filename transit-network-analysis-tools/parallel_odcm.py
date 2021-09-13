@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 7 June 2021
+## Last updated: 13 September 2021
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -46,9 +46,18 @@ import time
 import traceback
 import argparse
 import pandas as pd
-from multiprocessing import Manager
 
 import arcpy
+
+# The OD Cost Matrix toArrowTable() method was added in ArcGIS Pro 2.9. Writing intermediate OD outputs to Arrow
+# tables is more space and memory efficient than writing CSV files, so prefer this method when possible. If the
+# ArcGIS Pro version is < 2.9, though, fall back to using CSV files.
+if arcpy.GetInstallInfo()["Version"] < "2.9":
+    use_arrow = False
+    import csv
+else:
+    use_arrow = True
+    import pyarrow as pa
 
 # Import OD Cost Matrix settings from config file
 from CalculateAccessibilityMatrix_OD_config import OD_PROPS, OD_PROPS_SET_BY_TOOL
@@ -283,14 +292,13 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             self.logger.error(err)
             raise ValueError(err)
 
-    def solve(self, origins_criteria, destinations_criteria, time_of_day, shared_dict):
+    def solve(self, origins_criteria, destinations_criteria, time_of_day):
         """Create and solve an OD Cost Matrix analysis for the designated chunk of origins and destinations.
 
         Args:
             origins_criteria (list): Origin ObjectID range to select from the input dataset
             destinations_criteria ([type]): Destination ObjectID range to select from the input dataset
             time_of_day (datetime): Time of day for this solve
-            shared_dict (Managed dictionary): Shared dictionary to store OD pairs and counts
         """
         # Select the origins and destinations to process
         self._select_inputs(origins_criteria, destinations_criteria)
@@ -380,13 +388,25 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.logger.debug("Solve succeeded.")
         self.job_result["solveSucceeded"] = True
 
-        # Read the results to discover all destinations reached by the origins in this chunk and update the shared
-        # dictionary
+        # Read the results to discover all destinations reached by the origins in this chunk and store the output
+        # in a file
         self.logger.debug("Logging OD Cost Matrix results...")
-        for row in solve_result.searchCursor(
-            arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines, ["OriginOID", "DestinationOID"]
-        ):
-            shared_dict[(row[0], row[1])] += 1
+        if use_arrow:
+            self.logger.debug("Writing OD outputs as Arrow table.")
+            solve_result.toArrowTable(
+                arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines,
+                ["OriginOID", "DestinationOID"],
+                os.path.join(self.job_folder, "ODLines.at")
+            )
+        else:
+            self.logger.debug("Writing OD outputs as CSV file.")
+            with open(os.path.join(self.job_folder, "ODLines.csv"), "w") as f:
+                writer = csv.writer(f)
+                writer.writerow(["OriginOID", "DestinationOID"])
+                for row in solve_result.searchCursor(
+                    arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines, ["OriginOID", "DestinationOID"]
+                ):
+                    writer.writerow(row)
 
         self.logger.debug("Finished calculating OD cost matrix.")
 
@@ -439,7 +459,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             logger_obj.addHandler(file_handler)
 
 
-def solve_od_cost_matrix(inputs, shared_dict, chunk):
+def solve_od_cost_matrix(inputs, chunk):
     """Solve an OD Cost Matrix analysis for the given inputs for the given chunk of ObjectIDs.
 
     Args:
@@ -457,7 +477,7 @@ def solve_od_cost_matrix(inputs, shared_dict, chunk):
         f"Processing origins OID {chunk[0][0]} to {chunk[0][1]} and destinations OID {chunk[1][0]} to {chunk[1][1]} "
         f"for start time {chunk[2]} as job id {odcm.job_id}"
     ))
-    odcm.solve(chunk[0], chunk[1], chunk[2], shared_dict)
+    odcm.solve(chunk[0], chunk[1], chunk[2])
     return odcm.job_result
 
 
@@ -619,56 +639,45 @@ class ParallelODCalculator():
     def solve_od_in_parallel(self):
         """Solve the OD Cost Matrix in chunks and post-process the results."""
         # Validate OD Cost Matrix settings. Essentially, create a dummy ODCostMatrix class instance and set up the
-        # solver object to ensure this at least works. Do this up front before spinning up a bunch of parallel processes
-        # the optimized that are guaranteed to all fail.
+        # solver object to ensure this at least works. Do this up front before spinning up a bunch of parallel
+        # processes that are guaranteed to all fail.
         self._validate_od_settings()
 
-        # The multiprocessing module's Manager allows us to share a managed dictionary across processes, including
-        # writing to it. This allows us to track which destinations are accessible to each origin and for how many of
-        # our start times without having to write out and post-process a bunch of tables.
-        with Manager() as manager:
-            # Initialize a special dictionary of {(Origin OID, Destination OID): Number of times reached} that will be
-            # shared across processes
-            shared_dict = manager.dict({})
-            for row_o in arcpy.da.SearchCursor(self.origins, ["OID@"]):  # pylint: disable=no-member
-                for row_d in arcpy.da.SearchCursor(self.destinations, ["OID@"]):  # pylint: disable=no-member
-                    shared_dict[(row_o[0], row_d[0])] = 0
+        # Compute OD cost matrix in parallel
+        LOGGER.info("Solving OD Cost Matrix chunks in parallel...")
+        completed_jobs = 0  # Track the number of jobs completed so far to use in logging
+        # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the OD cost
+        # matrices
+        with futures.ProcessPoolExecutor(max_workers=self.max_processes) as executor:
+            # Each parallel process calls the solve_od_cost_matrix() function with the od_inputs dictionary for the
+            # given origin and destination OID ranges and time of day.
+            jobs = {executor.submit(
+                solve_od_cost_matrix, self.od_inputs, chunks): chunks for chunks in self.chunks}
+            # As each job is completed, add some logging information and store the results to post-process later
+            for future in futures.as_completed(jobs):
+                completed_jobs += 1
+                LOGGER.info(
+                    f"Finished OD Cost Matrix calculation {completed_jobs} of {self.total_jobs}.")
+                try:
+                    # The OD cost matrix job returns a results dictionary. Retrieve it.
+                    result = future.result()
+                except Exception:
+                    # If we couldn't retrieve the result, some terrible error happened. Log it.
+                    LOGGER.error("Failed to get OD Cost Matrix result from parallel processing.")
+                    errs = traceback.format_exc().splitlines()
+                    for err in errs:
+                        LOGGER.error(err)
+                    raise
 
-            # Compute OD cost matrix in parallel
-            LOGGER.info("Solving OD Cost Matrix chunks in parallel...")
-            completed_jobs = 0  # Track the number of jobs completed so far to use in logging
-            # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the OD cost
-            # matrices
-            with futures.ProcessPoolExecutor(max_workers=self.max_processes) as executor:
-                # Each parallel process calls the solve_od_cost_matrix() function with the od_inputs dictionary for the
-                # given origin and destination OID ranges and time of day.
-                jobs = {executor.submit(
-                    solve_od_cost_matrix, self.od_inputs, shared_dict, chunks): chunks for chunks in self.chunks}
-                # As each job is completed, add some logging information and store the results to post-process later
-                for future in futures.as_completed(jobs):
-                    completed_jobs += 1
-                    LOGGER.info(
-                        f"Finished OD Cost Matrix calculation {completed_jobs} of {self.total_jobs}.")
-                    try:
-                        # The OD cost matrix job returns a results dictionary. Retrieve it.
-                        result = future.result()
-                    except Exception:
-                        # If we couldn't retrieve the result, some terrible error happened. Log it.
-                        LOGGER.error("Failed to get OD Cost Matrix result from parallel processing.")
-                        errs = traceback.format_exc().splitlines()
-                        for err in errs:
-                            LOGGER.error(err)
-                        raise
+                # Log failed solves
+                if not result["solveSucceeded"]:
+                    LOGGER.warning(f"Solve failed for job id {result['jobId']}")
+                    msgs = result["solveMessages"]
+                    LOGGER.warning(msgs)
 
-                    # Log failed solves
-                    if not result["solveSucceeded"]:
-                        LOGGER.warning(f"Solve failed for job id {result['jobId']}")
-                        msgs = result["solveMessages"]
-                        LOGGER.warning(msgs)
-
-            # Calculate statistics from the results of the OD Cost Matrix calculations present in the shared dictionary
-            # and write them to the output fields in the Origins table.
-            self._add_results_to_output(shared_dict)
+        # Calculate statistics from the results of the OD Cost Matrix calculations
+        # and write them to the output fields in the Origins table.
+        self._add_results_to_output()
 
         # Cleanup
         # Delete the job folders if the job succeeded
@@ -682,24 +691,55 @@ class ParallelODCalculator():
 
         LOGGER.info("Finished calculating OD Cost Matrices.")
 
-    def _add_results_to_output(self, shared_dict):
-        """Calculate accessibility statistics and write them to the Origins table.
-
-        Args:
-            shared_dict (Managed dict): Multiprocessing managed dictionary of
-                {(OriginOID, DestinationOID): times reached}
-        """
+    def _add_results_to_output(self):
+        """Calculate accessibility statistics and write them to the Origins table."""
         LOGGER.info("Calculating statistics for final output...")
 
-        if self.weight_field:
-            # Convert the shared dictionary to a pandas dataframe for easier processing
-            result_df = pd.DataFrame.from_records(
-                [(key[0], key[1], shared_dict[key]) for key in shared_dict],
-                columns=["OriginOID", "DestinationOID", "TimesReached"]
-            )
-            # Delete the shared dictionary to clear up memory
-            del shared_dict
+        # Read the result files from each individual OD and combine them together into a
+        # dataframe with the number of time each origin reached each destination
+        if use_arrow:
+            LOGGER.debug("Reading results into dataframe from Arrow tables...")
+        else:
+            LOGGER.debug("Reading results into dataframe from CSV files...")
+        t0 = time.time()
+        result_df = None
+        for job_dir in os.listdir(self.scratch_folder):
+            job_dir = os.path.join(self.scratch_folder, job_dir)
 
+            if use_arrow:
+                arrow_file = os.path.join(job_dir, "ODLines.at")
+                if not os.path.exists(arrow_file):
+                    continue
+                with pa.memory_map(arrow_file, 'r') as source:
+                    batch_reader = pa.ipc.RecordBatchFileReader(source)
+                    chunk_table = batch_reader.read_all()
+                df = chunk_table.to_pandas(split_blocks=True, zero_copy_only=True)
+
+            else:
+                csv_file = os.path.join(job_dir, "ODLines.csv")
+                if not os.path.exists(csv_file):
+                    continue
+                df = pd.read_csv(csv_file)
+
+            df["TimesReached"] = 1
+            df.set_index(["OriginOID", "DestinationOID"], inplace=True)
+
+            if result_df is None:
+                # Initialize the big combined dataframe if this is the first one
+                result_df = df
+                continue
+
+            # Add the current results dataframe to the big combined one and sum the number of times reached so
+            # far for each OD pair
+            result_df = pd.concat([result_df, df]).groupby(["OriginOID", "DestinationOID"]).sum()
+            del df
+
+        result_df.reset_index(inplace=True)
+
+        LOGGER.debug(f"Time to read all OD result files: {time.time() - t0}")
+
+        # Handle accounting for the actual number of destinations
+        if self.weight_field:
             # Read in the weight field values and join them into the result table
             LOGGER.debug("Joining weight field from destinations to results dataframe...")
             with arcpy.da.SearchCursor(  # pylint: disable=no-member
@@ -718,15 +758,6 @@ class ParallelODCalculator():
             result_df.drop(["DestinationOID"], axis="columns", inplace=True)
 
         else:
-            # Convert the shared dictionary to a pandas dataframe for easier processing
-            # Don't bother reading in the DestinationOID field at all for this case since we don't need it for anything.
-            result_df = pd.DataFrame.from_records(
-                [(key[0], shared_dict[key]) for key in shared_dict],
-                columns=["OriginOID", "TimesReached"]
-            )
-            # Delete the shared dictionary to clear up memory
-            del shared_dict
-
             # Count every row as 1 since we're not using a weight field
             result_df["Weight"] = 1
 
@@ -746,11 +777,19 @@ class ParallelODCalculator():
         # Calculate the percentage of destinations reached
         output_df["PercDests"] = 100.0 * output_df["TotalDests"] / total_dests
 
+        # Determine the TotalDests field type because this affects the output field type to use
+        if pd.api.types.is_integer_dtype(output_df["TotalDests"]):
+            num_dest_field_type = "LONG"
+        else:
+            num_dest_field_type = "DOUBLE"
+
         # Calculate the number of destinations accessible at different thresholds
         LOGGER.debug("Calculating the number of destinations accessible at different thresholds...")
+        field_defs = [["TotalDests", num_dest_field_type], ["PercDests", "DOUBLE"]]
         for perc in range(10, 100, 10):
             total_field = f"DsAL{perc}Perc"
             perc_field = f"PsAL{perc}Perc"
+            field_defs += [[total_field, num_dest_field_type], [perc_field, "DOUBLE"]]
             threshold = len(self.start_times) * perc / 100
             output_df[total_field] = result_df[result_df["TimesReached"] >= threshold].groupby(
                 "OriginOID")["Weight"].sum()
@@ -760,10 +799,19 @@ class ParallelODCalculator():
         # Clean up
         del result_df
 
-        # Write the calculated values to output
-        output_df = output_df.to_records()
-        arcpy.da.ExtendTable(  # pylint: disable=no-member
-            self.origins, arcpy.Describe(self.origins).oidFieldName, output_df, "OriginOID", False)
+        # Append the calculated transit frequency statistics to the output feature class
+        LOGGER.debug("Writing data to output Origins...")
+        arcpy.management.AddFields(self.origins, field_defs)
+        fields = ["ObjectID"] + [f[0] for f in field_defs]
+        with arcpy.da.UpdateCursor(self.origins, fields) as cur:  # pylint: disable=no-member
+            for row in cur:
+                oid = row[0]
+                try:
+                    new_row = [oid] + output_df.loc[oid].to_list()
+                except KeyError:
+                    # Fill null values with 0 where appropriate if the feature wasn't even in the dataframe.
+                    new_row = [oid] + [0] * len(field_defs)
+                cur.updateRow(new_row)
 
         LOGGER.info(f"Accessibility statistics fields were added to Origins table {self.origins}.")
 
