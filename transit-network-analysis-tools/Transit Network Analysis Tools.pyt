@@ -288,7 +288,7 @@ class CreatePercentAccessPolygons(object):
         self.description = (
             "This script will compute the percentage of times an isochrone represents an areas transit access based ",
             "on the union of time lapsed polygons. It will provide a polyon representation of transit's range of ",
-            "access that can be used for weighted accessibiilty calculations."
+            "access that can be used for weighted accessibility calculations."
         )
         self.canRunInBackground = True
 
@@ -713,8 +713,8 @@ class CalculateAccessibilityMatrix(object):
 
         ]
 
-        params[0].filter.list = ["Point"]
-        params[1].filter.list = ["Point"]
+        params[0].filter.list = ["Point", "Polygon"]
+        params[1].filter.list = ["Point", "Polygon"]
         params[14].filter.list = ["Short", "Long", "Double"]  # destination weight field
         params[14].parameterDependencies = [params[1].name]  # destination weight field
         # params[4].parameterDependencies = [params[3].name]  # travel mode

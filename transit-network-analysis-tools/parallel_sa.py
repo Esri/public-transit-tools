@@ -349,8 +349,23 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         output_polygons = os.path.join(self.od_workspace, "output_polygons")
         self.logger.debug(f"Exporting Service Area polygons output to {output_polygons}...")
         solve_result.export(arcpy.nax.ServiceAreaOutputDataType.Polygons, output_polygons)
-        self.job_result["outputPolygons"] = output_polygons
 
+        # Do special handling if the geometry type is Dissolve because the time of day field cannot be passed
+        # through from the inputs. Add it explicitly and calculate it.
+        if self.geometry_at_overlap == arcpy.nax.ServiceAreaOverlapGeometry.Dissolve:
+            run_gp_tool(
+                arcpy.management.AddField,
+                [output_polygons, AnalysisHelpers.TIME_FIELD, "DATE"],
+                log_to_use=self.logger
+            )
+            # Use UpdateCursor instead of CalculateField to avoid having to represent the datetime as a string
+            with arcpy.da.UpdateCursor(  # pylint: disable=no-member
+                output_polygons, [AnalysisHelpers.TIME_FIELD]
+            ) as cur:
+                for _ in cur:
+                    cur.updateRow([time_of_day])
+
+        self.job_result["outputPolygons"] = output_polygons
         self.logger.debug("Finished calculating Service Area.")
 
     def setup_logger(self, logger_obj):
