@@ -4,7 +4,7 @@
 ## This tool was developed as part of Transit R&D Efforts from Fehr & Peers.
 ## Fehr & Peers contributes this tool to the BBB Toolset to further more
 ## informed planning. 
-## Last updated: 8 October 2020
+## Last updated: 2021-09-22 by Drew Levitt
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Stops by Route and Direction
 
@@ -108,7 +108,6 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
     triproutefetch = '''SELECT DISTINCT route_id,direction_id FROM trips;'''
     c.execute(triproutefetch)
     for rtpair in c.fetchall():
-        key = tuple(rtpair)
         route_id = rtpair[0]
         direction_id = rtpair[1]
         # Get list of trips
@@ -121,8 +120,12 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
             triproutefetch = '''
                     SELECT trip_id, service_id FROM trips
                     WHERE route_id = '{0}';'''.format(route_id)
+            direction_id = 0 # We need direction_id to be numeric later on, because we insert it into a SHORT-type field.
+            # Also, while the GTFS spec notes direction_id is optional, it is explicitly numeric if present:
+            # https://developers.google.com/transit/gtfs/reference#tripstxt
         c.execute(triproutefetch)
         triproutelist = c.fetchall()
+        key = (route_id, direction_id)
         trip_route_dict[key] = triproutelist
 
     # ----- For each time window, calculate the stop frequency -----
@@ -229,7 +232,7 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
     ] + new_fields
     with arcpy.da.InsertCursor(output_stop_file, fields) as cur3:
         # Iterate over all unique stop, route_id, direction_id groups and insert values
-        for key in sorted(final_stop_freq_dict.keys()):
+        for key in final_stop_freq_dict:
             stop_id = key[0]
             used_stops[stop_id] = True
             route_id = key[1]
