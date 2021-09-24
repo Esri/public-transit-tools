@@ -74,7 +74,7 @@ def set_end_day(param_startday, param_endday):
     """Set the end day to the same as start day by default, unless it's explicitly set the end day to something else.
     Also, the end day should be grayed out unless the start day is a specific date."""
 
-    if param_startday.valueAsText and not param_startday.hasBeenValidated:
+    if param_startday.valueAsText:
         param_endday.value = param_startday.value
     
     if param_startday.valueAsText in days:
