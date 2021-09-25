@@ -263,12 +263,7 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
                 row += vals
 
             # Insert the row
-            try:
-                cur3.insertRow(row)
-            except:
-                arcpy.AddError("Error inserting row. direction_id:")
-                arcpy.AddError(direction_id)
-                arcpy.AddError(type(direction_id))
+            cur3.insertRow(row)
 
         # Insert row for any remaining stops that were not used at all
         for stop_id in used_stops:
