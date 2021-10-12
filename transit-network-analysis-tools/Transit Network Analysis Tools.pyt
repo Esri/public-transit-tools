@@ -787,10 +787,15 @@ class CalculateAccessibilityMatrix(object):
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
+        origins = parameters[0].value
+        origins = origins if hasattr(origins, "dataSource") else str(origins)
+        destinations = parameters[1].value
+        destinations = destinations if hasattr(destinations, "dataSource") else str(destinations)
+
         import CalculateAccessibilityMatrixInParallel
         od_solver = CalculateAccessibilityMatrixInParallel.ODCostMatrixSolver(**{
-            "origins": parameters[0].value,
-            "destinations": parameters[1].value,
+            "origins": origins,
+            "destinations": destinations,
             "output_origins": parameters[2].valueAsText,
             "network_data_source": get_catalog_path_from_param(parameters[3]),
             "travel_mode": parameters[4].valueAsText,
@@ -808,6 +813,7 @@ class CalculateAccessibilityMatrix(object):
             "precalculate_network_locations": parameters[16].value
         })
         od_solver.solve_large_od_cost_matrix()
+
         return
 
 # region parameters
