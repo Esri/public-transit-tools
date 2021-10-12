@@ -728,6 +728,7 @@ class CalculateAccessibilityMatrix(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
         param_network = parameters[3]
+        param_travel_mode = parameters[4]
         param_precalc = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
