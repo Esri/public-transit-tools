@@ -20,7 +20,7 @@ suite.'''
 
 import os
 import arcpy
-import ToolValidator
+import TNATA_ToolValidator
 
 
 class Toolbox(object):
@@ -99,16 +99,16 @@ class PrepareTimeLapsePolygons(object):
         increment = parameters[6]
 
         # Show a filter list of weekdays but also allow YYYYMMDD dates
-        ToolValidator.allow_YYYYMMDD_day(start_day)
-        ToolValidator.validate_day(end_day)
+        TNATA_ToolValidator.allow_YYYYMMDD_day(start_day)
+        TNATA_ToolValidator.validate_day(end_day)
 
-        ToolValidator.set_end_day(start_day, end_day)
+        TNATA_ToolValidator.set_end_day(start_day, end_day)
 
         # Make sure time of day format is correct and time window is valid
-        ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+        TNATA_ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
 
         # Make sure time increment is good
-        ToolValidator.validate_time_increment(increment)
+        TNATA_ToolValidator.validate_time_increment(increment)
 
         return
 
@@ -125,7 +125,7 @@ class PrepareTimeLapsePolygons(object):
 
         # For some reason there are problems passing layer objects through in ArcMap when the input is a map layer,
         # so create a fresh layer object from it.
-        if not ToolValidator.ispy3:
+        if not TNATA_ToolValidator.ispy3:
             if not isinstance(SAlayer, (unicode, str)):
                 SAlayer = arcpy.mapping.Layer(SAlayer.name)
 
@@ -399,20 +399,20 @@ class CalculateTravelTimeStatistics(object):
         increment = parameters[6]
         combinedOutFC = parameters[8]
 
-        ToolValidator.validate_output_is_gdb(out_table)
-        ToolValidator.validate_output_is_gdb(combinedOutFC)
+        TNATA_ToolValidator.validate_output_is_gdb(out_table)
+        TNATA_ToolValidator.validate_output_is_gdb(combinedOutFC)
 
         # Show a filter list of weekdays but also allow YYYYMMDD dates
-        ToolValidator.allow_YYYYMMDD_day(start_day)
-        ToolValidator.validate_day(end_day)
+        TNATA_ToolValidator.allow_YYYYMMDD_day(start_day)
+        TNATA_ToolValidator.validate_day(end_day)
 
-        ToolValidator.set_end_day(start_day, end_day)
+        TNATA_ToolValidator.set_end_day(start_day, end_day)
 
         # Make sure time of day format is correct and time window is valid
-        ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+        TNATA_ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
 
         # Make sure time increment is good
-        ToolValidator.validate_time_increment(increment)
+        TNATA_ToolValidator.validate_time_increment(increment)
 
         return
 
@@ -431,7 +431,7 @@ class CalculateTravelTimeStatistics(object):
 
         # For some reason there are problems passing layer objects through in ArcMap when the input is a map layer,
         # so create a fresh layer object from it.
-        if not ToolValidator.ispy3:
+        if not TNATA_ToolValidator.ispy3:
             if not isinstance(NAlayer, (unicode, str)):
                 NAlayer = arcpy.mapping.Layer(NAlayer.name)
 
@@ -533,16 +533,16 @@ class CalculateAccessibilityMatrix(object):
         increment = parameters[8]
 
         # Show a filter list of weekdays but also allow YYYYMMDD dates
-        ToolValidator.allow_YYYYMMDD_day(start_day)
-        ToolValidator.validate_day(end_day)
+        TNATA_ToolValidator.allow_YYYYMMDD_day(start_day)
+        TNATA_ToolValidator.validate_day(end_day)
 
-        ToolValidator.set_end_day(start_day, end_day)
+        TNATA_ToolValidator.set_end_day(start_day, end_day)
 
         # Make sure time of day format is correct and time window is valid
-        ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+        TNATA_ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
 
         # Make sure time increment is good
-        ToolValidator.validate_time_increment(increment)
+        TNATA_ToolValidator.validate_time_increment(increment)
 
         return
 
@@ -561,7 +561,7 @@ class CalculateAccessibilityMatrix(object):
 
         # For some reason there are problems passing layer objects through in ArcMap when the input is a map layer,
         # so create a fresh layer object from it.
-        if not ToolValidator.ispy3:
+        if not TNATA_ToolValidator.ispy3:
             if not isinstance(NALayer, (unicode, str)):
                 NALayer = arcpy.mapping.Layer(NALayer.name)
 
