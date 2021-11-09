@@ -113,7 +113,16 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
         self.time_window_end_time = time_window_end_time
         self.time_increment = time_increment
 
-        self.same_origins_destinations = bool(self.origins == self.destinations)
+        # Check if origins and destinations are the same. We can skip certain steps if so.
+        # The origins and destinations can be either catalog paths or layers. If they are catalog paths, compare them
+        # directly. If they are layers, they are only equal if both their dataSources and layer names are the same. It
+        # is conceivable that someone might have two layers referencing the same data that each have a different
+        # selection set or definition query, and those should not be considered the same.
+        origins_catalog = self.origins.dataSource if hasattr(self.origins, "dataSource") else self.origins
+        dests_catalog = self.destinations.dataSource if hasattr(self.destinations, "dataSource") else self.destinations
+        origins_name = self.origins.name if hasattr(self.origins, "name") else self.origins
+        dests_name = self.destinations.name if hasattr(self.destinations, "name") else self.destinations
+        self.same_origins_destinations = bool(origins_catalog == dests_catalog) and bool(origins_name == dests_name)
 
         self.origin_shape_type = None
         self.destination_shape_type = None
@@ -371,6 +380,8 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
                     os.path.dirname(self.temp_destinations),
                     os.path.basename(self.temp_destinations)
                 )
+        else:
+            self.temp_destinations = self.origins_for_od
 
         # Precalculate network location fields for inputs
         if not self.is_service and self.should_precalc_network_locations:
@@ -489,7 +500,8 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
         """Clean up intermediate outputs."""
         arcpy.AddMessage("Deleting temporary origins and destinations...")
         try:
-            arcpy.management.Delete(self.temp_destinations)
+            if self.temp_destinations != self.origins_for_od:
+                arcpy.management.Delete(self.temp_destinations)
             if self.output_origins != self.origins_for_od:
                 # This is the case when polygon origins were converted temporarily to points.
                 # Delete the temporary points.

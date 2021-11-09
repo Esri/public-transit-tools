@@ -3,8 +3,8 @@
 ## Created by: David Wasserman, https://github.com/d-wasserman and Melinda Morang, Esri
 ## This tool was developed as part of Transit R&D Efforts from Fehr & Peers.
 ## Fehr & Peers contributes this tool to the BBB Toolset to further more
-## informed planning. 
-## Last updated: 8 October 2020
+## informed planning.
+## Last updated: 25 September 2021
 ############################################################################
 ''' BetterBusBuffers - Count Trips at Stops by Route and Direction
 
@@ -18,7 +18,7 @@ combination of stop id, route id, and direction id, and the frequency statistics
 that relate to each of them for the analyzed time window.
 '''
 ################################################################################
-'''Copyright 2020 Esri
+'''Copyright 2021 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -58,7 +58,7 @@ limitations under the License.
 ################################################################################
 import arcpy
 import BBB_SharedFunctions
-import sqlite3, os, datetime
+import sqlite3
 
 def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest_5_minutes):
     def RetrieveFrequencyStatsForStop(stop_id, stoptimedict, start_sec, end_sec):
@@ -108,9 +108,10 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
     triproutefetch = '''SELECT DISTINCT route_id,direction_id FROM trips;'''
     c.execute(triproutefetch)
     for rtpair in c.fetchall():
-        key = tuple(rtpair)
         route_id = rtpair[0]
         direction_id = rtpair[1]
+        if str(direction_id).strip() == "":  # Handle blanks
+            direction_id = None
         # Get list of trips
         # Ignore direction if this route doesn't have a direction
         if direction_id is not None and str(direction_id).strip():
@@ -123,6 +124,7 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
                     WHERE route_id = '{0}';'''.format(route_id)
         c.execute(triproutefetch)
         triproutelist = c.fetchall()
+        key = (route_id, direction_id)
         trip_route_dict[key] = triproutelist
 
     # ----- For each time window, calculate the stop frequency -----
@@ -152,7 +154,6 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
             BBB_SharedFunctions.GetServiceIDListsAndNonOverlaps(day, start_sec, end_sec, DepOrArr, Specific)
 
         # Retrieve the stop_times for the time window broken out by route/direction
-        stoproutedir_dict = {}  # {(stop_id, route_id, direction_id): [NumTrips, NumTripsPerHour, MaxWaitTimeSec, AvgHeadwayMin]}
         for rtdirpair in trip_route_dict:
             # Get trips running with these service_ids
             trip_serv_list = trip_route_dict[rtdirpair]
@@ -229,7 +230,7 @@ def runTool(output_stop_file, SQLDbase, time_window_value_table, snap_to_nearest
     ] + new_fields
     with arcpy.da.InsertCursor(output_stop_file, fields) as cur3:
         # Iterate over all unique stop, route_id, direction_id groups and insert values
-        for key in sorted(final_stop_freq_dict.keys()):
+        for key in sorted(final_stop_freq_dict.keys(), key=lambda x: (x[0], x[1], x[2] if x[2] is not None else -1)):
             stop_id = key[0]
             used_stops[stop_id] = True
             route_id = key[1]

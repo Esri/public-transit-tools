@@ -20,7 +20,7 @@ suite.'''
 
 import os
 import arcpy
-import ToolValidator
+import TNAT_ToolValidator
 from AnalysisHelpers import TIME_UNITS, MAX_AGOL_PROCESSES, is_nds_service, cell_size_to_meters, \
                             get_catalog_path_from_param
 
@@ -193,16 +193,16 @@ class PrepareTimeLapsePolygons(object):
         param_travel_mode = parameters[3]
         param_cutoffs = parameters[4]
         param_geom_at_cutoffs = parameters[12]
-        param_precalculate = parameters[16]
+        param_precalc = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
         # Also populate travel mode parameter with time-based travel modes only.
-        if param_network.altered and param_network.value:
+        if not param_network.hasBeenValidated and param_network.altered and param_network.valueAsText:
             if is_nds_service(param_network.valueAsText):
-                param_precalculate.value = False
-                param_precalculate.enabled = False
+                param_precalc.value = False
+                param_precalc.enabled = False
             else:
-                param_precalculate.enabled = True
+                param_precalc.enabled = True
 
             try:
                 travel_modes = arcpy.nax.GetTravelModes(param_network.value)
@@ -210,12 +210,13 @@ class PrepareTimeLapsePolygons(object):
                     tm_name for tm_name in travel_modes if
                     travel_modes[tm_name].impedance == travel_modes[tm_name].timeAttributeName
                 ]
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 # We couldn't get travel modes for this network for some reason.
                 pass
 
         # Disable Geometry At Cutoff parameter if there's only one cutoff
-        if param_cutoffs.altered and param_cutoffs.value and len(param_cutoffs.values) > 1:
+        if not param_cutoffs.hasBeenValidated and param_cutoffs.altered and param_cutoffs.valueAsText and \
+                len(param_cutoffs.values) > 1:
             param_geom_at_cutoffs.enabled = True
         else:
             param_geom_at_cutoffs.enabled = False
@@ -234,19 +235,19 @@ class PrepareTimeLapsePolygons(object):
         param_max_processes = parameters[14]
 
         # Show a filter list of weekdays but also allow YYYYMMDD dates
-        ToolValidator.allow_YYYYMMDD_day(start_day)
-        ToolValidator.set_end_day(start_day, end_day)
-        ToolValidator.validate_day(end_day)
+        TNAT_ToolValidator.allow_YYYYMMDD_day(start_day)
+        TNAT_ToolValidator.set_end_day(start_day, end_day)
+        TNAT_ToolValidator.validate_day(end_day)
 
         # Make sure time of day format is correct and time window is valid
-        ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+        TNAT_ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
 
         # Make sure time increment is good
-        ToolValidator.validate_time_increment(increment)
+        TNAT_ToolValidator.validate_time_increment(increment)
 
         # If the network data source is arcgis.com, cap max processes
-        if param_max_processes.altered and param_max_processes.value and \
-                param_network.altered and param_network.value:
+        if param_max_processes.altered and param_max_processes.valueAsText and \
+                param_network.altered and param_network.valueAsText:
             if "arcgis.com" in param_network.valueAsText and param_max_processes.value > MAX_AGOL_PROCESSES:
                 param_max_processes.setErrorMessage((
                     "The maximum number of parallel processes cannot exceed %i when the "
@@ -366,7 +367,7 @@ class CreatePercentAccessPolygons(object):
         param_percents = parameters[5]
 
         # Disable the percent list if no output feature class has been selected
-        if param_fc2.value:
+        if param_fc2.valueAsText:
             param_percents.enabled = True
         else:
             param_percents.enabled = False
@@ -383,20 +384,15 @@ class CreatePercentAccessPolygons(object):
         param_fc2 = parameters[4]
         param_percents = parameters[5]
         required_input_fields = set(["FacilityID", "Name", "FromBreak", "ToBreak", "TimeOfDay"])
-        unit_limits = {
-            "Meter": 5,
-            "Foot": 16.4,
-            "Foot_US": 16.4
-        }
 
         # Add error if the user tries to save output to a shapefile
-        if param_out_fc.altered and param_out_fc.value:
+        if param_out_fc.altered and param_out_fc.valueAsText:
             out_dir = os.path.dirname(param_out_fc.valueAsText)
             if out_dir and os.path.exists(out_dir):
                 desc = arcpy.Describe(out_dir)
                 if desc.dataType == "Folder":
                     param_out_fc.setErrorMessage("The output cannot be a shapefile.")
-        if param_fc2.altered and param_fc2.value:
+        if param_fc2.altered and param_fc2.valueAsText:
             out_dir = os.path.dirname(param_fc2.valueAsText)
             if out_dir and os.path.exists(out_dir):
                 desc = arcpy.Describe(out_dir)
@@ -404,7 +400,7 @@ class CreatePercentAccessPolygons(object):
                     param_fc2.setErrorMessage("The output cannot be a shapefile.")
 
         # Make sure the input time lapse polygons have the correct fields
-        if param_in_time_lapse_polys.altered and param_in_time_lapse_polys.value:
+        if param_in_time_lapse_polys.altered and param_in_time_lapse_polys.valueAsText:
             in_polys = param_in_time_lapse_polys.valueAsText
             if arcpy.Exists(in_polys):
                 desc = arcpy.Describe(in_polys)
@@ -421,7 +417,7 @@ class CreatePercentAccessPolygons(object):
             if cell_size_in_meters < 5 or cell_size_in_meters > 1000:
                 param_cell_size.setErrorMessage("Cell size must be between 5 and 1000 meters.")
 
-        if param_fc2.value and not param_percents.value:
+        if param_fc2.valueAsText and not param_percents.valueAsText:
             param_percents.setWarningMessage(
                     "You designated an output threshold percentage feature class but did not set any percentage " +
                     "thresholds. No output threshold percentage feature class will be created."
@@ -512,12 +508,11 @@ class CalculateTravelTimeStatistics(object):
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
-
         param_saveCombined = parameters[7]
         param_combinedOutFC = parameters[8]
 
         # Disable output combined fc parameter if the user doesn't plan to generate it
-        if not param_saveCombined.value:
+        if not param_saveCombined.valueAsText:
             param_combinedOutFC.enabled = False
         else:
             param_combinedOutFC.enabled = True
@@ -535,20 +530,20 @@ class CalculateTravelTimeStatistics(object):
         increment = parameters[6]
         combinedOutFC = parameters[8]
 
-        ToolValidator.validate_output_is_gdb(out_table)
-        ToolValidator.validate_output_is_gdb(combinedOutFC)
+        TNAT_ToolValidator.validate_output_is_gdb(out_table)
+        TNAT_ToolValidator.validate_output_is_gdb(combinedOutFC)
 
         # Show a filter list of weekdays but also allow YYYYMMDD dates
-        ToolValidator.allow_YYYYMMDD_day(start_day)
-        ToolValidator.validate_day(end_day)
+        TNAT_ToolValidator.allow_YYYYMMDD_day(start_day)
+        TNAT_ToolValidator.validate_day(end_day)
 
-        ToolValidator.set_end_day(start_day, end_day)
+        TNAT_ToolValidator.set_end_day(start_day, end_day)
 
         # Make sure time of day format is correct and time window is valid
-        ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+        TNAT_ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
 
         # Make sure time increment is good
-        ToolValidator.validate_time_increment(increment)
+        TNAT_ToolValidator.validate_time_increment(increment)
 
         return
 
@@ -567,7 +562,7 @@ class CalculateTravelTimeStatistics(object):
 
         # For some reason there are problems passing layer objects through in ArcMap when the input is a map layer,
         # so create a fresh layer object from it.
-        if not ToolValidator.ispy3:
+        if not TNAT_ToolValidator.ispy3:
             if not isinstance(NAlayer, (unicode, str)):
                 NAlayer = arcpy.mapping.Layer(NAlayer.name)
 
@@ -734,16 +729,16 @@ class CalculateAccessibilityMatrix(object):
         has been changed."""
         param_network = parameters[3]
         param_travel_mode = parameters[4]
-        param_precalculate = parameters[16]
+        param_precalc = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
         # Also populate travel mode parameter with time-based travel modes only.
-        if param_network.altered and param_network.value:
+        if not param_network.hasBeenValidated and param_network.altered and param_network.valueAsText:
             if is_nds_service(param_network.valueAsText):
-                param_precalculate.value = False
-                param_precalculate.enabled = False
+                param_precalc.value = False
+                param_precalc.enabled = False
             else:
-                param_precalculate.enabled = True
+                param_precalc.enabled = True
 
             try:
                 travel_modes = arcpy.nax.GetTravelModes(param_network.value)
@@ -751,7 +746,7 @@ class CalculateAccessibilityMatrix(object):
                     tm_name for tm_name in travel_modes if
                     travel_modes[tm_name].impedance == travel_modes[tm_name].timeAttributeName
                 ]
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 # We couldn't get travel modes for this network for some reason.
                 pass
         return
@@ -768,20 +763,20 @@ class CalculateAccessibilityMatrix(object):
         param_max_processes = parameters[13]
 
         # Show a filter list of weekdays but also allow YYYYMMDD dates
-        ToolValidator.allow_YYYYMMDD_day(start_day)
-        ToolValidator.validate_day(end_day)
+        TNAT_ToolValidator.allow_YYYYMMDD_day(start_day)
+        TNAT_ToolValidator.validate_day(end_day)
 
-        ToolValidator.set_end_day(start_day, end_day)
+        TNAT_ToolValidator.set_end_day(start_day, end_day)
 
         # Make sure time of day format is correct and time window is valid
-        ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+        TNAT_ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
 
         # Make sure time increment is good
-        ToolValidator.validate_time_increment(increment)
+        TNAT_ToolValidator.validate_time_increment(increment)
 
         # If the network data source is arcgis.com, cap max processes
-        if param_max_processes.altered and param_max_processes.value and \
-                param_network.altered and param_network.value:
+        if param_max_processes.altered and param_max_processes.valueAsText and \
+                param_network.altered and param_network.valueAsText:
             if "arcgis.com" in param_network.valueAsText and param_max_processes.value > MAX_AGOL_PROCESSES:
                 param_max_processes.setErrorMessage((
                     "The maximum number of parallel processes cannot exceed %i when the "
@@ -792,10 +787,15 @@ class CalculateAccessibilityMatrix(object):
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
+        origins = parameters[0].value
+        origins = origins if hasattr(origins, "dataSource") else str(origins)
+        destinations = parameters[1].value
+        destinations = destinations if hasattr(destinations, "dataSource") else str(destinations)
+
         import CalculateAccessibilityMatrixInParallel
         od_solver = CalculateAccessibilityMatrixInParallel.ODCostMatrixSolver(**{
-            "origins": parameters[0].value,
-            "destinations": parameters[1].value,
+            "origins": origins,
+            "destinations": destinations,
             "output_origins": parameters[2].valueAsText,
             "network_data_source": get_catalog_path_from_param(parameters[3]),
             "travel_mode": parameters[4].valueAsText,
@@ -813,6 +813,7 @@ class CalculateAccessibilityMatrix(object):
             "precalculate_network_locations": parameters[16].value
         })
         od_solver.solve_large_od_cost_matrix()
+
         return
 
 # region parameters
