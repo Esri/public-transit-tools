@@ -14,7 +14,7 @@ The *Transit Network Analysis Tools* must be used with a transit-enabled network
 
 ## Instructions
 
-1. To simply use the tool, download it here or from [ArcGIS.com](https://arcg.is/1u8WKS) and follow the [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools-arcmap/UsersGuide.md).
+1. To simply use the tool, download it here or from [ArcGIS.com](https://arcg.is/1u8WKS) and follow the [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/transit-network-analysis-tools-arcmap/UsersGuide.md).
 2. If you want to play with the code, fork it and have fun.
 
 ## Requirements
@@ -25,7 +25,7 @@ The *Transit Network Analysis Tools* must be used with a transit-enabled network
 
 ## Resources
 
-* [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools-arcmap/UsersGuide.md)
+* [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/transit-network-analysis-tools-arcmap/UsersGuide.md)
 
 ## Issues
 

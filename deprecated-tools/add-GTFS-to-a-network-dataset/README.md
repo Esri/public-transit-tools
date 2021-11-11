@@ -4,7 +4,7 @@
 
 **This tool is deprecated.** The tool author will no longer be making further enhancements or fixing major bugs. Instead, you can create and use transit-enabled network datasets in ArcGIS Pro 2.4 or higher without the need to download any additional tools. [Learn more about network analysis with public transit in ArcGIS Pro.](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm)
 
-The supplemental "Transit Analysis Tools.tbx" toolbox was formerly part of this toolset, but it is now [separate](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools).
+The supplemental "Transit Analysis Tools.tbx" toolbox was formerly part of this toolset, but it is now [separate](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/transit-network-analysis-tools-arcmap).
 
 ## Features
 * Use schedule-based transit data with the ArcGIS Network Analyst tools.
@@ -15,7 +15,7 @@ The supplemental "Transit Analysis Tools.tbx" toolbox was formerly part of this 
 
 ## Instructions
 
-If you just want to run this tool in a ready-to-use format, don't use this GitHub version.  Instead, [download it from ArcGIS Online](http://arcg.is/10jXez) and follow the instructions in the [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md).
+If you just want to run this tool in a ready-to-use format, don't use this GitHub version.  Instead, [download it from ArcGIS Online](http://arcg.is/10jXez) and follow the instructions in the [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/UsersGuide.md).
 
 This GitHub repo is meant primarily for the author's own development and for those rare brave souls who actually want to look at the transit evaluator's ArcObjects code.
 
@@ -39,8 +39,8 @@ To build the GetEIDs tool, you will need to do the same thing with the System.Da
 
 ## Resources
 
-* [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/UsersGuide.md)
-* [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md)
+* [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/UsersGuide.md)
+* [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md)
 * [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues

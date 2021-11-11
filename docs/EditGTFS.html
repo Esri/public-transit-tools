@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta content="IE=edge" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, user-scalable=no">
-    <title>Engage with riders and monitor safety | Public Transit in ArcGIS</title>
+    <title>Create and edit GTFS data | Public Transit in ArcGIS</title>
     <link rel="shortcut icon" href="/img/favicon.ico">
     <!-- get calcite-web css from the cdn (use latest version) -->
     <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.7/css/calcite-web.min.css">
@@ -39,8 +39,8 @@
 <option value="./NetworkAnalysis.html">Model travel by public transit in a network</option>
 <option value="./CalculateFrequency.html">Analyze the frequency of transit service</option>
 <option value="./VisualizeGTFS.html">Visualize GTFS data in a map</option>
-<option value="./EditGTFS.html">Create and edit GTFS data</option>
-<option value="./TransitSolution.html" selected>Engage with riders and monitor safety</option>
+<option value="./EditGTFS.html" selected>Create and edit GTFS data</option>
+<option value="./TransitSolution.html">Engage with riders and monitor safety</option>
 <option value="./GTFSRTConnector.html">View live GTFS Realtime data</option>
 <option value="./DeprecatedTools.html">Deprecated tools</option>
 </select>
@@ -48,8 +48,8 @@
 <a class="sub-nav-link" href="./NetworkAnalysis.html">Model travel by public transit in a network</a>
 <a class="sub-nav-link" href="./CalculateFrequency.html">Analyze the frequency of transit service</a>
 <a class="sub-nav-link" href="./VisualizeGTFS.html">Visualize GTFS data in a map</a>
-<a class="sub-nav-link" href="./EditGTFS.html">Create and edit GTFS data</a>
-<a class="sub-nav-link is-active" href="./TransitSolution.html">Engage with riders and monitor safety</a>
+<a class="sub-nav-link is-active" href="./EditGTFS.html">Create and edit GTFS data</a>
+<a class="sub-nav-link" href="./TransitSolution.html">Engage with riders and monitor safety</a>
 <a class="sub-nav-link" href="./GTFSRTConnector.html">View live GTFS Realtime data</a>
 <a class="sub-nav-link" href="./DeprecatedTools.html">Deprecated tools</a>
 </nav>
@@ -61,15 +61,16 @@
 
   <div class="column-7">
 
-    <img src="./images/TransitSolution.png" alt="Engage with riders and monitor safety screenshot">
+    <img src="./images/EditGTFS.png" alt="Create and edit GTFS data screenshot">
 
     <aside class="side-nav" id="sidenav">
 
       <nav aria-labelledby="sidenav">
 
-        <a href="https://doc.arcgis.com/en/arcgis-solutions/latest/reference/introduction-to-transit-outreach.htm" rel="noopener" target="_blank" class="side-nav-link">Rider outreach</a>
-<a href="https://doc.arcgis.com/en/arcgis-solutions/latest/reference/introduction-to-adopt-a-stop.htm" rel="noopener" target="_blank" class="side-nav-link">Adopt-A-Stop</a>
-<a href="https://doc.arcgis.com/en/arcgis-solutions/latest/reference/introduction-to-transit-safety.htm" rel="noopener" target="_blank" class="side-nav-link">Safety management</a>
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/gtfs-stops-to-features.htm" rel="noopener" target="_blank" class="side-nav-link">GTFS Stops To Features</a>
+<a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/features-to-gtfs-stops.htm" rel="noopener" target="_blank" class="side-nav-link">Features To GTFS Stops</a>
+<a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/generate-shapes-features-from-gtfs.htm" rel="noopener" target="_blank" class="side-nav-link">Generate Shapes Features From GTFS</a>
+<a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/features-to-gtfs-shapes.htm" rel="noopener" target="_blank" class="side-nav-link">Features To GTFS Shapes</a>
 
       </nav>
 
@@ -80,15 +81,27 @@
   <!-- main content -->
   <div class="column-16 pre-1">
 
-    <h2 class="leader-1">Engage with riders and monitor safety</h2>
+    <h2 class="leader-1">Create and edit GTFS data</h2>
 
-    <p><strong>Configurable tools to inform the public of service changes, manage transit safety reports and mitigation plans, monitor the performance of transit agencies, and partner with volunteers to keep transit stops safe and clean.</strong></p>
+    <p><strong>Create and edit GTFS stops.txt and shapes.txt files using the geographic capabilities of ArcGIS Pro.</strong></p>
 
-    <p>The ArcGIS Solutions for Local Government's Transit Solution includes a series of focused maps and applications designed to help transit agencies leverage
-      their geographic information and the ArcGIS Platform to improve workflows and enhance services delivered to riders. Configurable apps and templates are available
-      for <a href="https://doc.arcgis.com/en/arcgis-solutions/latest/reference/introduction-to-transit-outreach.htm" rel="noopener" target="_blank">rider outreach</a>,
-      <a href="https://doc.arcgis.com/en/arcgis-solutions/latest/reference/introduction-to-adopt-a-stop.htm" rel="noopener" target="_blank">adopt-a-stop program management</a>,
-      and <a href="https://doc.arcgis.com/en/arcgis-solutions/latest/reference/introduction-to-transit-safety.htm" rel="noopener" target="_blank">transit safety management</a>.
+    <p>Although ArcGIS doesn't have a comprehensive GTFS editing or creation tool, you can create and edit the
+        geographic components of a GTFS dataset in ArcGIS Pro.
+    </p>
+    <p>You can import your GTFS stops.txt file to ArcGIS Pro using the
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/gtfs-stops-to-features.htm" target="_blank" rel="noopener">GTFS Stops To Features</a> tool,
+        use the standard editing tools to update stop locations or attributes, and export the edits to an updated
+        stops.txt file using the
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/features-to-gtfs-stops.htm" target="_blank" rel="noopener">Features To GTFS Stops</a>
+        tool.
+    </p>
+    <p>You to create a shapes.txt file for your GTFS dataset based on the existing stop, route, and schedule information
+        using the
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/generate-shapes-features-from-gtfs.htm" target="_blank" rel="noopener">Generate Shapes Features From GTFS</a> and
+        <a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/features-to-gtfs-shapes.htm" target="_blank" rel="noopener">Features To GTFS Shapes</a>
+        tools. Generate Shapes Features From GTFS generates good estimates for the geographic paths used by vehicles in
+        the transit system and writes the output to a feature class. You can review and edit these line features before
+        running the Features To GTFS Shapes tool, which exports the shapes into a new shapes.txt file.
     </p>
 
   </div>

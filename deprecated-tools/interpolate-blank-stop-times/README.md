@@ -1,11 +1,9 @@
-# generate-GTFS-shapes
+# interpolate-blank-stop-times
 
-The Generate GTFS Shapes toolbox produces a shapes.txt file for your GTFS dataset.  You give the tool a valid, existing GTFS dataset, and the tool creates a new shape.txt file and updates the shape_id field in trips.txt and the shape_dist_traveled field in stop_times.txt.  Alternatively, if you already have a shapes.txt file, you can use this toolbox to edit one or more of the existing shapes.
+The Interpolate Blank Stop Times toolset is a utility for estimating arrival_time and departure_time values that have been left blank in the stop_times.txt GTFS file.  Values for arrival_time and departure_time are required for certain types of analysis.
 
 ## Features
-* Create a shapes.txt file for your GTFS dataset.
-* Edit one or more shapes in your existing shapes.txt file.
-* Start from a reasonable estimate of the shapes and use the editing tools in ArcGIS to make them perfect.
+* Updates your stop_times.txt file with estimated arrival_time and departure_time values for any entries which are blank.
 * ArcGIS toolbox - No coding is required to use this tool.  Just add the toolbox to ArcMap and use the tools like any other geoprocessing tools.
 
 ## Instructions
@@ -15,12 +13,12 @@ The Generate GTFS Shapes toolbox produces a shapes.txt file for your GTFS datase
 
 ## Requirements
 
-* ArcGIS 10.3 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro 1.2 or higher.
-* If you want to generate on-street route shapes (as opposed to straight lines connecting stops), you will need either a Network Analyst extension and a network dataset or an ArcGIS Online account with routing privileges and sufficient credits for your analysis.  Learn more in the [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/UsersGuide.md).
+* ArcGIS 10.0 or higher with a Desktop Basic (ArcView) license, or ArcGIS Pro
+* A valid GTFS stop_times.txt file
 
 ## Resources
 
-* [User's Guide](https://github.com/ArcGIS/public-transit-tools/blob/master/generate-GTFS-shapes/UsersGuide.md)
+* [User's Guide](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/interpolate-blank-stop-times/UsersGuide.md)
 * [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
 
 ## Issues
@@ -32,7 +30,7 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing).
 
 ## Licensing
-Copyright 2019 Esri
+Copyright 2018 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

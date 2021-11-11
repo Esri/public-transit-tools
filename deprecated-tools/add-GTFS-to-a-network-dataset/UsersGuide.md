@@ -1,8 +1,8 @@
 # Add GTFS to a Network Dataset User's Guide
 
-Created by Melinda Morang, Esri  
+Created by Melinda Morang, Esri
 
-Copyright 2019 Esri  
+Copyright 2019 Esri
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ## Deprecation notice ##
@@ -75,8 +75,8 @@ Note: Some GTFS datasets give specific arrival_times and departure_times only fo
 Once you have obtained GTFS data, acquire a streets or sidewalks feature class for your area of interest and any other data you wish to include in your network.  You should, at minimum, have a streets feature class.  If you try to create a network dataset using only transit lines, the pedestrians will have no way to walk between transit stops and their origins or destinations or to walk between nearby stops for transfers.
 
 Finally, create a file geodatabase and feature dataset where you will put your new network dataset.
-If you are unfamiliar with the procedure for creating file geodatabases or feature datasets, please review the documentation:  
-- [Creating a file geodatabase](http://desktop.arcgis.com/en/arcmap/latest/manage-data/geodatabases/create-file-geodatabase.htm)  
+If you are unfamiliar with the procedure for creating file geodatabases or feature datasets, please review the documentation:
+- [Creating a file geodatabase](http://desktop.arcgis.com/en/arcmap/latest/manage-data/geodatabases/create-file-geodatabase.htm)
 - [Creating a feature dataset](http://desktop.arcgis.com/en/arcmap/latest/manage-data/feature-datasets/creating-mole-data-in-arccatalog-creating-a-featur.htm)
 
 Do not create your geodatabase on a shared network drive because the transit evaluator will not work.  Put the geodatabase on a local drive on your machine.  Additionally, do not try to create more than one network dataset in the same geodatabase.  Create a separate geodatabase for each network.
@@ -131,7 +131,7 @@ Note: In order to run the *2) Generate Stop-Street Connectors* tool, you must ha
 ### Inputs
 * **Feature dataset where network dataset will be created**: Indicate the location of the feature dataset where your network dataset will be created.
 * **Streets feature class to use in the network dataset**: Select the streets (or sidewalks) feature class you will use in your network dataset that you want your stops to be connected to.  If you need help preparing high-quality street data for your network, please review [this tutorial](http://support.esri.com/en/technical-article/000012743).
-* **Only connect stops to streets where the following is true: (optional)**: If your streets contain fields indicating if features are traversable by pedestrians, you can use the SQL Query Builder to create an expression to select only those features here.  For example, if your data contains a field called "AR_PEDEST" which has a value of "Y" if pedestrians are allowed and "N" if they aren't, your expression should read "AR_PEDEST" = 'Y'.  When the tool snaps the transit stops to your street features, it will use only those street features that allow pedestrians.  If, later, you create a restriction attribute on your network dataset using this field in your street data, this step ensures that no stops will be located on restricted portions of the network. 
+* **Only connect stops to streets where the following is true: (optional)**: If your streets contain fields indicating if features are traversable by pedestrians, you can use the SQL Query Builder to create an expression to select only those features here.  For example, if your data contains a field called "AR_PEDEST" which has a value of "Y" if pedestrians are allowed and "N" if they aren't, your expression should read "AR_PEDEST" = 'Y'.  When the tool snaps the transit stops to your street features, it will use only those street features that allow pedestrians.  If, later, you create a restriction attribute on your network dataset using this field in your street data, this step ensures that no stops will be located on restricted portions of the network.
 * **Maximum distance from streets that stops might appear**: Your GTFS stops are unlikely to be directly on top of your street features.  Enter the maximum distance from your streets that your stops are likely to be, in meters or feet.  This simply serves to limit the search distance and speed up the run time of the tool.  If you find yourself getting a lot of build errors when you build your network, try rerunning this step with a larger distance here.
 * **Units of maximum distance value above**: Indicate whether the distance you entered above is in meters or feet.
 
@@ -148,7 +148,7 @@ Now you are ready to create your network dataset.
 If you have ArcMap 10.6 or higher, this step is made considerably easier through the use of the [Create Network Dataset From Template](https://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/create-network-dataset-from-template.htm) tool.  A template for a well-configured transit network has been provided to you, so you do not have to manually configure all the network dataset options.  If you have ArcMap 10.6 or higher, skip down to the [Creating the network dataset from a template section](#template) below.  Otherwise, follow the steps in the following section.
 
 ### Creating the network dataset manually
-    
+
 If you have never created a network dataset, please review the ['Creating a multimodal network dataset'](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/exercise-2-creating-a-multimodal-network-dataset.htm) tutorial in the ArcGIS Help before proceeding.
 
 Before you begin, if you have any other feature classes you would like to include in your network dataset (eg, a sidewalks layer), add them to your feature dataset now.
@@ -208,7 +208,7 @@ Note that the following steps are rather complicated.  You can always go back an
     3. <a name="parameters"></a>Now that you have created your travel time attribute, you have the option to add parameters to it to enhance your analysis.  If you are unfamiliar with parameters or need a refresher, please review the [Using parameters with network attributes](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/using-parameters-with-network-attributes.htm) page.
 
         To create a parameter, return to the window where you can create new attributes, select your travel time attribute from the list and click the Parameters button on the right.  Click Add to add a new parameter.
-  
+
         Here are some parameters you might want to add to your transit travel time attribute:
         * **Use Specific Dates**: If you want to run analyses using a specific date rather than a generic weekday (for example, Tuesday, April 9, 2013, rather than just "Tuesday"), you must have this parameter, and it must be set to True.  When you create this parameter, give it the name "Use Specific Dates".  It must have exactly this name, or it will not work.  Give it a type of Boolean, and set the default value to either True or False, whichever you prefer.  If you give it a default value of True, the default behavior will be to use the specific date you select in your analysis settings.  If you give it a default value of False, the default value will be to ignore the specific date and use only the weekday you specify in the analysis settings.  You will be able to override the default behavior in the analysis settings later. If your GTFS data does not use a calendar.txt file (i.e., only has a calendar_dates.txt files), you should set the default value to True.  Generic weekday analyses will not work with these datasets.  If you do not create this parameter, the transit evaluator's default behavior is to not use specific dates.
         * **Walk speed**: As mentioned above, you might want to add a pedestrian walk speed parameter to help you calculate the travel time along your street features.  If you add a walk speed parameter, you can give it any name and units you want.  Just make sure you adjust your street features' evaluators correctly to use this parameter.  Unlike the other parameters mentioned here, this one is not used internally by the transit evaluator.  It's up to you to configure this one correctly with your other evaluators.
@@ -230,7 +230,7 @@ Note that the following steps are rather complicated.  You can always go back an
     <a name="WheelchairRestriction"></a>If you plan to perform analyses for travelers in wheelchairs and your stops.txt file contains a wheelchair_boarding field, you can create a restriction attribute to prevent these travelers from using inaccessible stops.  Create a new restriction attribute, and for the Connectors_Stops2Streets features, use a field evaluator to determine whether or not the stop should be restricted.  The "wheelchair boarding" field values follow the GTFS specification.  A value of "1" indicates that the stop is wheelchair accessible; a value of "2" indicates that the stop is not wheelchair accessible; a value of "0" indicates that there is no information for this stop.   If your street or sidewalk data has information about wheelchair accessibility, you can configure that here as well.  Remember to create a "Traveling in a wheelchair" parameter on your travel time attribute as described [above](#WheelchairParameter) if you want inaccessible GTFS trips to be restricted as well. This restriction only handles the stops.
 
 10. When you're done setting up your attributes and parameters, continue on to the next page.  If you are using ArcGIS 10.3 or higher, you will see a page where you can configure [Travel Modes](http://desktop.arcgis.com/en/arcmap/latest/extensions/network-analyst/travel-modes-concepts.htm).  Unless you plan to publish a service, Travel Modes will not be particularly useful, so you should skip this step and click Next.
- 
+
 12. Choose No for driving directions.  We currently do not support directions on a GTFS transit network.
 
 11. If you're using ArcGIS 10.3 or higher, you will be given an option on the next page to build a service area index.  If you are planning to make service areas, building a service area index is a good idea, as the index makes service area generation faster and the resulting service areas nicer looking.
@@ -246,7 +246,7 @@ Before running the Create Network Dataset from Template tool, add your Streets_U
 - 1 or Null: Pedestrians are allowed to walk on this feature
 - 0: Pedestrians are not allowed to walk on this feature
 
-When you create the network dataset from the template, the network will read the values of this field to determine whether or not each street should be restricted to pedestrians walking.  The field values are <Null> by default, so if you aren't interested in this restriction or don't have any information about where pedestrians are and are not allowed, you can leave the field as is.  The network dataset will just assume that pedestrians are allowed to travel anywhere. 
+When you create the network dataset from the template, the network will read the values of this field to determine whether or not each street should be restricted to pedestrians walking.  The field values are <Null> by default, so if you aren't interested in this restriction or don't have any information about where pedestrians are and are not allowed, you can leave the field as is.  The network dataset will just assume that pedestrians are allowed to travel anywhere.
 
 To create the network dataset, simply run the Create Network Dataset From Template tool (in ArcToolbox -> Network Analyst Tools -> Network Dataset) using this provided template and designating the feature dataset you created earlier as the output location for the network.
 
@@ -272,7 +272,7 @@ If you constructed the network manually using the network dataset creation wizar
 
 Other ways to build the network include running the [Build Network](https://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/build-network.htm) geoprocessing tool or  right-clicking on the network dataset in the Catalog pane and choosing the Build option.
 
-When you build the network, you might end up with one or more build errors.  Some errors can be safely ignored, some should probably be fixed for optimal network performance, and others must be fixed or the network will not work at all.  If you get build errors, please check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md#BuildErrors) for information about what they mean and how to address them.
+When you build the network, you might end up with one or more build errors.  Some errors can be safely ignored, some should probably be fixed for optimal network performance, and others must be fixed or the network will not work at all.  If you get build errors, please check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md#BuildErrors) for information about what they mean and how to address them.
 
 ## <a name="Step7"></a>7) Finalize your transit network using the Get Network EIDs tool
 
@@ -315,7 +315,7 @@ Before running your analysis, make sure to tell it to run at a particular time o
 
 ![Screenshot of analysis settings](./images/Screenshot_AnalysisSettings_TimeOfDay.png)
 
-Note that the results of your analysis will be heavily dependent on the time of day. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.  A demonstration of this can be seen in [this video](https://youtu.be/tTSd6qJlans) (if you like this video, instructions to make one like it are in the [Transit Analysis Tools user's guide](https://github.com/Esri/public-transit-tools/blob/master/transit-network-analysis-tools/UsersGuide.md#TimeLapse)).
+Note that the results of your analysis will be heavily dependent on the time of day. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.  A demonstration of this can be seen in [this video](https://youtu.be/tTSd6qJlans) (if you like this video, instructions to make one like it are in the [Transit Analysis Tools user's guide](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/transit-network-analysis-tools-arcmap/UsersGuide.md#TimeLapse)).
 
 ### <a name="Dates"></a>Specific vs. generic dates
 
@@ -392,7 +392,7 @@ You can use this information when testing that your network is working correctly
 * Place two stops on the street features on either end of the selected transit line.
 * Run Transit Identify to find a time of day and day of week when the selected transit line is used.
 * Set your Route's time of day to correspond with the time of day when you know the transit line is used.  You should set the time of day to a minute or two before the transit trip starts to account for a small amount of walking time from the origin point to the transit stop.
-* Solve the Route layer.  If the resulting route uses the transit line as expected, your network is working correctly. 
+* Solve the Route layer.  If the resulting route uses the transit line as expected, your network is working correctly.
 
 This tool is *not* meant to be used to extract schedule information from the entire network; consequently, the tool will only run if the number of selected features is 5 or fewer.
 
@@ -488,4 +488,4 @@ These tools are exploratory prototypes designed to help Esri further its develop
 Because these are prototype tools and have not been extensively tested, we cannot guarantee that the results of your analyses will be accurate.  Please keep this in mind if you plan to use your analyses your research or publications. You are welcome to contact us to discuss questions or concerns or if you would like more detailed information about how the tools work.
 
 ## Questions or problems?
-Check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md).  If you're still having trouble, search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).
+Check the [Troubleshooting Guide](https://github.com/Esri/public-transit-tools/blob/master/deprecated-tools/add-GTFS-to-a-network-dataset/TroubleshootingGuide.md).  If you're still having trouble, search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).
