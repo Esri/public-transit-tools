@@ -802,7 +802,8 @@ class ParallelODCalculator():
         # Append the calculated transit frequency statistics to the output feature class
         LOGGER.debug("Writing data to output Origins...")
         arcpy.management.AddFields(self.origins, field_defs)
-        fields = ["ObjectID"] + [f[0] for f in field_defs]
+        oid_field = arcpy.Describe(self.origins).oidFieldName
+        fields = [oid_field] + [f[0] for f in field_defs]
         with arcpy.da.UpdateCursor(self.origins, fields) as cur:  # pylint: disable=no-member
             for row in cur:
                 oid = row[0]
