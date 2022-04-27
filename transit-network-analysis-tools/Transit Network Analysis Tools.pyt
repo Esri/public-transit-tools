@@ -656,8 +656,8 @@ class CalculateTravelTimeStatisticsOD(object):
         destinations = parameters[1].value
         destinations = destinations if hasattr(destinations, "dataSource") else str(destinations)
 
-        import CalculateAccessibilityMatrixInParallel
-        od_solver = CalculateAccessibilityMatrixInParallel.ODCostMatrixSolver(**{
+        import CalculateODMatrixInParallel
+        od_solver = CalculateODMatrixInParallel.ODCostMatrixSolver(**{
             "origins": origins,
             "destinations": destinations,
             "output_origins": parameters[2].valueAsText,
@@ -833,8 +833,8 @@ class CalculateAccessibilityMatrix(object):
         destinations = parameters[1].value
         destinations = destinations if hasattr(destinations, "dataSource") else str(destinations)
 
-        import CalculateAccessibilityMatrixInParallel
-        od_solver = CalculateAccessibilityMatrixInParallel.ODCostMatrixSolver(**{
+        import CalculateODMatrixInParallel
+        od_solver = CalculateODMatrixInParallel.CalculateAccessibilityMatrix(**{
             "origins": origins,
             "destinations": destinations,
             "output_origins": parameters[2].valueAsText,
