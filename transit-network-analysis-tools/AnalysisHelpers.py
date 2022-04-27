@@ -3,9 +3,9 @@
 ## Created by: Melinda Morang, Esri
 ## Last updated: 9 August 2021
 ################################################################################
-'''Helper methods for analysis tools.'''
+"""Helper methods for analysis tools."""
 ################################################################################
-'''Copyright 2021 Esri
+"""Copyright 2021 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -14,11 +14,12 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.'''
+   limitations under the License."""
 ################################################################################
 
 import sys
 import datetime
+import enum
 import arcpy
 
 # Determine if this is python 3 (which means probably ArcGIS Pro)
@@ -35,6 +36,7 @@ NAME_FIELD = "Name"
 FROM_BREAK_FIELD = "FromBreak"
 TO_BREAK_FIELD = "ToBreak"
 FIELDS_TO_PRESERVE = [FACILITY_ID_FIELD, NAME_FIELD, FROM_BREAK_FIELD, TO_BREAK_FIELD]
+
 
 def validate_input_feature_class(feature_class):
     """Validate that the designated input feature class exists and is not empty.
@@ -194,7 +196,7 @@ def get_catalog_path_from_param(param):
 
 
 def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input):
-    '''Make a list of datetimes to use as input for a network analysis time of day run in a loop'''
+    """Make a list of datetimes to use as input for a network analysis time of day run in a loop"""
 
     start_time, end_time = convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input, end_time_input)
 
@@ -210,7 +212,7 @@ def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_in
 
 
 def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input, end_time_input):
-    '''Parse start and end day and time from tool inputs and convert them to datetimes'''
+    """Parse start and end day and time from tool inputs and convert them to datetimes"""
 
     # For an explanation of special ArcMap generic weekday dates, see the time_of_day parameter
     # description in the Make Service Area Layer tool documentation
@@ -283,7 +285,7 @@ def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input
 
 
 def add_TimeOfDay_field_to_sublayer(nalayer, sublayer_object, sublayer_name):
-    '''Add a field called TimeOfDay of type DATE to an NA sublayer'''
+    """Add a field called TimeOfDay of type DATE to an NA sublayer"""
     # Clean up any pre-existing fields with this name (unlikely case)
     poly_fields = [f for f in arcpy.Describe(sublayer_object).fields if f.name == TIME_FIELD]
     if poly_fields:
@@ -302,7 +304,7 @@ def add_TimeOfDay_field_to_sublayer(nalayer, sublayer_object, sublayer_name):
 
 
 def calculate_TimeOfDay_field(sublayer_object, time_field, time_of_day):
-    '''Set the TimeOfDay field to a specific time of day'''
+    """Set the TimeOfDay field to a specific time of day"""
     expression = '"' + str(time_of_day) + '"'  # Unclear why a DATE field requires a string expression, but it does.
     arcpy.management.CalculateField(sublayer_object, time_field, expression, "PYTHON_9.3")
 
@@ -343,6 +345,16 @@ def cell_size_to_meters(cell_size_param_value):
     # If we got this far, units are invalid. Tool validation should ensure this never happens, but raise an error
     # just in case.
     raise ValueError(f"Invalid cell size units: {units}")
+
+
+class ODTool(enum.Enum):
+    """Enum defining the tool being run.
+
+    Used as a switch in shared code where minor behavior differences are necessary.
+    """
+
+    CalculateAccessibilityMatrix = 1
+    CalculateTravelTimeStatistics = 2
 
 
 class GPError(Exception):

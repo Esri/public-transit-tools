@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 13 September 2021
+## Last updated: 27 April 2022
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -21,7 +21,7 @@ parallel. It was built based off Esri's Solve Large OD Cost Matrix sample script
 available from https://github.com/Esri/large-network-analysis-tools under an Apache
 2.0 license.
 
-Copyright 2021 Esri
+Copyright 2022 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -429,6 +429,7 @@ class ODCostMatrixSolver():  # pylint: disable=too-many-instance-attributes, too
         odcm_inputs = [
             os.path.join(sys.exec_prefix, "python.exe"),
             os.path.join(cwd, "parallel_odcm.py"),
+            "--tool", AnalysisHelpers.ODTool.CalculateAccessibilityMatrix.name,
             "--origins", self.origins_for_od,
             "--destinations", self.temp_destinations,
             "--network-data-source", self.network_data_source,
