@@ -21,8 +21,7 @@ suite."""
 import os
 import arcpy
 import TNAT_ToolValidator
-from AnalysisHelpers import TIME_UNITS, MAX_AGOL_PROCESSES, is_nds_service, cell_size_to_meters, \
-                            get_catalog_path_from_param
+from AnalysisHelpers import TIME_UNITS, cell_size_to_meters, get_catalog_path_from_param
 
 
 class Toolbox(object):
@@ -37,6 +36,7 @@ class Toolbox(object):
             PrepareTimeLapsePolygons,
             CalculateAccessibilityMatrix,
             CalculateTravelTimeStatistics,
+            CalculateTravelTimeStatisticsOD,
             CreatePercentAccessPolygons
         ]
 
@@ -139,18 +139,8 @@ class PrepareTimeLapsePolygons(object):
 
             # 14
             make_parameter(PARAM_PARALLEL_PROCESSES),
-
             # 15
-            arcpy.Parameter(
-                displayName="Barriers",
-                name="Barriers",
-                datatype="GPFeatureLayer",
-                parameterType="Optional",
-                direction="Input",
-                multiValue=True,
-                category="Advanced"
-            ),
-
+            make_parameter(PARAM_BARRIERS),
             # 16
             make_parameter(PARAM_PRECALCULATE)
 
@@ -580,7 +570,7 @@ class CalculateTravelTimeStatisticsOD(object):
                 datatype="DEFile",
                 parameterType="Required",
                 direction="Output"
-            )
+            ),
 
             # 3
             make_parameter(PARAM_NETWORK),
@@ -602,16 +592,7 @@ class CalculateTravelTimeStatisticsOD(object):
             make_parameter(PARAM_PARALLEL_PROCESSES),
 
             # 12
-            arcpy.Parameter(
-                displayName="Barriers",
-                name="Barriers",
-                datatype="GPFeatureLayer",
-                parameterType="Optional",
-                direction="Input",
-                multiValue=True,
-                category="Advanced"
-            ),
-
+            make_parameter(PARAM_BARRIERS),
             # 13
             make_parameter(PARAM_PRECALCULATE)
 
@@ -783,16 +764,7 @@ class CalculateAccessibilityMatrix(object):
                 direction="Input"),
 
             # 15
-            arcpy.Parameter(
-                displayName="Barriers",
-                name="Barriers",
-                datatype="GPFeatureLayer",
-                parameterType="Optional",
-                direction="Input",
-                multiValue=True,
-                category="Advanced"
-            ),
-
+            make_parameter(PARAM_BARRIERS),
             # 16
             make_parameter(PARAM_PRECALCULATE)
 
@@ -988,6 +960,16 @@ PARAM_PRECALCULATE = CommonParameter(
     "Input",
     default_val=True,
     category="Advanced")
+
+PARAM_BARRIERS = CommonParameter(
+    displayName="Barriers",
+    name="Barriers",
+    datatype="GPFeatureLayer",
+    parameterType="Optional",
+    direction="Input",
+    multiValue=True,
+    category="Advanced"
+)
 
 PARAM_ORIGINS = CommonParameter(
     displayName="Origins",
