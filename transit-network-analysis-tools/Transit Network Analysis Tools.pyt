@@ -590,7 +590,6 @@ class CalculateTravelTimeStatisticsOD(object):
             make_parameter(PARAM_OD_CHUNK_SIZE),
             # 11
             make_parameter(PARAM_PARALLEL_PROCESSES),
-
             # 12
             make_parameter(PARAM_BARRIERS),
             # 13
@@ -650,31 +649,27 @@ class CalculateTravelTimeStatisticsOD(object):
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
-        ## TODO
         origins = parameters[0].value
         origins = origins if hasattr(origins, "dataSource") else str(origins)
         destinations = parameters[1].value
         destinations = destinations if hasattr(destinations, "dataSource") else str(destinations)
 
         import CalculateODMatrixInParallel
-        od_solver = CalculateODMatrixInParallel.ODCostMatrixSolver(**{
+        od_solver = CalculateODMatrixInParallel.CalculateTravelTimeStatistics(**{
             "origins": origins,
             "destinations": destinations,
-            "output_origins": parameters[2].valueAsText,
+            "out_csv_file": parameters[2].valueAsText,
             "network_data_source": get_catalog_path_from_param(parameters[3]),
             "travel_mode": parameters[4].valueAsText,
-            "cutoff": parameters[5].value,
-            "time_units": parameters[6].valueAsText,
-            "time_window_start_day": parameters[7].valueAsText,
-            "time_window_start_time": parameters[8].valueAsText,
-            "time_window_end_day": parameters[9].valueAsText,
-            "time_window_end_time": parameters[10].valueAsText,
-            "time_increment": parameters[11].value,
-            "chunk_size": parameters[12].value,
-            "max_processes": parameters[13].value,
-            "weight_field": parameters[14].valueAsText if parameters[14].value else None,
-            "barriers": parameters[15].values if parameters[15].values else None,
-            "precalculate_network_locations": parameters[16].value
+            "time_window_start_day": parameters[5].valueAsText,
+            "time_window_start_time": parameters[6].valueAsText,
+            "time_window_end_day": parameters[7].valueAsText,
+            "time_window_end_time": parameters[8].valueAsText,
+            "time_increment": parameters[9].value,
+            "chunk_size": parameters[10].value,
+            "max_processes": parameters[11].value,
+            "barriers": parameters[12].values if parameters[12].values else None,
+            "precalculate_network_locations": parameters[13].value
         })
         od_solver.solve_large_od_cost_matrix()
 

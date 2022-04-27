@@ -78,7 +78,6 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
         Args:
             origins (str, layer): Catalog path or layer for the input origins
             destinations (str, layer): Catalog path or layer for the input destinations
-            output_origins (str): Catalog path to the output Origins feature class
             time_window_start_day (str): English weekday name or YYYYMMDD date representing the weekday or start date of
                 the time window
             time_window_start_time (str): HHMM time of day for the start of the time window
@@ -90,8 +89,6 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
             travel_mode (str, travel mode): Travel mode object, name, or json string representation
             chunk_size (int): Maximum number of origins and destinations that can be in one chunk
             max_processes (int): Maximum number of allowed parallel processes
-            time_units (str): String representation of time units
-            cutoff (float): Time cutoff to limit the OD Cost Matrix solve. Interpreted in the time_units.
             precalculate_network_locations (bool, optional): Whether to precalculate network location fields for all
                 inputs. Defaults to True. Should be false if the network_data_source is a service.
             barriers (list(str, layer), optional): List of catalog paths or layers for point, line, and polygon barriers
@@ -623,3 +620,80 @@ class CalculateAccessibilityMatrix(ODCostMatrixSolver):  # pylint: disable=too-m
                 self.origins_for_od, "ORIG_FID",
                 self.out_fields
             )
+
+
+class CalculateTravelTimeStatistics(ODCostMatrixSolver):  # pylint: disable=too-many-instance-attributes, too-few-public-methods
+    """Run the Calculate Travel Time Statistics (OD Cost Matrix) tool.
+
+    This class preprocesses and validate inputs and then spins up a subprocess to do the actual OD Cost Matrix
+    calculations. This is necessary because the a script tool running in the ArcGIS Pro UI cannot directly call
+    multiprocessing using concurrent.futures. We must spin up a subprocess, and the subprocess must spawn parallel
+    processes for the calculations. Thus, this class does all the pre-processing, passes inputs to the subprocess, and
+    handles messages returned by the subprocess. The subprocess actually does the calculations.
+    """
+
+    def __init__(  # pylint: disable=too-many-locals, too-many-arguments
+        self, origins, destinations, out_csv_file, time_window_start_day, time_window_start_time, time_window_end_day,
+        time_window_end_time, time_increment, network_data_source, travel_mode, chunk_size, max_processes,
+        precalculate_network_locations=True, barriers=None
+    ):
+        """Initialize the ODCostMatrixSolver class.
+
+        Args:
+            origins (str, layer): Catalog path or layer for the input origins
+            destinations (str, layer): Catalog path or layer for the input destinations
+            out_csv_file (str): Catalog path to the output CSV file
+            time_window_start_day (str): English weekday name or YYYYMMDD date representing the weekday or start date of
+                the time window
+            time_window_start_time (str): HHMM time of day for the start of the time window
+            time_window_end_day (str): English weekday name or YYYYMMDD date representing the weekday or end date of
+                the time window
+            time_window_end_time (str): HHMM time of day for the end of the time window
+            time_increment (int): Number of minutes between each run of the OD Cost Matrix in the time window
+            network_data_source (str, layer): Catalog path, layer, or URL for the input network dataset
+            travel_mode (str, travel mode): Travel mode object, name, or json string representation
+            chunk_size (int): Maximum number of origins and destinations that can be in one chunk
+            max_processes (int): Maximum number of allowed parallel processes
+            precalculate_network_locations (bool, optional): Whether to precalculate network location fields for all
+                inputs. Defaults to True. Should be false if the network_data_source is a service.
+            barriers (list(str, layer), optional): List of catalog paths or layers for point, line, and polygon barriers
+                 to use. Defaults to None.
+        """
+        super().__init__(
+            origins, destinations, time_window_start_day, time_window_start_time, time_window_end_day,
+            time_window_end_time, time_increment, network_data_source, travel_mode, chunk_size, max_processes,
+            precalculate_network_locations, barriers
+            )
+        self.out_csv_file = out_csv_file
+
+        self.temp_origins = None
+        self.temp_destinations = None
+        self.od_props = CalculateTravelTimeStatistics_OD_config.OD_PROPS
+        self.tool_specific_od_inputs = []  # Set later
+
+    def _preprocess_inputs(self):
+        """Preprocess the input feature classes to prepare them for use in the OD Cost Matrix."""
+        # Make a temporary copy of the inputs so location fields can be calculated without modifying the input.
+        # Also convert from polygons if needed.
+        self.temp_origins = self._copy_input_to_temp(self.origins)
+        if not self.same_origins_destinations:
+            self.temp_destinations = self._copy_input_to_temp(self.destinations)
+        else:
+            self.temp_destinations = self.temp_origins
+
+        # Precalculate network location fields for inputs
+        if not self.is_service and self.should_precalc_network_locations:
+            self._precalculate_network_locations(self.temp_origins)
+            if not self.same_origins_destinations:
+                self._precalculate_network_locations(self.temp_destinations)
+            for barrier_fc in self.barriers:
+                self._precalculate_network_locations(barrier_fc)
+
+    def _execute_solve(self):  # pylint: disable=arguments-differ
+        """Solve the OD Cost Matrix analysis."""
+        self.tool_specific_od_inputs = [
+            "--tool", AnalysisHelpers.ODTool.CalculateTravelTimeStatistics.name,
+            "--origins", self.temp_origins,
+            "--destinations", self.temp_destinations,
+        ]
+        super()._execute_solve()
