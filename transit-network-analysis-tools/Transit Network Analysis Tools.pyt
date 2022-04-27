@@ -1,12 +1,12 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 9 August 2021
+## Last updated: 27 April 2022
 ############################################################################
-''' Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
-suite.'''
+""" Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
+suite."""
 ################################################################################
-'''Copyright 2021 Esri
+"""Copyright 2022 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -15,7 +15,7 @@ suite.'''
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.'''
+   limitations under the License."""
 ################################################################################
 
 import os
@@ -75,22 +75,10 @@ class PrepareTimeLapsePolygons(object):
             ),
 
             # 2
-            arcpy.Parameter(
-                displayName="Network Data Source",
-                name="Network_Data_Source",
-                datatype="GPNetworkDataSource",
-                parameterType="Required",
-                direction="Input"
-            ),
+            make_parameter(PARAM_NETWORK),
 
             # 3
-            arcpy.Parameter(
-                displayName="Travel Mode",
-                name="Travel_Mode",
-                datatype="GPString",
-                parameterType="Required",
-                direction="Input"
-            ),
+            make_parameter(PARAM_TRAVEL_MODE),
 
             # 4
             arcpy.Parameter(
@@ -112,15 +100,15 @@ class PrepareTimeLapsePolygons(object):
             ),
 
             # 6
-            make_parameter(param_startday),
+            make_parameter(PARAM_STARTDAY),
             # 7
-            make_parameter(param_starttime),
+            make_parameter(PARAM_STARTTIME),
             # 8
-            make_parameter(param_endday),
+            make_parameter(PARAM_ENDDAY),
             # 9
-            make_parameter(param_endtime),
+            make_parameter(PARAM_ENDTIME),
             # 10
-            make_parameter(param_timeinc),
+            make_parameter(PARAM_TIMEINC),
 
             # 11
             arcpy.Parameter(
@@ -150,7 +138,7 @@ class PrepareTimeLapsePolygons(object):
             ),
 
             # 14
-            make_parameter(param_parallel_processes),
+            make_parameter(PARAM_PARALLEL_PROCESSES),
 
             # 15
             arcpy.Parameter(
@@ -164,7 +152,7 @@ class PrepareTimeLapsePolygons(object):
             ),
 
             # 16
-            make_parameter(param_precalculate)
+            make_parameter(PARAM_PRECALCULATE)
 
         ]
 
@@ -196,23 +184,10 @@ class PrepareTimeLapsePolygons(object):
         param_precalc = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
-        # Also populate travel mode parameter with time-based travel modes only.
-        if not param_network.hasBeenValidated and param_network.altered and param_network.valueAsText:
-            if is_nds_service(param_network.valueAsText):
-                param_precalc.value = False
-                param_precalc.enabled = False
-            else:
-                param_precalc.enabled = True
+        TNAT_ToolValidator.update_precalculate_parameter(param_network, param_precalc)
 
-            try:
-                travel_modes = arcpy.nax.GetTravelModes(param_network.value)
-                param_travel_mode.filter.list = [
-                    tm_name for tm_name in travel_modes if
-                    travel_modes[tm_name].impedance == travel_modes[tm_name].timeAttributeName
-                ]
-            except Exception:  # pylint: disable=broad-except
-                # We couldn't get travel modes for this network for some reason.
-                pass
+        # Populate travel mode parameter with time-based travel modes only.
+        TNAT_ToolValidator.show_only_time_travel_modes(param_network, param_travel_mode)
 
         # Disable Geometry At Cutoff parameter if there's only one cutoff
         if not param_cutoffs.hasBeenValidated and param_cutoffs.altered and param_cutoffs.valueAsText and \
@@ -246,13 +221,7 @@ class PrepareTimeLapsePolygons(object):
         TNAT_ToolValidator.validate_time_increment(increment)
 
         # If the network data source is arcgis.com, cap max processes
-        if param_max_processes.altered and param_max_processes.valueAsText and \
-                param_network.altered and param_network.valueAsText:
-            if "arcgis.com" in param_network.valueAsText and param_max_processes.value > MAX_AGOL_PROCESSES:
-                param_max_processes.setErrorMessage((
-                    "The maximum number of parallel processes cannot exceed %i when the "
-                    "ArcGIS Online services are used as the network data source."
-                ) % MAX_AGOL_PROCESSES)
+        TNAT_ToolValidator.cap_max_processes_for_agol(param_network, param_max_processes)
 
         return
 
@@ -324,7 +293,7 @@ class CreatePercentAccessPolygons(object):
             ),
 
             # 3
-            make_parameter(param_parallel_processes),
+            make_parameter(PARAM_PARALLEL_PROCESSES),
 
             # 4
             arcpy.Parameter(
@@ -473,11 +442,11 @@ class CalculateTravelTimeStatistics(object):
                 parameterType="Required",
                 direction="Output"),
 
-            make_parameter(param_startday),
-            make_parameter(param_starttime),
-            make_parameter(param_endday),
-            make_parameter(param_endtime),
-            make_parameter(param_timeinc),
+            make_parameter(PARAM_STARTDAY),
+            make_parameter(PARAM_STARTTIME),
+            make_parameter(PARAM_ENDDAY),
+            make_parameter(PARAM_ENDTIME),
+            make_parameter(PARAM_TIMEINC),
 
             make_parameter(CommonParameter(
                 "Save combined network analysis results",
@@ -580,6 +549,157 @@ class CalculateTravelTimeStatistics(object):
         return
 
 
+class CalculateTravelTimeStatisticsOD(object):
+    def __init__(self):
+        """Define the tool (tool name is the name of the class)."""
+        self.label = "Calculate Travel Time Statistics (OD Cost Matrix)"
+        self.description = (
+            "Solve an OD Cost Matrix iteratively over a time window and output a table of statistics ",
+            "describing the travel time over the time window for each origin-destination pair:",
+            "- minimum travel time",
+            "- maximum travel time",
+            "- mean travel time"
+            "- number of times the origin-destination pair or route was considered"
+        )
+        self.canRunInBackground = True
+
+    def getParameterInfo(self):
+        """Define parameter definitions"""
+
+        params = [
+
+            # 0
+            make_parameter(PARAM_ORIGINS),
+            # 1
+            make_parameter(PARAM_DESTINATIONS),
+
+            # 2
+            arcpy.Parameter(
+                displayName="Output Statistics CSV File",
+                name="out_csv_file",
+                datatype="DEFile",
+                parameterType="Required",
+                direction="Output"
+            )
+
+            # 3
+            make_parameter(PARAM_NETWORK),
+            # 4
+            make_parameter(PARAM_TRAVEL_MODE),
+            # 5
+            make_parameter(PARAM_STARTDAY),
+            # 6
+            make_parameter(PARAM_STARTTIME),
+            # 7
+            make_parameter(PARAM_ENDDAY),
+            # 8
+            make_parameter(PARAM_ENDTIME),
+            # 9
+            make_parameter(PARAM_TIMEINC),
+            # 10
+            make_parameter(PARAM_OD_CHUNK_SIZE),
+            # 11
+            make_parameter(PARAM_PARALLEL_PROCESSES),
+
+            # 12
+            arcpy.Parameter(
+                displayName="Barriers",
+                name="Barriers",
+                datatype="GPFeatureLayer",
+                parameterType="Optional",
+                direction="Input",
+                multiValue=True,
+                category="Advanced"
+            ),
+
+            # 13
+            make_parameter(PARAM_PRECALCULATE)
+
+        ]
+
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
+        param_network = parameters[3]
+        param_travel_mode = parameters[4]
+        param_precalc = parameters[13]
+
+        # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
+        TNAT_ToolValidator.update_precalculate_parameter(param_network, param_precalc)
+
+        # Populate travel mode parameter with time-based travel modes only.
+        TNAT_ToolValidator.show_only_time_travel_modes(param_network, param_travel_mode)
+
+        return
+
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal validation for each tool
+        parameter.  This method is called after internal validation."""
+        start_day = parameters[5]
+        end_day = parameters[7]
+        start_time = parameters[6]
+        end_time = parameters[8]
+        increment = parameters[9]
+        param_network = parameters[3]
+        param_max_processes = parameters[11]
+
+        # Show a filter list of weekdays but also allow YYYYMMDD dates
+        TNAT_ToolValidator.allow_YYYYMMDD_day(start_day)
+        TNAT_ToolValidator.validate_day(end_day)
+
+        TNAT_ToolValidator.set_end_day(start_day, end_day)
+
+        # Make sure time of day format is correct and time window is valid
+        TNAT_ToolValidator.check_time_window(start_time, end_time, start_day, end_day)
+
+        # Make sure time increment is good
+        TNAT_ToolValidator.validate_time_increment(increment)
+
+        # If the network data source is arcgis.com, cap max processes
+        TNAT_ToolValidator.cap_max_processes_for_agol(param_network, param_max_processes)
+
+        return
+
+    def execute(self, parameters, messages):
+        """The source code of the tool."""
+        ## TODO
+        origins = parameters[0].value
+        origins = origins if hasattr(origins, "dataSource") else str(origins)
+        destinations = parameters[1].value
+        destinations = destinations if hasattr(destinations, "dataSource") else str(destinations)
+
+        import CalculateAccessibilityMatrixInParallel
+        od_solver = CalculateAccessibilityMatrixInParallel.ODCostMatrixSolver(**{
+            "origins": origins,
+            "destinations": destinations,
+            "output_origins": parameters[2].valueAsText,
+            "network_data_source": get_catalog_path_from_param(parameters[3]),
+            "travel_mode": parameters[4].valueAsText,
+            "cutoff": parameters[5].value,
+            "time_units": parameters[6].valueAsText,
+            "time_window_start_day": parameters[7].valueAsText,
+            "time_window_start_time": parameters[8].valueAsText,
+            "time_window_end_day": parameters[9].valueAsText,
+            "time_window_end_time": parameters[10].valueAsText,
+            "time_increment": parameters[11].value,
+            "chunk_size": parameters[12].value,
+            "max_processes": parameters[13].value,
+            "weight_field": parameters[14].valueAsText if parameters[14].value else None,
+            "barriers": parameters[15].values if parameters[15].values else None,
+            "precalculate_network_locations": parameters[16].value
+        })
+        od_solver.solve_large_od_cost_matrix()
+
+        return
+
+
 class CalculateAccessibilityMatrix(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
@@ -601,20 +721,10 @@ class CalculateAccessibilityMatrix(object):
         params = [
 
             # 0
-            arcpy.Parameter(
-                displayName="Origins",
-                name="Origins",
-                datatype="GPFeatureLayer",
-                parameterType="Required",
-                direction="Input"),
+            make_parameter(PARAM_ORIGINS),
 
             # 1
-            arcpy.Parameter(
-                displayName="Destinations",
-                name="Destinations",
-                datatype="GPFeatureLayer",
-                parameterType="Required",
-                direction="Input"),
+            make_parameter(PARAM_DESTINATIONS),
 
             # 2
             arcpy.Parameter(
@@ -626,22 +736,10 @@ class CalculateAccessibilityMatrix(object):
             ),
 
             # 3
-            arcpy.Parameter(
-                displayName="Network Data Source",
-                name="Network_Data_Source",
-                datatype="GPNetworkDataSource",
-                parameterType="Required",
-                direction="Input"
-            ),
+            make_parameter(PARAM_NETWORK),
 
             # 4
-            arcpy.Parameter(
-                displayName="Travel Mode",
-                name="Travel_Mode",
-                datatype="GPString",
-                parameterType="Required",
-                direction="Input"
-            ),
+            make_parameter(PARAM_TRAVEL_MODE),
 
             # 5
             arcpy.Parameter(
@@ -662,27 +760,19 @@ class CalculateAccessibilityMatrix(object):
             ),
 
             # 7
-            make_parameter(param_startday),
+            make_parameter(PARAM_STARTDAY),
             # 8
-            make_parameter(param_starttime),
+            make_parameter(PARAM_STARTTIME),
             # 9
-            make_parameter(param_endday),
+            make_parameter(PARAM_ENDDAY),
             # 10
-            make_parameter(param_endtime),
+            make_parameter(PARAM_ENDTIME),
             # 11
-            make_parameter(param_timeinc),
-
+            make_parameter(PARAM_TIMEINC),
             # 12
-            arcpy.Parameter(
-                displayName="Maximum Origins and Destinations per Chunk",
-                name="Max_Inputs_Per_Chunk",
-                datatype="GPLong",
-                parameterType="Required",
-                direction="Input"
-            ),
-
+            make_parameter(PARAM_OD_CHUNK_SIZE),
             # 13
-            make_parameter(param_parallel_processes),
+            make_parameter(PARAM_PARALLEL_PROCESSES),
 
             # 14
             arcpy.Parameter(
@@ -704,18 +794,15 @@ class CalculateAccessibilityMatrix(object):
             ),
 
             # 16
-            make_parameter(param_precalculate)
+            make_parameter(PARAM_PRECALCULATE)
 
         ]
 
-        params[0].filter.list = ["Point", "Polygon"]
-        params[1].filter.list = ["Point", "Polygon"]
         params[14].filter.list = ["Short", "Long", "Double"]  # destination weight field
         params[14].parameterDependencies = [params[1].name]  # destination weight field
         # params[4].parameterDependencies = [params[3].name]  # travel mode
         params[6].filter.list = TIME_UNITS
         params[6].value = "Minutes"
-        params[12].value = 1000  # chunk size
 
         return params
 
@@ -732,23 +819,11 @@ class CalculateAccessibilityMatrix(object):
         param_precalc = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
-        # Also populate travel mode parameter with time-based travel modes only.
-        if not param_network.hasBeenValidated and param_network.altered and param_network.valueAsText:
-            if is_nds_service(param_network.valueAsText):
-                param_precalc.value = False
-                param_precalc.enabled = False
-            else:
-                param_precalc.enabled = True
+        TNAT_ToolValidator.update_precalculate_parameter(param_network, param_precalc)
 
-            try:
-                travel_modes = arcpy.nax.GetTravelModes(param_network.value)
-                param_travel_mode.filter.list = [
-                    tm_name for tm_name in travel_modes if
-                    travel_modes[tm_name].impedance == travel_modes[tm_name].timeAttributeName
-                ]
-            except Exception:  # pylint: disable=broad-except
-                # We couldn't get travel modes for this network for some reason.
-                pass
+        # Populate travel mode parameter with time-based travel modes only.
+        TNAT_ToolValidator.show_only_time_travel_modes(param_network, param_travel_mode)
+
         return
 
     def updateMessages(self, parameters):
@@ -775,13 +850,7 @@ class CalculateAccessibilityMatrix(object):
         TNAT_ToolValidator.validate_time_increment(increment)
 
         # If the network data source is arcgis.com, cap max processes
-        if param_max_processes.altered and param_max_processes.valueAsText and \
-                param_network.altered and param_network.valueAsText:
-            if "arcgis.com" in param_network.valueAsText and param_max_processes.value > MAX_AGOL_PROCESSES:
-                param_max_processes.setErrorMessage((
-                    "The maximum number of parallel processes cannot exceed %i when the "
-                    "ArcGIS Online services are used as the network data source."
-                ) % MAX_AGOL_PROCESSES)
+        TNAT_ToolValidator.cap_max_processes_for_agol(param_network, param_max_processes)
 
         return
 
@@ -816,6 +885,7 @@ class CalculateAccessibilityMatrix(object):
 
         return
 
+
 # region parameters
 
 class CommonParameter(object):
@@ -835,6 +905,7 @@ class CommonParameter(object):
         self.default_val = default_val
         self.filter_list = filter_list
 
+
 def make_parameter(common_param):
     """Construct a parameter for use in a tool."""
     param = arcpy.Parameter(**common_param.parameter_def)
@@ -844,7 +915,24 @@ def make_parameter(common_param):
         param.filter.list = common_param.filter_list
     return param
 
-param_startday = CommonParameter(
+
+PARAM_NETWORK = CommonParameter(
+    "Network Data Source",
+    "Network_Data_Source",
+    "GPNetworkDataSource",
+    "Required",
+    "Input"
+)
+
+PARAM_TRAVEL_MODE = CommonParameter(
+    displayName="Travel Mode",
+    name="Travel_Mode",
+    datatype="GPString",
+    parameterType="Required",
+    direction="Input"
+)
+
+PARAM_STARTDAY = CommonParameter(
     "Start Day (Weekday or YYYYMMDD date)",
     "Start_Day__Weekday_or_YYYYMMDD_date_",
     "GPString",
@@ -852,7 +940,7 @@ param_startday = CommonParameter(
     "Input",
     default_val="Wednesday")
 
-param_endday = CommonParameter(
+PARAM_ENDDAY = CommonParameter(
     "End Day (Weekday or YYYYMMDD date)",
     "End_Day__Weekday_or_YYYYMMDD_date_",
     "GPString",
@@ -860,7 +948,7 @@ param_endday = CommonParameter(
     "Input",
     default_val="Wednesday")
 
-param_starttime = CommonParameter(
+PARAM_STARTTIME = CommonParameter(
     "Start Time (HH:MM) (24 hour time)",
     "Start_Time__HH_MM___24_hour_time_",
     "GPString",
@@ -868,7 +956,7 @@ param_starttime = CommonParameter(
     "Input",
     default_val="08:00")
 
-param_endtime = CommonParameter(
+PARAM_ENDTIME = CommonParameter(
     "End Time (HH:MM) (24 hour time)",
     "End_Time__HH_MM___24_hour_time_",
     "GPString",
@@ -876,7 +964,7 @@ param_endtime = CommonParameter(
     "Input",
     default_val="09:00")
 
-param_timeinc = CommonParameter(
+PARAM_TIMEINC = CommonParameter(
     "Time Increment (minutes)",
     "Time_Increment__minutes_",
     "GPLong",
@@ -884,7 +972,7 @@ param_timeinc = CommonParameter(
     "Input",
     default_val="1")
 
-param_parallel_processes = CommonParameter(
+PARAM_PARALLEL_PROCESSES = CommonParameter(
     "Maximum Number of Parallel Processes",
     "Max_Processes",
     "GPLong",
@@ -892,7 +980,7 @@ param_parallel_processes = CommonParameter(
     "Input",
     default_val=4)
 
-param_precalculate = CommonParameter(
+PARAM_PRECALCULATE = CommonParameter(
     "Precalculate Network Locations",
     "Precalculate_Network_Locations",
     "GPBoolean",
@@ -900,5 +988,32 @@ param_precalculate = CommonParameter(
     "Input",
     default_val=True,
     category="Advanced")
+
+PARAM_ORIGINS = CommonParameter(
+    displayName="Origins",
+    name="Origins",
+    datatype="GPFeatureLayer",
+    parameterType="Required",
+    direction="Input",
+    filter_list=["Point", "Polygon"]
+)
+
+PARAM_DESTINATIONS = CommonParameter(
+    displayName="Destinations",
+    name="Destinations",
+    datatype="GPFeatureLayer",
+    parameterType="Required",
+    direction="Input",
+    filter_list=["Point", "Polygon"]
+)
+
+PARAM_OD_CHUNK_SIZE = CommonParameter(
+    displayName="Maximum Origins and Destinations per Chunk",
+    name="Max_Inputs_Per_Chunk",
+    datatype="GPLong",
+    parameterType="Required",
+    direction="Input",
+    default_val=1000
+)
 
 # endregion parameters
