@@ -202,12 +202,10 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
 
         # Create a job ID and a folder for this job
         self.job_id = uuid.uuid4().hex
-        self.job_folder = os.path.join(self.scratch_folder, self.job_id)
-        os.mkdir(self.job_folder)
 
         # Setup the class logger. Logs for each parallel process are not written to the console but instead to a
         # process-specific log file.
-        self.log_file = os.path.join(self.job_folder, 'ODCostMatrix.log')
+        self.log_file = os.path.join(self.scratch_folder, f"ODCostMatrix_{self.job_id}.log")
         cls_logger = logging.getLogger("ODCostMatrix_" + self.job_id)
         self.setup_logger(cls_logger)
         self.logger = cls_logger
@@ -229,7 +227,6 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         # Prepare a dictionary to store info about the analysis results
         self.job_result = {
             "jobId": self.job_id,
-            "jobFolder": self.job_folder,
             "solveSucceeded": False,
             "solveMessages": "",
             "outputLines": "",
@@ -649,9 +646,11 @@ class ParallelODCalculator():
             raise
         finally:
             if odcm:
-                LOGGER.debug("Deleting temporary test OD Cost Matrix job folder...")
-                shutil.rmtree(odcm.job_result["jobFolder"], ignore_errors=True)
-                del odcm
+                # Close logging and delete the temporary log file
+                for handler in odcm.logger.handlers:
+                    handler.close()
+                    odcm.logger.removeHandler(handler)
+                os.remove(odcm.log_file)
 
     @staticmethod
     def _get_oid_ranges_for_input(input_fc, max_chunk_size, where=""):
