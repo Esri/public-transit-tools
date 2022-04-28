@@ -217,6 +217,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.input_destinations_layer = "InputDestinations" + self.job_id
         self.input_origins_layer_obj = None
         self.input_destinations_layer_obj = None
+        self.solve_result = None
 
         # Create a network dataset layer
         self.nds_layer_name = "NetworkDatasetLayer"
@@ -238,6 +239,8 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         desc_destinations = arcpy.Describe(self.destinations)
         self.origins_oid_field_name = desc_origins.oidFieldName
         self.destinations_oid_field_name = desc_destinations.oidFieldName
+        self.orig_origin_oid_field = "Orig_Origin_OID"
+        self.orig_dest_oid_field = "Orig_Dest_OID"
 
     def _make_nds_layer(self):
         """Create a network dataset layer if one does not already exist."""
@@ -387,12 +390,12 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         # Solve the OD cost matrix analysis
         self.logger.debug("Solving OD cost matrix...")
         solve_start = time.time()
-        solve_result = self.od_solver.solve()
+        self.solve_result = self.od_solver.solve()
         solve_end = time.time()
         self.logger.debug(f"Solving OD cost matrix completed in {round(solve_end - solve_start, 3)} (seconds).")
 
         # Handle solve messages
-        solve_msgs = [msg[-1] for msg in solve_result.solverMessages(arcpy.nax.MessageSeverity.All)]
+        solve_msgs = [msg[-1] for msg in self.solve_result.solverMessages(arcpy.nax.MessageSeverity.All)]
         initial_num_msgs = len(solve_msgs)
         for msg in solve_msgs:
             self.logger.debug(msg)
@@ -410,7 +413,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
 
         # Update the result dictionary
         self.job_result["solveMessages"] = solve_msgs
-        if not solve_result.solveSucceeded:
+        if not self.solve_result.solveSucceeded:
             self.logger.debug("Solve failed.")
             return
         self.logger.debug("Solve succeeded.")
@@ -428,25 +431,74 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.logger.debug("Logging OD Cost Matrix results...")
         if USE_ARROW:
             output_od_lines = os.path.join(self.od_output_location, f"{out_filename}.at")
-            self.logger.debug(f"Writing OD outputs as Arrow table: {output_od_lines}")
-            solve_result.toArrowTable(
-                arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines,
-                self.output_fields,
-                output_od_lines
-            )
+            self._export_to_arrow(output_od_lines)
         else:
             output_od_lines = os.path.join(self.od_output_location, f"{out_filename}.csv")
-            self.logger.debug(f"Writing OD outputs as CSV file: {output_od_lines}")
-            with open(output_od_lines, "w", newline="") as f:
+            self._export_to_csv(output_od_lines)
+
+        self.logger.debug("Finished calculating OD cost matrix.")
+
+    def _export_to_csv(self, out_csv_file):
+        """Save the OD Lines result to a CSV file."""
+        self.logger.debug(f"Saving OD cost matrix Lines output to CSV as {out_csv_file}.")
+
+        # For services solve, properly populate OriginOID and DestinationOID fields in the output Lines. Services do
+        # not preserve the original input OIDs, instead resetting from 1, unlike solves using a local network dataset,
+        # so this extra post-processing step is necessary.
+        if self.is_service:
+            # Read the Lines output
+            with self.solve_result.searchCursor(
+                arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines, self.output_fields
+            ) as cur:
+                od_df = pd.DataFrame(cur, columns=self.output_fields)
+            # Read the Origins output and transfer original OriginOID to Lines
+            origins_columns = ["ObjectID", self.orig_origin_oid_field]
+            with self.solve_result.searchCursor(
+                arcpy.nax.OriginDestinationCostMatrixOutputDataType.Origins, origins_columns
+            ) as cur:
+                origins_df = pd.DataFrame(cur, columns=origins_columns)
+            origins_df.set_index("ObjectID", inplace=True)
+            od_df = od_df.join(origins_df, "OriginOID")
+            del origins_df
+            # Read the Destinations output and transfer original DestinationOID to Lines
+            dest_columns = ["ObjectID", self.orig_dest_oid_field]
+            with self.solve_result.searchCursor(
+                arcpy.nax.OriginDestinationCostMatrixOutputDataType.Destinations, dest_columns
+            ) as cur:
+                dests_df = pd.DataFrame(cur, columns=dest_columns)
+            dests_df.set_index("ObjectID", inplace=True)
+            od_df = od_df.join(dests_df, "DestinationOID")
+            del dests_df
+            # Clean up and rename columns
+            od_df.drop(["OriginOID", "DestinationOID"], axis="columns", inplace=True)
+            od_df.rename(
+                columns={self.orig_origin_oid_field: "OriginOID", self.orig_dest_oid_field: "DestinationOID"},
+                inplace=True
+            )
+            # Write CSV file
+            od_df.to_csv(out_csv_file, index=False)
+
+        else:  # Local network dataset output
+            with open(out_csv_file, "w", newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(self.output_fields)
-                for row in solve_result.searchCursor(
-                    arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines, self.output_fields
+                for row in self.solve_result.searchCursor(
+                    arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines,
+                    self.output_fields
                 ):
                     writer.writerow(row)
 
-        self.job_result["outputLines"] = output_od_lines
-        self.logger.debug("Finished calculating OD cost matrix.")
+        self.job_result["outputLines"] = out_csv_file
+
+    def _export_to_arrow(self, out_arrow_file):
+        """Save the OD Lines result to an Apache Arrow file."""
+        self.logger.debug(f"Saving OD cost matrix Lines output to Apache Arrow as {out_arrow_file}.")
+        self.solve_result.toArrowTable(
+            arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines,
+            self.output_fields,
+            out_arrow_file
+        )
+        self.job_result["outputLines"] = out_arrow_file
 
     def _select_inputs(self, origins_criteria, destinations_criteria):
         """Create layers from the origins and destinations so the layers contain only the desired inputs for the chunk.
