@@ -635,7 +635,7 @@ class CalculateTravelTimeStatistics(ODCostMatrixSolver):  # pylint: disable=too-
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
         self, origins, destinations, out_csv_file, time_window_start_day, time_window_start_time, time_window_end_day,
         time_window_end_time, time_increment, network_data_source, travel_mode, chunk_size, max_processes,
-        precalculate_network_locations=True, barriers=None
+        out_na_folder, precalculate_network_locations=True, barriers=None
     ):
         """Initialize the ODCostMatrixSolver class.
 
@@ -654,6 +654,7 @@ class CalculateTravelTimeStatistics(ODCostMatrixSolver):  # pylint: disable=too-
             travel_mode (str, travel mode): Travel mode object, name, or json string representation
             chunk_size (int): Maximum number of origins and destinations that can be in one chunk
             max_processes (int): Maximum number of allowed parallel processes
+            out_na_folder (str, optional): Folder for storing output individual analysis results
             precalculate_network_locations (bool, optional): Whether to precalculate network location fields for all
                 inputs. Defaults to True. Should be false if the network_data_source is a service.
             barriers (list(str, layer), optional): List of catalog paths or layers for point, line, and polygon barriers
@@ -665,6 +666,7 @@ class CalculateTravelTimeStatistics(ODCostMatrixSolver):  # pylint: disable=too-
             precalculate_network_locations, barriers
             )
         self.out_csv_file = out_csv_file
+        self.out_na_folder = out_na_folder
 
         self.temp_origins = None
         self.temp_destinations = None
@@ -695,6 +697,7 @@ class CalculateTravelTimeStatistics(ODCostMatrixSolver):  # pylint: disable=too-
             "--tool", AnalysisHelpers.ODTool.CalculateTravelTimeStatistics.name,
             "--origins", self.temp_origins,
             "--destinations", self.temp_destinations,
-            "--out-csv-file", self.out_csv_file
+            "--out-csv-file", self.out_csv_file,
+            "--out-na-folder", self.out_na_folder
         ]
         super()._execute_solve()

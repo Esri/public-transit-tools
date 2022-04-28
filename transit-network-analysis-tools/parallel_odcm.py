@@ -528,7 +528,8 @@ class ParallelODCalculator():
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
         self, tool, origins, destinations, network_data_source, travel_mode, max_origins, max_destinations,
         time_window_start_day, time_window_start_time, time_window_end_day, time_window_end_time, time_increment,
-        max_processes, time_units=None, cutoff=None, weight_field=None, barriers=None, out_csv_file=None
+        max_processes, time_units=None, cutoff=None, weight_field=None, barriers=None,
+        out_csv_file=None, out_na_folder=None
     ):
         """Compute OD Cost Matrices between Origins and Destinations in parallel for all increments in the time window.
 
@@ -593,7 +594,9 @@ class ParallelODCalculator():
             arcpy.env.scratchFolder, "CalcAccMtx_" + unique_id)  # pylint: disable=no-member
         LOGGER.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
         os.mkdir(self.scratch_folder)
-        self.od_output_location = self.scratch_folder
+        if out_na_folder:
+            os.mkdir(out_na_folder)
+        self.od_output_location = out_na_folder if out_na_folder else self.scratch_folder
 
         # Set up a where clause to eliminate destinations that will never contribute any values to the final solution.
         # Only applies if we're using a weight field.
@@ -743,6 +746,8 @@ class ParallelODCalculator():
                 self._calculate_accessibility_matrix_outputs()
             elif self.tool is AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
                 self._calculate_travel_time_statistics_outputs()
+            if self.od_output_location != self.scratch_folder:
+                LOGGER.info(f"Individual network analysis results written to {self.od_output_location}.")
         else:
             LOGGER.warning("All OD Cost Matrix solves failed, so no output was produced.")
 
@@ -1030,6 +1035,11 @@ def launch_parallel_od():
     parser.add_argument(
         "-oc", "--out-csv-file", action="store", dest="out_csv_file", help=help_string, required=False)
 
+    # --out-na-folder parameter
+    help_string = "Catalog path for a folder to store the outputs of the network analysis."
+    parser.add_argument(
+        "-of", "--out-na-folder", action="store", dest="out_na_folder", help=help_string, required=False)
+
     try:
         # Get arguments as dictionary.
         args = vars(parser.parse_args())
@@ -1045,6 +1055,7 @@ def launch_parallel_od():
         for err in errs:
             LOGGER.error(err)
         raise
+
 
 if __name__ == "__main__":
     # This script should always be launched via subprocess as if it were being called from the command line.
