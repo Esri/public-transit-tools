@@ -992,16 +992,21 @@ def launch_parallel_od():
     parser.add_argument(
         "-oc", "--out-csv-file", action="store", dest="out_csv_file", help=help_string, required=False)
 
-    # Get arguments as dictionary.
-    args = vars(parser.parse_args())
+    try:
+        # Get arguments as dictionary.
+        args = vars(parser.parse_args())
 
-    # Initialize a parallel OD Cost Matrix calculator class
-    od_calculator = ParallelODCalculator(**args)
-    # Solve the OD Cost Matrix in parallel chunks
-    start_time = time.time()
-    od_calculator.solve_od_in_parallel()
-    LOGGER.info(f"Parallel OD Cost Matrix calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
-
+        # Initialize a parallel OD Cost Matrix calculator class
+        od_calculator = ParallelODCalculator(**args)
+        # Solve the OD Cost Matrix in parallel chunks
+        start_time = time.time()
+        od_calculator.solve_od_in_parallel()
+        LOGGER.info(f"Parallel OD Cost Matrix calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
+    except Exception:  # pylint: disable=broad-except
+        errs = traceback.format_exc().splitlines()
+        for err in errs:
+            LOGGER.error(err)
+        raise
 
 if __name__ == "__main__":
     # This script should always be launched via subprocess as if it were being called from the command line.
