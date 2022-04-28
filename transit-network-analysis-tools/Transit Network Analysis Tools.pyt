@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 27 April 2022
+## Last updated: 28 April 2022
 ############################################################################
 """ Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
 suite."""
@@ -402,14 +402,14 @@ class CreatePercentAccessPolygons(object):
 class CalculateTravelTimeStatistics(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
-        self.label = "Calculate Travel Time Statistics"
+        self.label = "Calculate Travel Time Statistics (Route)"
         self.description = (
-            "Solve an OD Cost Matrix or Route iteratively over a time window and output a table of statistics ",
+            "Solve a Route iteratively over a time window and output a table of statistics ",
             "describing the travel time over the time window for each origin-destination pair or route:",
             "- minimum travel time",
             "- maximum travel time",
             "- mean travel time"
-            "- number of times the origin-destination pair or route was considered"
+            "- number of times the route was considered"
         )
         self.canRunInBackground = True
 
