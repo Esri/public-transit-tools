@@ -2,9 +2,9 @@
 ## Toolbox: Transit Network Analysis Tools
 ## Tool name: Calculate Travel Time Statistics
 ## Created by: Melinda Morang, Esri
-## Last updated: 17 June 2019
+## Last updated: 28 April 2022
 ################################################################################
-'''Solve an OD Cost Matrix or Route iteratively over a time window and output a 
+'''Solve a Route iteratively over a time window and output a 
 table of statistics describing the travel time over the time window for each
 origin-destination pair or route:
 - minimum travel time
@@ -13,7 +13,7 @@ origin-destination pair or route:
 - number of times the origin-destination pair or route was considered
 '''
 ################################################################################
-'''Copyright 2019 Esri
+'''Copyright 2022 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -83,8 +83,8 @@ def runTool(input_network_analyst_layer, output_table,
         # OD or Route layer from the map or .lyr file that with all the desired settings
         # (except time of day - we'll adjust that in this script)
         desc = arcpy.Describe(input_network_analyst_layer)
-        if desc.dataType != "NALayer" or desc.solverName not in ["OD Cost Matrix Solver", "Route Solver"]:
-            arcpy.AddError("Input layer must be an OD Cost Matrix or Route layer.")
+        if desc.dataType != "NALayer" or desc.solverName not in ["Route Solver"]:
+            arcpy.AddError("Input layer must be a Route layer.")
             raise CustomError
 
         # Solver-specific properties used later
