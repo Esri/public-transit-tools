@@ -49,15 +49,19 @@ import pandas as pd
 
 import arcpy
 
-# The OD Cost Matrix toArrowTable() method was added in ArcGIS Pro 2.9. Writing intermediate OD outputs to Arrow
-# tables is more space and memory efficient than writing CSV files, so prefer this method when possible. If the
-# ArcGIS Pro version is < 2.9, though, fall back to using CSV files.
-if arcpy.GetInstallInfo()["Version"] < "2.9":
-    USE_ARROW = False
-    import csv
-else:
-    USE_ARROW = True
-    import pyarrow as pa
+# Commenting out the Arrow stuff because it doesn't gain us much and makes the code complicated.
+# Retaining it here in case we want to reimplement it later
+# # The OD Cost Matrix toArrowTable() method was added in ArcGIS Pro 2.9. Writing intermediate OD outputs to Arrow
+# # tables is more space and memory efficient than writing CSV files, so prefer this method when possible. If the
+# # ArcGIS Pro version is < 2.9, though, fall back to using CSV files.
+# if arcpy.GetInstallInfo()["Version"] < "2.9":
+#     USE_ARROW = False
+#     import csv
+# else:
+#     USE_ARROW = True
+#     import pyarrow as pa
+USE_ARROW = False
+import csv
 
 # Import OD Cost Matrix settings from config file
 import CalculateAccessibilityMatrix_OD_config
