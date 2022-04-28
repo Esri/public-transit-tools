@@ -387,7 +387,7 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
                 if output:
                     msg_string = output.strip().decode()
                     AnalysisHelpers.parse_std_and_write_to_gp_ui(msg_string)
-                time.sleep(.5)
+                time.sleep(.1)
 
             # Once the process is finished, check if any additional errors were returned. Messages that came after the
             # last process.poll() above will still be in the queue here. This is especially important for detecting

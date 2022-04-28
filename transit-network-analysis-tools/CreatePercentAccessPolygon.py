@@ -3,7 +3,7 @@
 ## Tool name: Create Percent Access Polygons
 ## Created by: David Wasserman, Fehr & Peers, https://github.com/d-wasserman
 ##        and: Melinda Morang, Esri
-## Last updated: 9 August 2021
+## Last updated: 28 April 2022
 ################################################################################
 ################################################################################
 '''Copyright 2018 Fehr & Peers
@@ -18,7 +18,7 @@
    limitations under the License.'''
 ################################################################################
 ################################################################################
-'''Copyright 2021 Esri
+'''Copyright 2022 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -174,7 +174,7 @@ class PercentAccessPolygonCalculator():
                 if output:
                     msg_string = output.strip().decode()
                     AnalysisHelpers.parse_std_and_write_to_gp_ui(msg_string)
-                time.sleep(.5)
+                time.sleep(.1)
 
             # Once the process is finished, check if any additional errors were returned. Messages that came after the
             # last process.poll() above will still be in the queue here. This is especially important for detecting
