@@ -5,7 +5,7 @@ Created by Melinda Morang, Esri
 Contributors:
 David Wasserman, Fehr & Peers
 
-Copyright 2021 Esri  
+Copyright 2022 Esri  
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ## What are the Transit Network Analysis Tools?
@@ -17,7 +17,8 @@ The *Transit Network Analysis Tools* download includes the "Transit Network Anal
 
 The tools included are:
 - [Calculate Accessibility Matrix](#AccessibilityMatrix)
-- [Calculate Travel Time Statistics](#Stats)
+- [Calculate Travel Time Statistics (OD Cost Matrix)](#StatsOD)
+- [Calculate Travel Time Statistics (Route)](#Stats)
 - [Create Percent Access Polygons](#PercentAccess)
 - [Prepare Time Lapse Polygons](#TimeLapse)
 
@@ -25,10 +26,11 @@ The tools included are:
 ## Software requirements
 * ArcGIS Pro 2.8 or higher. A Desktop Basic license is sufficient.
   * Note: The tools have not been tested on versions of ArcGIS Pro prior to 2.8 and may not work properly. Upgrading to the latest version of ArcGIS Pro is always recommended.
+  * Note: Substantial performance improvements were made to the OD Cost Matrix solver in the ArcGIS Pro 2.9 release, so if you're using older software, you should upgrade for best performance.
 * Network Analyst extension.
 
 ## Data requirements
-* A transit-enabled network dataset created either using [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
+* A transit-enabled network dataset created using [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm).
 
 
 
@@ -101,7 +103,82 @@ When performing the OD Cost Matrix calculation, the tool chunks up the problem a
 
 You will get better performance with this tool if you have more memory, a faster CPU with a larger number of cores, and a solid state disk drive with plenty of space for intermediate outputs to be written and read.
 
-## <a name="Stats"></a>Calculate Travel Time Statistics
+Substantial performance improvements were made to the OD Cost Matrix solver in the ArcGIS Pro 2.9 release, so if you're using older software, you should upgrade for best performance.
+
+
+
+## <a name="StatsOD"></a>Calculate Travel Time Statistics (OD Cost Matrix)
+The time it takes to travel between one location and other by public transit varies throughout the day depending on the transit schedule.  This tool calculates some simple statistics about the total transit travel time between origins and destinations over a time window and writes the output to a CSV file.
+
+For each origin-destination pair, the tool calculates:
+- Minimum travel time
+- Maximum travel time
+- Mean travel time
+- Number of times the destinations was reached
+
+The tool can optionally save the output travel times for each origin-destination pair for each time of day calculated, which may be valuable for further analysis.
+
+TODO
+![Screenshot of tool dialog](./images/Screenshot_CalculateAccessibilityMatrix_Dialog.png)
+
+### Inputs
+* **Origins**: A point or polygon feature class representing the locations you want to calculate accessibility measures for.  For example, your origins might be census blocks, parcels, or specific locations of concern.  Note that when polygons are used as origins and destinations, the centroids of the polygons will be used in the network analysis calculation. Keep in mind that the centroid of a polygon is only a good representation of that polygon if the polygon is small with respect to the distance a traveler can walk in a short period of time. It is not appropriate, for example, to use census tracts since tracts are typically very large on a pedestrian scale.
+* **Destinations**: A point or polygon feature class representing the destinations your origins will travel to.  For example, if you want to measure your origins' level of accessibility to jobs, your Destinations could be the locations of employment centers.
+* **Output Statistics CSV File**: File path to the output CSV file that will contain the calculated statistics.
+* **Network Data Source**: The network dataset or service URL to use for the calculation. You should use a transit-enabled network dataset created with [these tools available in ArcGIS Pro](https://pro.arcgis.com/en/pro-app/help/analysis/networks/network-analysis-with-public-transit-data.htm) or an ArcGIS Enterprise service created from such a network. Technically, however, the tool will work with any network dataset that has at least one time-based travel mode.
+* **Travel Mode**: The name of a time-based [travel mode](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/travel-modes.htm) on the network dataset you wish to use to calculate the OD Cost Matrix. Typically you should choose a travel mode modeling travel by public transit.
+* **Start Day (Weekday or YYYYMMDD date)**: Day of the week or YYYYMMDD date for the first start time of your analysis.  [Learn when to use a generic weekday or a specific date.](#Dates)
+* **Start Time (HH:MM) (24 hour time)**: The lower end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  For example, 2 AM is 02:00, and 2 PM is 14:00.
+* **End Day (Weekday or YYYYMMDD date)**: If you're using a generic weekday for Start Day, you must use the same day for End Day.  If you want to run an analysis spanning multiple days, choose specific YYYYMMDD dates for both Start Day and End Day.
+* **End Time (HH:MM) (24 hour time)**: The upper end of the time window you wish to analyze.  Must be in HH:MM format (24-hour time).  The End Time is inclusive, meaning that an analysis will be performed for the time of day you enter here.
+* **Time Increment (minutes)**: Increment the OD Cost Matrix's time of day by this amount between solves.  For example, for a Time Increment of 1 minute, the OD Cost Matrix will be solved for 10:00, 10:01, 10:02, etc.  A Time Increment of 2 minutes would calculate the OD Cost Matrix for 10:00, 10:02, 10:04, etc.
+* **Maximum Origins and Destinations per Chunk**: In order to solve large OD Cost Matrix problems efficiently, the tool can split up large numbers of inputs into chunks and solve the chunks in parallel across multiple cores of your computer. This parameter specifies the maximum number of origins and destinations that should be allowed in a single chunk. The optimal number depends on your computing resources. Larger chunks take longer to solve and require more memory, but there is some overhead associated with having more chunks.
+* **Maximum Number of Parallel Processes**: In order to solve large OD Cost Matrix problems efficiently, the tool solves the OD Cost Matrix for different start times in parallel across multiple cores of your machine. If the number of origins and destinations are large, it may also break them up into chunks and solve them in parallel as well. This parameter designates the number of parallel processes that can safely be used. You should select a number less than or equal to the number of virtual cores or processors your computer has.
+* **Save individual network analysis results**: Boolean indicating whether to save the individual results of each network analysis at each time step.  If false, the results will be deleted when the tool finishes running.  If true, they will be preserved for further analysis.
+* **Network Analysis Results Folder**: Folder where the network analysis results will be saved if **Save individual network analysis results** is true.  Note that if this folder already exists, it will be deleted and recreated by the tool.
+* **Barriers**: Optionally, choose layers with point, line, or polygon barriers to use in the OD Cost Matrix analysis.
+* **Precalculate Network Locations**: When doing an OD Cost Matrix analysis, the input origin and destination points must be ["located" on the network dataset](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/locating-analysis-inputs.htm). Because the tool parallelizes the OD Cost Matrix across multiple processes, using the same origins and destinations many times, it saves time to calculate the network locations in advance rather than repeating this calculation in every parallel process. The only time you should uncheck this parameter is if you have already calculated the network locations of your input origins and destinations for the network dataset and travel mode you are using, and you simply wish to re-use these.
+
+Advanced users with specific analysis needs can modify additional OD Cost Matrix analysis properties in the CalculateATravelTimeStatistics_OD_config.py file. Note that you may need to close and re-open ArcGIS Pro in order for those changes to be used when the tool runs.
+
+### <a name="StatsODOutputs"></a>Calculate Travel Time Statistics (OD Cost Matrix) tool output
+
+The output CSV file contains the following fields:
+- *OriginOID*: The ObjectID of the origin
+- *DestinationOID*: The ObjectID of the destination
+- *count*: The number of times during the time window that this destination was reached by this origin. Unless you have specified a cutoff or a number of destinations to find, this number should be equal to the number of times of day analyzed. 
+- *min*: The minimum travel time between the origin and the destination during the time window
+- *max*: The maximum travel time between the origin and the destination during the time window
+- *mean*: The mean travel time between the origin and the destination during the time window
+
+The travel time in the above statistics refers to the calculated time-based impedance used by the travel mode you selected in the tool's input parameters.
+
+Note: If you're interested in additional statistics, please leave a note in our GitHub repo or on the Esri Community forums.
+
+If the **Save individual network analysis results** option is turned on, the OD Cost Matrix results from each time slice will be saved to the designated **Network Analysis Results Folder**.  The outputs are saved as CSV files, each containing the following fields:
+- *OriginOID*: The ObjectID of the origin
+- *DestinationOID*: The ObjectID of the destination
+- *Total_Time*: The travel time between the origin and destination calculated at this time of day. The travel time refers to the calculated time-based impedance used by the travel mode you selected in the tool's input parameters.
+
+The CSV files have a specific naming scheme, ODLines_O_[a]_[b]_D_[c]_[d]_T_[e]_[f].csv, where:
+- [a] refers to the starting origin ObjectID for the chunk
+- [b] refers to the ending origin ObjectID for the chunk
+- [c] refers to the starting destination ObjectID for the chunk
+- [d] refers to the ending desination ObjectID for the chunk
+- [e] refers to the date for the time slide in YYYYMMDD format
+- [f] refers to the time for the time slide in HHMMSS format
+
+### Tool performance
+This tool performs a large number of calculations, so it can often take a very long time to run and use substantial computational resources. Larger numbers of origins and destinations and large time windows will make the tool run more slowly. Expect the tool to take several hours to run for a dense analysis of a metropolitan area.
+
+When performing the OD Cost Matrix calculation, the tool chunks up the problem and parallelizes it, utilizing multiple cores on your machine. It writes the intermediate output to disk in a scratch folder. When all the OD Cost Matrix calculations are finished, it reads in these intermediate output and post-processes them. These processes require both sufficient memory resources and free disk space.
+
+You will get better performance with this tool if you have more memory, a faster CPU with a larger number of cores, and a solid state disk drive with plenty of space for intermediate outputs to be written and read.
+
+Substantial performance improvements were made to the OD Cost Matrix solver in the ArcGIS Pro 2.9 release, so if you're using older software, you should upgrade for best performance.
+
+
+## <a name="Stats"></a>Calculate Travel Time Statistics (Route)
 The time it takes to travel between one location and other by public transit varies throughout the day depending on the transit schedule.  This tool calculates some simple statistics about the total transit travel time between locations over a time window and writes the output to a table.
 
 For each origin-destination pair in an OD Cost Matrix layer or each route in a Route layer, the tool calculates:
