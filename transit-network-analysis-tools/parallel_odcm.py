@@ -46,6 +46,7 @@ import time
 import traceback
 import argparse
 import pandas as pd
+from functools import partial
 
 import arcpy
 
@@ -833,7 +834,7 @@ class ParallelODCalculator():
                     chunk_table = batch_reader.read_all()
                 df = chunk_table.to_pandas(split_blocks=True, zero_copy_only=True)
             else:
-                df = pd.read_csv(od_file)
+                df = pd.read_csv(od_file, dtype={"OriginOID": int, "DestinationOID": int})
 
             df["TimesReached"] = 1
             df.set_index(["OriginOID", "DestinationOID"], inplace=True)
@@ -954,7 +955,11 @@ class ParallelODCalculator():
                 # No results for this chunk
                 continue
 
-            df = pd.concat(map(pd.read_csv, files_for_origin_range), ignore_index=True)
+            mapfunc = partial(
+                pd.read_csv,
+                dtype={"OriginOID": int, "DestinationOID": int, "Total_Time": float}
+            )
+            df = pd.concat(map(mapfunc, files_for_origin_range), ignore_index=True)
 
             # Calculate simple stats
             stats = df.groupby(["OriginOID", "DestinationOID"]).agg(
