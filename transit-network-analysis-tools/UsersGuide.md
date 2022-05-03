@@ -119,7 +119,7 @@ For each origin-destination pair, the tool calculates:
 
 The tool can optionally save the output travel times for each origin-destination pair for each time of day calculated, which may be valuable for further analysis.
 
-![Screenshot of tool dialog](./images/Screenshot_CalculateAccessibilityMatrixOD_Dialog.png)
+![Screenshot of tool dialog](./images/Screenshot_CalculateTravelTimeStatisticsOD_Dialog.png)
 
 ### Inputs
 * **Origins**: A point or polygon feature class representing the locations you want to calculate accessibility measures for.  For example, your origins might be census blocks, parcels, or specific locations of concern.  Note that when polygons are used as origins and destinations, the centroids of the polygons will be used in the network analysis calculation. Keep in mind that the centroid of a polygon is only a good representation of that polygon if the polygon is small with respect to the distance a traveler can walk in a short period of time. It is not appropriate, for example, to use census tracts since tracts are typically very large on a pedestrian scale.
