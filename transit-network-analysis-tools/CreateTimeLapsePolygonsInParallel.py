@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 9 August 2021
+## Last updated: 28 April 2022
 ############################################################################
 """Run a Service Area analysis incrementing the time of day over a time window.
 Save the output polygons to a single feature class that can be used to generate
@@ -15,7 +15,7 @@ parallel. It was built based off Esri's Solve Large OD Cost Matrix sample script
 available from https://github.com/Esri/large-network-analysis-tools under an Apache
 2.0 license.
 
-Copyright 2021 Esri
+Copyright 2022 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -325,7 +325,7 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
                 if output:
                     msg_string = output.strip().decode()
                     AnalysisHelpers.parse_std_and_write_to_gp_ui(msg_string)
-                time.sleep(.5)
+                time.sleep(.1)
 
             # Once the process is finished, check if any additional errors were returned. Messages that came after the
             # last process.poll() above will still be in the queue here. This is especially important for detecting

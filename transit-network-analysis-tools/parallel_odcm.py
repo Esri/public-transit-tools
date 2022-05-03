@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 13 September 2021
+## Last updated: 3 May 2022
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -23,7 +23,7 @@ parallel. It was built based off Esri's Solve Large OD Cost Matrix sample script
 available from https://github.com/Esri/large-network-analysis-tools under an Apache
 2.0 license.
 
-Copyright 2021 Esri
+Copyright 2022 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -46,21 +46,27 @@ import time
 import traceback
 import argparse
 import pandas as pd
+from functools import partial
 
 import arcpy
 
-# The OD Cost Matrix toArrowTable() method was added in ArcGIS Pro 2.9. Writing intermediate OD outputs to Arrow
-# tables is more space and memory efficient than writing CSV files, so prefer this method when possible. If the
-# ArcGIS Pro version is < 2.9, though, fall back to using CSV files.
-if arcpy.GetInstallInfo()["Version"] < "2.9":
-    use_arrow = False
-    import csv
-else:
-    use_arrow = True
-    import pyarrow as pa
+# Commenting out the Arrow stuff because it doesn't gain us much and makes the code complicated.
+# Retaining it here in case we want to reimplement it later
+# # The OD Cost Matrix toArrowTable() method was added in ArcGIS Pro 2.9. Writing intermediate OD outputs to Arrow
+# # tables is more space and memory efficient than writing CSV files, so prefer this method when possible. If the
+# # ArcGIS Pro version is < 2.9, though, fall back to using CSV files.
+# if arcpy.GetInstallInfo()["Version"] < "2.9":
+#     USE_ARROW = False
+#     import csv
+# else:
+#     USE_ARROW = True
+#     import pyarrow as pa
+USE_ARROW = False
+import csv
 
 # Import OD Cost Matrix settings from config file
-from CalculateAccessibilityMatrix_OD_config import OD_PROPS, OD_PROPS_SET_BY_TOOL
+import CalculateAccessibilityMatrix_OD_config
+import CalculateTravelTimeStatistics_OD_config
 import AnalysisHelpers
 
 arcpy.env.overwriteOutput = True
@@ -159,6 +165,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         """Initialize the OD Cost Matrix analysis for the given inputs.
 
         Expected arguments:
+        - tool
         - origins
         - destinations
         - destination_where_clause
@@ -166,30 +173,40 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         - travel_mode
         - time_units
         - cutoff
-        - output_folder
+        - scratch_folder
+        - od_output_location
         - barriers
         """
+        self.tool = kwargs["tool"]
         self.origins = kwargs["origins"]
         self.destinations = kwargs["destinations"]
         self.destination_where_clause = kwargs["destination_where_clause"]
         self.network_data_source = kwargs["network_data_source"]
         self.travel_mode = kwargs["travel_mode"]
-        self.time_units = kwargs["time_units"]
-        self.cutoff = kwargs["cutoff"]
-        self.output_folder = kwargs["output_folder"]
+        self.time_units = None
+        self.cutoff = None
+        if self.tool is AnalysisHelpers.ODTool.CalculateAccessibilityMatrix:
+            self.time_units = kwargs["time_units"]
+            self.cutoff = kwargs["cutoff"]
+        self.scratch_folder = kwargs["scratch_folder"]
+        self.od_output_location = kwargs["od_output_location"]
         self.barriers = []
         if "barriers" in kwargs:
             self.barriers = kwargs["barriers"]
 
-        # Create a job ID and a folder and scratch gdb for this job
+        if self.tool is AnalysisHelpers.ODTool.CalculateAccessibilityMatrix:
+            self.output_fields = ["OriginOID", "DestinationOID"]
+        elif self.tool is AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
+            self.output_fields = ["OriginOID", "DestinationOID", "Total_Time"]
+        else:
+            raise ValueError("Invalid OD Cost Matrix tool.")
+
+        # Create a job ID and a folder for this job
         self.job_id = uuid.uuid4().hex
-        self.job_folder = os.path.join(self.output_folder, self.job_id)
-        os.mkdir(self.job_folder)
-        self.od_workspace = os.path.join(self.job_folder, "scratch.gdb")
 
         # Setup the class logger. Logs for each parallel process are not written to the console but instead to a
         # process-specific log file.
-        self.log_file = os.path.join(self.job_folder, 'ODCostMatrix.log')
+        self.log_file = os.path.join(self.scratch_folder, f"ODCostMatrix_{self.job_id}.log")
         cls_logger = logging.getLogger("ODCostMatrix_" + self.job_id)
         self.setup_logger(cls_logger)
         self.logger = cls_logger
@@ -201,6 +218,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.input_destinations_layer = "InputDestinations" + self.job_id
         self.input_origins_layer_obj = None
         self.input_destinations_layer_obj = None
+        self.solve_result = None
 
         # Create a network dataset layer
         self.nds_layer_name = "NetworkDatasetLayer"
@@ -211,9 +229,9 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         # Prepare a dictionary to store info about the analysis results
         self.job_result = {
             "jobId": self.job_id,
-            "jobFolder": self.job_folder,
             "solveSucceeded": False,
             "solveMessages": "",
+            "outputLines": "",
             "logFile": self.log_file
         }
 
@@ -222,6 +240,8 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         desc_destinations = arcpy.Describe(self.destinations)
         self.origins_oid_field_name = desc_origins.oidFieldName
         self.destinations_oid_field_name = desc_destinations.oidFieldName
+        self.orig_origin_oid_field = "Orig_Origin_OID"
+        self.orig_dest_oid_field = "Orig_Dest_OID"
 
     def _make_nds_layer(self):
         """Create a network dataset layer if one does not already exist."""
@@ -248,20 +268,27 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.od_solver = arcpy.nax.OriginDestinationCostMatrix(self.network_data_source)
 
         # Set the OD cost matrix analysis properties.
-        # Read properties from the CalculateAccessbilityMatrix_OD_config.py config file for all properties not set in
-        # the UI as parameters.
+        # Read properties from the OD config file for all properties not set in the UI as parameters.
         # OD properties documentation: https://pro.arcgis.com/en/pro-app/arcpy/network-analyst/odcostmatrix.htm
         # The properties have been extracted to the config file to make them easier to find and set so users don't have
         # to dig through the code to change them.
         self.logger.debug("Setting OD Cost Matrix analysis properties from OD config file...")
-        for prop in OD_PROPS:
-            if prop in OD_PROPS_SET_BY_TOOL:
+        if self.tool is AnalysisHelpers.ODTool.CalculateAccessibilityMatrix:
+            od_props = CalculateAccessibilityMatrix_OD_config.OD_PROPS
+            od_props_set_by_tool = CalculateAccessibilityMatrix_OD_config.OD_PROPS_SET_BY_TOOL
+        elif self.tool is AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
+            od_props = CalculateTravelTimeStatistics_OD_config.OD_PROPS
+            od_props_set_by_tool = CalculateTravelTimeStatistics_OD_config.OD_PROPS_SET_BY_TOOL
+        else:
+            raise ValueError("Invalid OD Cost Matrix tool.")
+        for prop in od_props:
+            if prop in od_props_set_by_tool:
                 self.logger.warning(
                     f"OD config file property {prop} is handled explicitly by the tool parameters and will be ignored."
                 )
                 continue
             try:
-                setattr(self.od_solver, prop, OD_PROPS[prop])
+                setattr(self.od_solver, prop, od_props[prop])
             except Exception as ex:  # pylint: disable=broad-except
                 # Suppress warnings for search tolerance for older services (pre 11.0) that don't support locate
                 # settings because we don't want the tool to always throw a warning.
@@ -272,8 +299,9 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         # Set properties explicitly specified in the tool UI as arguments
         self.logger.debug("Setting OD Cost Matrix analysis properties specified tool inputs...")
         self.od_solver.travelMode = self.travel_mode
-        self.od_solver.timeUnits = self.time_units
-        self.od_solver.defaultImpedanceCutoff = self.cutoff
+        if self.tool is AnalysisHelpers.ODTool.CalculateAccessibilityMatrix:
+            self.od_solver.timeUnits = self.time_units
+            self.od_solver.defaultImpedanceCutoff = self.cutoff
         # Set time of day, which is passed in as an OD solve parameter from our chunking mechanism
         self.od_solver.timeOfDay = time_of_day
 
@@ -363,12 +391,12 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         # Solve the OD cost matrix analysis
         self.logger.debug("Solving OD cost matrix...")
         solve_start = time.time()
-        solve_result = self.od_solver.solve()
+        self.solve_result = self.od_solver.solve()
         solve_end = time.time()
         self.logger.debug(f"Solving OD cost matrix completed in {round(solve_end - solve_start, 3)} (seconds).")
 
         # Handle solve messages
-        solve_msgs = [msg[-1] for msg in solve_result.solverMessages(arcpy.nax.MessageSeverity.All)]
+        solve_msgs = [msg[-1] for msg in self.solve_result.solverMessages(arcpy.nax.MessageSeverity.All)]
         initial_num_msgs = len(solve_msgs)
         for msg in solve_msgs:
             self.logger.debug(msg)
@@ -386,33 +414,92 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
 
         # Update the result dictionary
         self.job_result["solveMessages"] = solve_msgs
-        if not solve_result.solveSucceeded:
+        if not self.solve_result.solveSucceeded:
             self.logger.debug("Solve failed.")
             return
         self.logger.debug("Solve succeeded.")
         self.job_result["solveSucceeded"] = True
 
         # Read the results to discover all destinations reached by the origins in this chunk and store the output
-        # in a file
+        # in a file with a specific naming scheme.
+        # Example: ODLines_O_1_1000_D_2001_3000_T_20220428_091500.csv
+        time_string = time_of_day.strftime("%Y%m%d_%H%M%S")
+        out_filename = (
+            f"ODLines_O_{origins_criteria[0]}_{origins_criteria[1]}_"
+            f"D_{destinations_criteria[0]}_{destinations_criteria[1]}_"
+            f"T_{time_string}"
+        )
         self.logger.debug("Logging OD Cost Matrix results...")
-        if use_arrow:
-            self.logger.debug("Writing OD outputs as Arrow table.")
-            solve_result.toArrowTable(
-                arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines,
-                ["OriginOID", "DestinationOID"],
-                os.path.join(self.job_folder, "ODLines.at")
-            )
+        if USE_ARROW:
+            output_od_lines = os.path.join(self.od_output_location, f"{out_filename}.at")
+            self._export_to_arrow(output_od_lines)
         else:
-            self.logger.debug("Writing OD outputs as CSV file.")
-            with open(os.path.join(self.job_folder, "ODLines.csv"), "w") as f:
+            output_od_lines = os.path.join(self.od_output_location, f"{out_filename}.csv")
+            self._export_to_csv(output_od_lines)
+
+        self.logger.debug("Finished calculating OD cost matrix.")
+
+    def _export_to_csv(self, out_csv_file):
+        """Save the OD Lines result to a CSV file."""
+        self.logger.debug(f"Saving OD cost matrix Lines output to CSV as {out_csv_file}.")
+
+        # For services solve, properly populate OriginOID and DestinationOID fields in the output Lines. Services do
+        # not preserve the original input OIDs, instead resetting from 1, unlike solves using a local network dataset,
+        # so this extra post-processing step is necessary.
+        if self.is_service:
+            # Read the Lines output
+            with self.solve_result.searchCursor(
+                arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines, self.output_fields
+            ) as cur:
+                od_df = pd.DataFrame(cur, columns=self.output_fields)
+            # Read the Origins output and transfer original OriginOID to Lines
+            origins_columns = ["ObjectID", self.orig_origin_oid_field]
+            with self.solve_result.searchCursor(
+                arcpy.nax.OriginDestinationCostMatrixOutputDataType.Origins, origins_columns
+            ) as cur:
+                origins_df = pd.DataFrame(cur, columns=origins_columns)
+            origins_df.set_index("ObjectID", inplace=True)
+            od_df = od_df.join(origins_df, "OriginOID")
+            del origins_df
+            # Read the Destinations output and transfer original DestinationOID to Lines
+            dest_columns = ["ObjectID", self.orig_dest_oid_field]
+            with self.solve_result.searchCursor(
+                arcpy.nax.OriginDestinationCostMatrixOutputDataType.Destinations, dest_columns
+            ) as cur:
+                dests_df = pd.DataFrame(cur, columns=dest_columns)
+            dests_df.set_index("ObjectID", inplace=True)
+            od_df = od_df.join(dests_df, "DestinationOID")
+            del dests_df
+            # Clean up and rename columns
+            od_df.drop(["OriginOID", "DestinationOID"], axis="columns", inplace=True)
+            od_df.rename(
+                columns={self.orig_origin_oid_field: "OriginOID", self.orig_dest_oid_field: "DestinationOID"},
+                inplace=True
+            )
+            # Write CSV file
+            od_df.to_csv(out_csv_file, index=False)
+
+        else:  # Local network dataset output
+            with open(out_csv_file, "w", newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(["OriginOID", "DestinationOID"])
-                for row in solve_result.searchCursor(
-                    arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines, ["OriginOID", "DestinationOID"]
+                writer.writerow(self.output_fields)
+                for row in self.solve_result.searchCursor(
+                    arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines,
+                    self.output_fields
                 ):
                     writer.writerow(row)
 
-        self.logger.debug("Finished calculating OD cost matrix.")
+        self.job_result["outputLines"] = out_csv_file
+
+    def _export_to_arrow(self, out_arrow_file):
+        """Save the OD Lines result to an Apache Arrow file."""
+        self.logger.debug(f"Saving OD cost matrix Lines output to Apache Arrow as {out_arrow_file}.")
+        self.solve_result.toArrowTable(
+            arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines,
+            self.output_fields,
+            out_arrow_file
+        )
+        self.job_result["outputLines"] = out_arrow_file
 
     def _select_inputs(self, origins_criteria, destinations_criteria):
         """Create layers from the origins and destinations so the layers contain only the desired inputs for the chunk.
@@ -489,16 +576,20 @@ class ParallelODCalculator():
     """Solves a large OD Cost Matrix by chunking the problem, solving in parallel, and combining results."""
 
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
-        self, origins, destinations, network_data_source, travel_mode, max_origins, max_destinations,
+        self, tool, origins, destinations, network_data_source, travel_mode, max_origins, max_destinations,
         time_window_start_day, time_window_start_time, time_window_end_day, time_window_end_time, time_increment,
-        max_processes, time_units, cutoff, weight_field=None, barriers=None
+        max_processes, time_units=None, cutoff=None, weight_field=None, barriers=None,
+        out_csv_file=None, out_na_folder=None
     ):
-        """Compute OD Cost Matrices between Origins and Destinations in parallel for all increments in the time window,
-        calculate accessibility statistics, and write the output fields to the output Origins feature class.
+        """Compute OD Cost Matrices between Origins and Destinations in parallel for all increments in the time window.
+
+        Post-processes output according to which tool is being run.  For Calculate Accessibility Matrix, calculate
+        accessibility statistics and write the output fields to the output Origins feature class.
 
         This class assumes that the inputs have already been pre-processed and validated.
 
         Args:
+            tool (str): Enum string name corresponding to a value in AnalysisHelpers.ODTool
             origins (str): Catalog path to origins
             destinations (str): Catalog path to destinations
             network_data_source (str): Network data source catalog path or URL
@@ -513,23 +604,27 @@ class ParallelODCalculator():
             time_window_end_time (str): HHMM time of day for the end of the time window
             time_increment (int): Number of minutes between each run of the OD Cost Matrix in the time window
             max_processes (int): Maximum number of parallel processes allowed
-            time_units (str): String representation of time units
-            cutoff (float): Time cutoff to limit the OD Cost Matrix solve. Interpreted in the time_units.
+            time_units (str, optional): String representation of time units
+            cutoff (float, optional): Time cutoff to limit the OD Cost Matrix solve. Interpreted in the time_units.
             weight_field (str, optional): Field in the destinations to use as a weight for the number of destinations
                 at each location. For example, the number of jobs at that location. When not provided, all destinations
                 count as 1.
             barriers (list(str), optional): List of catalog paths to point, line, and polygon barriers to use.
                 Defaults to None.
+            out_csv_file (str, optional): Catalog path to the output CSV file for calculated statistics
         """
+        self.tool = AnalysisHelpers.ODTool[tool]
         self.origins = origins
         self.destinations = destinations
-        time_units = AnalysisHelpers.convert_time_units_str_to_enum(time_units)
+        if time_units:
+            time_units = AnalysisHelpers.convert_time_units_str_to_enum(time_units)
         if cutoff == "":
             cutoff = None
         if not barriers:
             barriers = []
         self.max_processes = max_processes
         self.weight_field = weight_field
+        self.out_csv_file = out_csv_file
 
         # Validate time window inputs and convert them into a list of times of day to run the analysis
         try:
@@ -549,6 +644,9 @@ class ParallelODCalculator():
             arcpy.env.scratchFolder, "CalcAccMtx_" + unique_id)  # pylint: disable=no-member
         LOGGER.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
         os.mkdir(self.scratch_folder)
+        if out_na_folder:
+            os.mkdir(out_na_folder)
+        self.od_output_location = out_na_folder if out_na_folder else self.scratch_folder
 
         # Set up a where clause to eliminate destinations that will never contribute any values to the final solution.
         # Only applies if we're using a weight field.
@@ -559,25 +657,29 @@ class ParallelODCalculator():
 
         # Initialize the dictionary of inputs to send to each OD solve
         self.od_inputs = {
+            "tool": self.tool,
             "origins": self.origins,
             "destinations": self.destinations,
             "destination_where_clause": self.dest_where,
             "network_data_source": network_data_source,
             "travel_mode": travel_mode,
-            "output_folder": self.scratch_folder,
+            "scratch_folder": self.scratch_folder,
+            "od_output_location": self.od_output_location,
             "time_units": time_units,
             "cutoff": cutoff,
             "barriers": barriers
         }
 
         # Construct OID ranges for chunks of origins and destinations
-        origin_ranges = self._get_oid_ranges_for_input(self.origins, max_origins)
+        self.origin_ranges = self._get_oid_ranges_for_input(self.origins, max_origins)
         destination_ranges = self._get_oid_ranges_for_input(self.destinations, max_destinations, self.dest_where)
 
         # Construct chunks consisting of (range of origin oids, range of destination oids, start time)
-        self.chunks = itertools.product(origin_ranges, destination_ranges, self.start_times)
+        self.chunks = itertools.product(self.origin_ranges, destination_ranges, self.start_times)
         # Calculate the total number of jobs to use in logging
-        self.total_jobs = len(origin_ranges) * len(destination_ranges) * len(self.start_times)
+        self.total_jobs = len(self.origin_ranges) * len(destination_ranges) * len(self.start_times)
+
+        self.od_line_files = []
 
     def _validate_od_settings(self):
         """Validate OD cost matrix settings before spinning up a bunch of parallel processes doomed to failure."""
@@ -597,9 +699,11 @@ class ParallelODCalculator():
             raise
         finally:
             if odcm:
-                LOGGER.debug("Deleting temporary test OD Cost Matrix job folder...")
-                shutil.rmtree(odcm.job_result["jobFolder"], ignore_errors=True)
-                del odcm
+                # Close logging and delete the temporary log file
+                for handler in odcm.logger.handlers:
+                    handler.close()
+                    odcm.logger.removeHandler(handler)
+                os.remove(odcm.log_file)
 
     @staticmethod
     def _get_oid_ranges_for_input(input_fc, max_chunk_size, where=""):
@@ -673,15 +777,31 @@ class ParallelODCalculator():
                         LOGGER.error(err)
                     raise
 
-                # Log failed solves
-                if not result["solveSucceeded"]:
-                    LOGGER.warning(f"Solve failed for job id {result['jobId']}")
-                    msgs = result["solveMessages"]
-                    LOGGER.warning(msgs)
+                # Parse the results dictionary and store components for post-processing.
+                if result["solveSucceeded"]:
+                    self.od_line_files.append(result["outputLines"])
+                else:
+                    # Typically, a solve fails because no destinations were found for any of the origins in the chunk,
+                    # and this is a perfectly legitimate failure. It is not an error. However, they may be other, less
+                    # likely, reasons for solve failure. Write solve messages to the main GP message thread in debug
+                    # mode only in case the user is having problems. The user can also check the individual OD log
+                    # files.
+                    LOGGER.debug(f"Solve failed for job id {result['jobId']}.")
+                    LOGGER.debug(result["solveMessages"])
 
-        # Calculate statistics from the results of the OD Cost Matrix calculations
-        # and write them to the output fields in the Origins table.
-        self._add_results_to_output()
+        # Post-process and write out results according to which tool is being run
+        if self.od_line_files:
+            self.od_line_files = sorted(self.od_line_files)
+            if self.tool is AnalysisHelpers.ODTool.CalculateAccessibilityMatrix:
+                # Calculate statistics from the results of the OD Cost Matrix calculations
+                # and write them to the output fields in the Origins table.
+                self._calculate_accessibility_matrix_outputs()
+            elif self.tool is AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
+                self._calculate_travel_time_statistics_outputs()
+            if self.od_output_location != self.scratch_folder:
+                LOGGER.info(f"Individual network analysis results written to {self.od_output_location}.")
+        else:
+            LOGGER.warning("All OD Cost Matrix solves failed, so no output was produced.")
 
         # Cleanup
         # Delete the job folders if the job succeeded
@@ -695,35 +815,26 @@ class ParallelODCalculator():
 
         LOGGER.info("Finished calculating OD Cost Matrices.")
 
-    def _add_results_to_output(self):
+    def _calculate_accessibility_matrix_outputs(self):
         """Calculate accessibility statistics and write them to the Origins table."""
         LOGGER.info("Calculating statistics for final output...")
 
         # Read the result files from each individual OD and combine them together into a
         # dataframe with the number of time each origin reached each destination
-        if use_arrow:
+        if USE_ARROW:
             LOGGER.debug("Reading results into dataframe from Arrow tables...")
         else:
             LOGGER.debug("Reading results into dataframe from CSV files...")
         t0 = time.time()
         result_df = None
-        for job_dir in os.listdir(self.scratch_folder):
-            job_dir = os.path.join(self.scratch_folder, job_dir)
-
-            if use_arrow:
-                arrow_file = os.path.join(job_dir, "ODLines.at")
-                if not os.path.exists(arrow_file):
-                    continue
-                with pa.memory_map(arrow_file, 'r') as source:
+        for od_file in self.od_line_files:
+            if USE_ARROW:
+                with pa.memory_map(od_file, 'r') as source:
                     batch_reader = pa.ipc.RecordBatchFileReader(source)
                     chunk_table = batch_reader.read_all()
                 df = chunk_table.to_pandas(split_blocks=True, zero_copy_only=True)
-
             else:
-                csv_file = os.path.join(job_dir, "ODLines.csv")
-                if not os.path.exists(csv_file):
-                    continue
-                df = pd.read_csv(csv_file)
+                df = pd.read_csv(od_file, dtype={"OriginOID": int, "DestinationOID": int})
 
             df["TimesReached"] = 1
             df.set_index(["OriginOID", "DestinationOID"], inplace=True)
@@ -820,6 +931,54 @@ class ParallelODCalculator():
 
         LOGGER.info(f"Accessibility statistics fields were added to Origins table {self.origins}.")
 
+    def _calculate_travel_time_statistics_outputs(self):
+        """Calculate travel time statistics and write them to the output file."""
+        # NOTE: This method does not support Arrow outputs at this time.  If reimplementing the USE_ARROW option,
+        # this method needs to be updated.
+        LOGGER.info("Calculating travel time statistics...")
+        t0 = time.time()
+
+        # Clean up any existing output if necessary
+        if os.path.exists(self.out_csv_file):
+            os.remove(self.out_csv_file)
+
+        # Read the output CSV files into a pandas dataframe to calculate statistics
+        # Handle each origin range separately to avoid pulling all results into memory at once
+        first = True
+        for origin_range in self.origin_ranges:
+            files_for_origin_range = [
+                f for f in self.od_line_files if os.path.basename(f).startswith(
+                    f"ODLines_O_{origin_range[0]}_{origin_range[1]}_"
+                )
+            ]
+            if not files_for_origin_range:
+                # No results for this chunk
+                continue
+
+            mapfunc = partial(
+                pd.read_csv,
+                dtype={"OriginOID": int, "DestinationOID": int, "Total_Time": float}
+            )
+            df = pd.concat(map(mapfunc, files_for_origin_range), ignore_index=True)
+
+            # Calculate simple stats
+            stats = df.groupby(["OriginOID", "DestinationOID"]).agg(
+                {"Total_Time": ["count", "min", "max", "mean"]}
+            )
+            stats.columns = stats.columns.droplevel(0)
+            stats.reset_index(inplace=True)
+
+            if first:
+                # Create the output CSV file
+                stats.to_csv(self.out_csv_file, index=False)
+                first = False
+            else:
+                # Append results to the existing output CSV file
+                stats.to_csv(self.out_csv_file, mode='a', index=False, header=False)
+
+        LOGGER.debug(f"Time to read all OD result files and calculate statistics: {time.time() - t0}")
+        LOGGER.info(f"Travel time statistics written to {self.out_csv_file}.")
+
 
 def launch_parallel_od():
     """Read arguments passed in via subprocess and run the parallel OD Cost Matrix.
@@ -834,6 +993,10 @@ def launch_parallel_od():
     parser = argparse.ArgumentParser(description=globals().get("__doc__", ""), fromfile_prefix_chars='@')
 
     # Define Arguments supported by the command line utility
+
+    # --tool parameter
+    help_string = "Enum string name corresponding to a value in AnalysisHelpers.ODTool."
+    parser.add_argument("-t", "--tool", action="store", dest="tool", help=help_string, required=True)
 
     # --origins parameter
     help_string = "The full catalog path to the feature class containing the origins. Output fields will be added."
@@ -857,7 +1020,7 @@ def launch_parallel_od():
 
     # --time-units parameter
     help_string = "String name of the time units for the analysis. These units will be used in the output."
-    parser.add_argument("-tu", "--time-units", action="store", dest="time_units", help=help_string, required=True)
+    parser.add_argument("-tu", "--time-units", action="store", dest="time_units", help=help_string, required=False)
 
     # --max-origins parameter
     help_string = (
@@ -911,7 +1074,7 @@ def launch_parallel_od():
         "time-units parameter"
     )
     parser.add_argument(
-        "-co", "--cutoff", action="store", dest="cutoff", type=float, help=help_string, required=True)
+        "-co", "--cutoff", action="store", dest="cutoff", type=float, help=help_string, required=False)
 
     # --weight-field parameter
     help_string = "The name of the field in the input destinations that indicates the destination's weight."
@@ -923,15 +1086,32 @@ def launch_parallel_od():
     parser.add_argument(
         "-b", "--barriers", action="store", dest="barriers", help=help_string, nargs='*', required=False)
 
-    # Get arguments as dictionary.
-    args = vars(parser.parse_args())
+    # --out-csv-file parameter
+    help_string = "Catalog path for the output CSV file."
+    parser.add_argument(
+        "-oc", "--out-csv-file", action="store", dest="out_csv_file", help=help_string, required=False)
 
-    # Initialize a parallel OD Cost Matrix calculator class
-    od_calculator = ParallelODCalculator(**args)
-    # Solve the OD Cost Matrix in parallel chunks
-    start_time = time.time()
-    od_calculator.solve_od_in_parallel()
-    LOGGER.info(f"Parallel OD Cost Matrix calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
+    # --out-na-folder parameter
+    help_string = "Catalog path for a folder to store the outputs of the network analysis."
+    parser.add_argument(
+        "-of", "--out-na-folder", action="store", dest="out_na_folder", help=help_string, required=False)
+
+    try:
+        # Get arguments as dictionary.
+        args = vars(parser.parse_args())
+
+        # Initialize a parallel OD Cost Matrix calculator class
+        od_calculator = ParallelODCalculator(**args)
+        # Solve the OD Cost Matrix in parallel chunks
+        start_time = time.time()
+        od_calculator.solve_od_in_parallel()
+        LOGGER.info(
+            f"Parallel OD Cost Matrix calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
+    except Exception:  # pylint: disable=broad-except
+        errs = traceback.format_exc().splitlines()
+        for err in errs:
+            LOGGER.error(err)
+        raise
 
 
 if __name__ == "__main__":
