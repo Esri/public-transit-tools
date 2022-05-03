@@ -1100,7 +1100,8 @@ def launch_parallel_od():
         # Solve the OD Cost Matrix in parallel chunks
         start_time = time.time()
         od_calculator.solve_od_in_parallel()
-        LOGGER.info(f"Parallel OD Cost Matrix calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
+        LOGGER.info(
+            f"Parallel OD Cost Matrix calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
     except Exception:  # pylint: disable=broad-except
         errs = traceback.format_exc().splitlines()
         for err in errs:
