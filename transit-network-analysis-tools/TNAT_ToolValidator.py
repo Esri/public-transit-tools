@@ -1,7 +1,7 @@
 ################################################################################
 ## Toolbox: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 27 April 2022
+## Last updated: 3 May 2022
 ################################################################################
 """Shared tool validation methods."""
 ################################################################################
@@ -149,7 +149,6 @@ def update_precalculate_parameter(param_network, param_precalculate):
 
 def show_only_time_travel_modes(param_network, param_travel_mode):
     """Populate the travel mode parameter with time-based travel modes only."""
-    ## TODO: For 3.0 forward, just use standard filter?
     if not param_network.hasBeenValidated and param_network.altered and param_network.valueAsText:
         try:
             travel_modes = arcpy.nax.GetTravelModes(param_network.value)
