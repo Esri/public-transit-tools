@@ -373,6 +373,10 @@ This tool populates some additional fields on the Edges output:
 - *RunDepTime*: The time of day that the transit service used for this segment departs at the beginning of the segment.
 - *RunArrTime*: The time of day that the transit service used for this segment arrives at the end of the segment.
 
+(Are you looking for some other public transit information besides what's included here?  Please [contact us](#Contact) to request it.  This tool is in a prototype state, and we're very interested in feedback.)
+
+This tool reads the Public Transit Data Model tables and the Edges traversal result and compares the arrive or depart times along each segment to identify the most likely transit run used for that segment.  The logic is similar to what the Public Transit evaluator has done when originally solving the analysis.  However, on some occasions, the post-process done in this tool may fail to identify the transit run used for one or more rows.  This is most common with Service Area when output Lines traverse only part of a LineVariantElements transit line segment.  It is also possible, although uncommon, that there are multiple options of transit runs for the segment with matching arrival or departure times.  In these cases, it is possible that the run ultimately returned in the output will not be the same one as that returned by the Public Transit evaluator if the tie-breaking logic is different.  These cases should be rare.  [Contact us](#Contact) if you're experiencing widespread problems.
+
 
 ## <a name="Dates"></a>When to use a specific date or a generic weekday in your analysis
 
@@ -386,5 +390,5 @@ Inside the calendar.txt file, the weekday fields (monday, tuesday, etc.) define 
 
 The same principles apply if you created your network dataset from some other, non-GTFS public transit source data.
 
-## Questions or problems?
-Search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).
+## <a name="Contact"></a> Questions or problems?
+Search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions), or log an issue [in our GitHub repo](https://github.com/Esri/public-transit-tools/issues).
