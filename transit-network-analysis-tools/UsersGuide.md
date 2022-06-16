@@ -5,7 +5,7 @@ Created by Melinda Morang, Esri
 Contributors:
 David Wasserman, Fehr & Peers
 
-Copyright 2022 Esri  
+Copyright 2022 Esri
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ## What are the Transit Network Analysis Tools?
@@ -19,6 +19,7 @@ The tools included are:
 - [Calculate Accessibility Matrix](#AccessibilityMatrix)
 - [Calculate Travel Time Statistics (OD Cost Matrix)](#StatsOD)
 - [Calculate Travel Time Statistics (Route)](#Stats)
+- [Copy Traversed Source Features With Transit](#CopyTraversed)
 - [Create Percent Access Polygons](#PercentAccess)
 - [Prepare Time Lapse Polygons](#TimeLapse)
 
@@ -35,7 +36,7 @@ The tools included are:
 
 
 ## <a name="AccessibilityMatrix"></a>Calculate Accessibility Matrix
-We often want to analyze "accessibility" in a city, how much access people or places have to certain types of facilities or opportunities.  For example, we might want to know how many jobs people in different neighborhoods of a city have access to within a reasonable commute time.  The *Calculate Accessibility Matrix* tool can help you calculate some measures of accessibility.  Given a set of origins and destinations, this tool counts the number and percentage of destinations reachable from each origin by transit and walking within a travel time limit.  The number of reachable destinations can be weighted based on a field, such as the number of jobs available at each destination. 
+We often want to analyze "accessibility" in a city, how much access people or places have to certain types of facilities or opportunities.  For example, we might want to know how many jobs people in different neighborhoods of a city have access to within a reasonable commute time.  The *Calculate Accessibility Matrix* tool can help you calculate some measures of accessibility.  Given a set of origins and destinations, this tool counts the number and percentage of destinations reachable from each origin by transit and walking within a travel time limit.  The number of reachable destinations can be weighted based on a field, such as the number of jobs available at each destination.
 
 The results of analyses performed using your GTFS-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis.  An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM.  A given origin might have access to a given destination at 8:00 AM but not at 8:01 AM if, by starting at 8:01 AM, the traveler has just missed the bus.
 
@@ -99,7 +100,7 @@ If you care about a bare minimum of access, use the *TotalDests* field.  If you 
 ### Tool performance
 This tool performs a large number of calculations and post-processes a large amount of output data, so it can often take a very long time to run and use substantial computational resources. Larger numbers of origins and destinations and large time windows will make the tool run more slowly. Expect the tool to take several hours to run for a dense analysis of a metropolitan area (example: counting the number of jobs accessible to every census block centroid in a city).
 
-When performing the OD Cost Matrix calculation, the tool chunks up the problem and parallelizes it, utilizing multiple cores on your machine. It writes the intermediate output to disk in a scratch folder. When all the OD Cost Matrix calculations are finished, it reads in these intermediate output and post-processes them. These processes require both sufficient memory resources and free disk space. The required memory resources are hard to estimate, but if you are running this tool for a large problem and have concerns about memory, it would be best to close all other applications so the tool doesn't have to compete for resources with other programs. The intermediate outputs saved in the scratch folder can be on the order of several gigabytes of data. They are deleted when the tool finishes. 
+When performing the OD Cost Matrix calculation, the tool chunks up the problem and parallelizes it, utilizing multiple cores on your machine. It writes the intermediate output to disk in a scratch folder. When all the OD Cost Matrix calculations are finished, it reads in these intermediate output and post-processes them. These processes require both sufficient memory resources and free disk space. The required memory resources are hard to estimate, but if you are running this tool for a large problem and have concerns about memory, it would be best to close all other applications so the tool doesn't have to compete for resources with other programs. The intermediate outputs saved in the scratch folder can be on the order of several gigabytes of data. They are deleted when the tool finishes.
 
 You will get better performance with this tool if you have more memory, a faster CPU with a larger number of cores, and a solid state disk drive with plenty of space for intermediate outputs to be written and read.
 
@@ -149,7 +150,7 @@ Use caution when setting the `defaultDestinationCount` and `defaultImpedanceCuto
 The output CSV file contains the following fields:
 - *OriginOID*: The ObjectID of the origin
 - *DestinationOID*: The ObjectID of the destination
-- *count*: The number of times during the time window that this destination was reached by this origin. Unless you have specified a cutoff or a number of destinations to find, this number should be equal to the number of times of day analyzed. 
+- *count*: The number of times during the time window that this destination was reached by this origin. Unless you have specified a cutoff or a number of destinations to find, this number should be equal to the number of times of day analyzed.
 - *min*: The minimum travel time between the origin and the destination during the time window
 - *max*: The maximum travel time between the origin and the destination during the time window
 - *mean*: The mean travel time between the origin and the destination during the time window
@@ -191,7 +192,7 @@ For each route in a Route layer, the tool calculates:
 - Maximum travel time
 - Mean travel time
 
-You can also choose to save a feature class containing the combined network analysis output for the entire time window. 
+You can also choose to save a feature class containing the combined network analysis output for the entire time window.
 
 Note: This tool formerly also worked with an OD Cost Matrix layer, but now you should use the more efficient and optimized [Calculate Travel Time Statistics (OD Cost Matrix)](#StatsOD) version of this tool instead.
 
@@ -255,7 +256,7 @@ Note: Unlike the other tools in this toolbox, this tool has not been overhauled 
 ## <a name="PercentAccess"></a>Create Percent Access Polygons
 We often want to analyze "accessibility" in a city, how much access people or places have to certain types of facilities or opportunities. For example, we might want to know how many jobs people in different neighborhoods of a city have access to within a reasonable commute time.  To do this type of analysis, we often want to create a service area (transitshed or isochrone) representing the area reachable by transit from a given facility within a travel time limit; we consider the area within this service area polygon to be accessible to the facility.
 
-Unfortunately, the results of analyses performed using your transit-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM.  The area reachable by transit at 8:01 AM could be considerably smaller if the traveler has just missed a bus.  A demonstration of this time dependency can be seen in [this video](https://youtu.be/tTSd6qJlans).  Consequently, a single Service Area analysis in ArcGIS is not a good representation of the area reachable by transit and is not adequate for studies of accessibility.
+Unfortunately, the results of analyses performed using your transit-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis. An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM.  The area reachable by transit at 8:01 AM could be considerably smaller if the traveler has just missed a bus.  A demonstration of this time dependency can be seen in [this video](https://cdn.arcgis.com/sharing/rest/content/items/b0042dc5d3b04fe29951df8c5210bfb1/resources/guQOjPOfbAQcaq4i2J0xQ.mp4?token=).  Consequently, a single Service Area analysis in ArcGIS is not a good representation of the area reachable by transit and is not adequate for studies of accessibility.
 
 The *Create Percent Access Polygons* tool helps you create "typical access polygons" that better represent the area reachable by transit across a time window.  The tool attempts to account for the dynamic nature of transit schedules by overlaying service area polygons from multiple times of day and summarizing the results in terms of the number or percentage of the input polygons that cover an area.  Areas covered by a larger percentage of input polygons were reached at more start times and are consequently more frequently accessible to travelers.
 
@@ -296,7 +297,7 @@ The tool parallelizes the calculations across multiple processors on your comput
 ## <a name="TimeLapse"></a>Prepare Time Lapse Polygons
 The results of analyses performed using your transit-enabled network dataset can vary greatly depending upon the time of day used as the start time for your analysis.  An analysis run at 8:00 AM might have a very different solution than one run at 8:01 AM if the traveler has just missed the bus.
 
-A demonstration of this time dependency can be seen in [this video](https://youtu.be/tTSd6qJlans).  The video is a time lapse showing the area reachable within 15 minutes of travel time by walking and public transit from a point in Atlanta. Because the available transit service changes throughout the day, the area reachable changes significantly depending on the time of day you leave on your journey. For this video, I incremented the start time in one-minute intervals for each minute between 10:00 AM and 11:00 AM on a typical weekday and put the results in a time lapse.
+A demonstration of this time dependency can be seen in [this video](https://cdn.arcgis.com/sharing/rest/content/items/b0042dc5d3b04fe29951df8c5210bfb1/resources/guQOjPOfbAQcaq4i2J0xQ.mp4?token=).  The video is a time lapse showing the area reachable within 15 minutes of travel time by walking and public transit from a point in Atlanta. Because the available transit service changes throughout the day, the area reachable changes significantly depending on the time of day you leave on your journey. For this video, I incremented the start time in one-minute intervals for each minute between 10:00 AM and 11:00 AM on a typical weekday and put the results in a time lapse.
 
 The *Prepare Time Lapse Polygons* tool will help you to make a video like this of your own. Or, you can use the results as input to the [*Create Percent Access Polygons*](#PercentAccess) tool for a more quantitative analysis.
 
@@ -340,6 +341,43 @@ You can use this output to create a time lapse video. [Learn how to create an an
 You can also use this output as input to the [*Create Percent Access Polygons*](#PercentAccess) tool.
 
 
+## <a name="CopyTraversed"></a>Copy Traversed Source Features With Transit
+When you perform a network analysis with your transit-enabled network dataset, Network Analyst reports only the total travel time, which includes walk time, wait time, and ride time.  It cannot separate these components, and it cannot report which public transit trips were used, even though it has this information internally (it's an architectural limitation of the Network Analyst codebase).  This tool runs a post-process to report this additional information about the public transit trips used in the analysis.
+
+This tool first runs the Network Analyst [Copy Traversed Source Features tool](https://pro.arcgis.com/en/pro-app/latest/tool-reference/network-analyst/copy-traversed-source-features.htm) to retrieve the "traversal result" from the input network analysis layer.  It then runs a post-process to populate some additional fields in the Edges output with transit-relevant information.
+
+This tool only works for Route, Closest Facility, and Service Area layers.  OD Cost Matrix and Location Allocation layers do not report a traversal result, and Vehicle Routing Problem layers do not work with the Public Transit evaluator.  Furthermore, Service Area is only supported when the Lines output type is requested.  Additionally, layers using a service URL as their network data source are not supported because the post-process needs access to the Public Transit Data Model data used for the analysis.
+
+![Screenshot of tool dialog](./images/Screenshot_CopyTraversed_Dialog.png)
+
+### Inputs
+
+The inputs for this tool are the same as for the Network Analyst [Copy Traversed Source Features tool](https://pro.arcgis.com/en/pro-app/latest/tool-reference/network-analyst/copy-traversed-source-features.htm).  This tool is essentially a wrapper around the core tool which performs some additional calculations on the output as a post-process.
+
+* **Input Network Analysis Layer**: The Route, Closest Facility, and Service Area layer for which to save the traversal result with added transit information. If the network analysis layer does not have a valid result, the layer will be solved to produce one.  The input network analysis layer must have a time of day set and must use a travel mode whose impedance attribute uses the Public Transit evaluator.  Layers using a service URL as their network data source are not supported.
+* **Output Location**: The workspace where the output table and two feature classes will be saved.
+* **Edge Feature Class Name**: The name of the feature class that will contain information about the traversed edge source features, including the added public transit information.
+* **Junction Feature Class Name**: The name of the feature class that will contain information about the traversed junction source features, including system junctions and relevant points from the input network analysis layer.
+* **Turn Table Name**: The name of the table that will contain information about the traversed global turns and turn features that scale cost for the underlying edges.
+
+### Outputs
+
+The tool returns two feature classes and a table containing the network edges, junctions, and turns that were traversed by the analysis.  Please refer to the [Output from Copy Traversed Source Features documentation](https://pro.arcgis.com/en/pro-app/latest/tool-reference/network-analyst/copy-traversed-source-features-output.htm) to understand the core Network Analyst tool output.
+
+This tool populates some additional fields on the Edges output:
+- *WalkTime*: The walk time (in minutes) incurred by this segment of the route
+- *RideTime*: The transit ride time (in minutes) incurred by this segment of the route
+- *WaitTime*: The wait time (in minutes) incurred by this segment of the route
+  - For a Closest Facility Layer that interprets the Time of Day as an end time instead of a start time and for a Service Area Layer with a direction of travel of Toward Facilities, the "wait time" is incurred at the end of each transit segment. It should be interpreted, essentially, as how early you have arrived.  So if your desired end time is 8:00, and the transit trip incurs 5 minutes of wait time, you arrived 5 minutes early. (Yes, the logic here is a little confusing and complicated.)
+- *RunID*: The ID of the transit run used on this segment of the route. This value corresponds to the ID field in the Runs table in the [Public Transit Data Model](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/transit-data-model.htm).
+- *RunDepTime*: The time of day that the transit service used for this segment departs at the beginning of the segment.
+- *RunArrTime*: The time of day that the transit service used for this segment arrives at the end of the segment.
+
+(Are you looking for some other public transit information besides what's included here?  Please [contact us](#Contact) to request it.  This tool is in a prototype state, and we're very interested in feedback.)
+
+This tool reads the Public Transit Data Model tables and the Edges traversal result and compares the arrive or depart times along each segment to identify the most likely transit run used for that segment.  The logic is similar to what the Public Transit evaluator has done when originally solving the analysis.  However, on some occasions, the post-process done in this tool may fail to identify the transit run used for one or more rows.  This is most common with Service Area when output Lines traverse only part of a LineVariantElements transit line segment.  It is also possible, although uncommon, that there are multiple options of transit runs for the segment with matching arrival or departure times.  In these cases, it is possible that the run ultimately returned in the output will not be the same one as that returned by the Public Transit evaluator if the tie-breaking logic is different.  These cases should be rare.  [Contact us](#Contact) if you're experiencing widespread problems.
+
+
 ## <a name="Dates"></a>When to use a specific date or a generic weekday in your analysis
 
 Many of the tools in this toolbox ask you to specify a day or specific date for the analysis. In general, you can choose either a generic weekday, such as Wednesday, or a specific date, such as Wednesday, May 22, 2019. However, depending on the configuration of your public transit data, you might not be able to use a generic weekday. This section will help you determine whether you can use generic weekdays or whether you will need to use specific dates.
@@ -352,5 +390,5 @@ Inside the calendar.txt file, the weekday fields (monday, tuesday, etc.) define 
 
 The same principles apply if you created your network dataset from some other, non-GTFS public transit source data.
 
-## Questions or problems?
-Search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).
+## <a name="Contact"></a> Questions or problems?
+Search for answers and post questions in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions), or log an issue [in our GitHub repo](https://github.com/Esri/public-transit-tools/issues).

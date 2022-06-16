@@ -1,7 +1,7 @@
 ################################################################################
 ## Toolbox: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 3 May 2022
+## Last updated: 16 June 2022
 ################################################################################
 """Helper methods for analysis tools."""
 ################################################################################
@@ -38,6 +38,11 @@ TO_BREAK_FIELD = "ToBreak"
 FIELDS_TO_PRESERVE = [FACILITY_ID_FIELD, NAME_FIELD, FROM_BREAK_FIELD, TO_BREAK_FIELD]
 
 
+class TransitNetworkAnalysisToolsError(Exception):
+    """Generic error class that can be raised for known problems in these tools."""
+    pass
+
+
 def validate_input_feature_class(feature_class):
     """Validate that the designated input feature class exists and is not empty.
 
@@ -69,6 +74,25 @@ def is_nds_service(network_data_source):
     """
     if isinstance(network_data_source, str) and network_data_source.startswith("http"):
         return True
+    return False
+
+
+def does_travel_mode_use_transit_evaluator(network: str, travel_mode: arcpy.nax.TravelMode) -> bool:
+    """Check if the travel mode uses the Public Transit evaluator.
+
+    Args:
+        network (str): Network data source path
+        travel_mode (arcpy.nax.TravelMode): Travel mode
+
+    Returns:
+        bool: True if the travel mode's impedance uses the Public Transit evaluator and False otherwise.
+    """
+    if not is_nds_service(network):
+        nd_desc = arcpy.Describe(network)
+        impedance_desc = [attr for attr in nd_desc.attributes if attr.name == travel_mode.impedance][0]
+        for x in range(impedance_desc.evaluatorCount):
+            if getattr(impedance_desc, f"evaluatorType{x}") == "Public Transit":
+                return True
     return False
 
 
