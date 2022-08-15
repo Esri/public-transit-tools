@@ -606,9 +606,10 @@ class CalculateAccessibilityMatrix(ODCostMatrixSolver):  # pylint: disable=too-m
             "--origins", self.origins_for_od,
             "--destinations", self.temp_destinations,
             "--time-units", self.time_units,
-            "--cutoff", str(self.cutoff),
-            "--weight-field", self.weight_field
+            "--cutoff", str(self.cutoff)
         ]
+        if self.weight_field:
+            self.tool_specific_od_inputs += ["--weight-field", self.weight_field]
         super()._execute_solve()
 
         # If the input origins were polygons, post-process the OD points to join the output fields back
