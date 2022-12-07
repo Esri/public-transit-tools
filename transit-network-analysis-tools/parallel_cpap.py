@@ -142,6 +142,11 @@ def parallel_counter(time_lapse_polygons, raster_template, scratch_folder, combo
     logger.info(f"Finished dissolve in {time.time() - t0} seconds.")
     job_result["polygons"] = dissolved_polygons
 
+    # Clean up and close the logger.
+    for handler in logger.handlers:
+        handler.close()
+        logger.removeHandler(handler)
+
     return job_result
 
 
