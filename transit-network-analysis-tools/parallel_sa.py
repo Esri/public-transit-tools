@@ -387,6 +387,12 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
             file_handler.setFormatter(formatter)
             logger_obj.addHandler(file_handler)
 
+    def teardown_logger(self):
+        """Clean up and close the logger."""
+        for handler in self.logger.handlers:
+            handler.close()
+            self.logger.removeHandler(handler)
+
 
 def solve_service_area(inputs, time_of_day):
     """Solve a Service Area analysis for the given time of day.
@@ -403,6 +409,7 @@ def solve_service_area(inputs, time_of_day):
         f"Processing start time {time_of_day} as job id {sa.job_id}"
     ))
     sa.solve(time_of_day)
+    sa.teardown_logger()
     return sa.job_result
 
 
@@ -504,6 +511,7 @@ class ParallelSACalculator():
         finally:
             if sa:
                 LOGGER.debug("Deleting temporary test Service Area job folder...")
+                sa.teardown_logger()
                 shutil.rmtree(sa.job_result["jobFolder"], ignore_errors=True)
                 del sa
 

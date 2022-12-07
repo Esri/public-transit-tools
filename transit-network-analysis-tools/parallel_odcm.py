@@ -13,7 +13,7 @@ window.  The number of reachable destinations can be weighted based on a field,
 such as the number of jobs available at each destination.  The tool also
 calculates the percentage of total destinations reachable.
 
-This script should be launched by the CalculateAccessibilityMatrixInParallel.py
+This script should be launched by the CalculateODMatrixInParallel.py
 script as a subprocess. It computes the OD Cost Matrix in parallel for all time
 increments, chunking the origins and destinations if necessary, and calculates
 the desired statistics on the outputs.
@@ -549,6 +549,12 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             file_handler.setFormatter(formatter)
             logger_obj.addHandler(file_handler)
 
+    def teardown_logger(self):
+        """Clean up and close the logger."""
+        for handler in self.logger.handlers:
+            handler.close()
+            self.logger.removeHandler(handler)
+
 
 def solve_od_cost_matrix(inputs, chunk):
     """Solve an OD Cost Matrix analysis for the given inputs for the given chunk of ObjectIDs.
@@ -569,6 +575,7 @@ def solve_od_cost_matrix(inputs, chunk):
         f"for start time {chunk[2]} as job id {odcm.job_id}"
     ))
     odcm.solve(chunk[0], chunk[1], chunk[2])
+    odcm.teardown_logger()
     return odcm.job_result
 
 
@@ -700,9 +707,7 @@ class ParallelODCalculator():
         finally:
             if odcm:
                 # Close logging and delete the temporary log file
-                for handler in odcm.logger.handlers:
-                    handler.close()
-                    odcm.logger.removeHandler(handler)
+                odcm.teardown_logger()
                 os.remove(odcm.log_file)
 
     @staticmethod
