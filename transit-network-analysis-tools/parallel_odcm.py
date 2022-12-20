@@ -290,9 +290,11 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             try:
                 setattr(self.od_solver, prop, od_props[prop])
             except Exception as ex:  # pylint: disable=broad-except
-                # Suppress warnings for search tolerance for older services (pre 11.0) that don't support locate
-                # settings because we don't want the tool to always throw a warning.
-                if not (self.is_service and prop in ["searchTolerance", "searchToleranceUnits"]):
+                # Suppress warnings for older services (pre 11.0) that don't support locate settings and services
+                # that don't support accumulating attributes because we don't want the tool to always throw a warning.
+                if not (self.is_service and prop in [
+                    "searchTolerance", "searchToleranceUnits", "accumulateAttributeNames"
+                ]):
                     self.logger.warning(
                         f"Failed to set property {prop} from OD config file. Default will be used instead.")
                     self.logger.warning(str(ex))
