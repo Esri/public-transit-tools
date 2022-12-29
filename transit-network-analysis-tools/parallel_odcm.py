@@ -445,10 +445,11 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         """Save the OD Lines result to a CSV file."""
         self.logger.debug(f"Saving OD cost matrix Lines output to CSV as {out_csv_file}.")
 
-        # For services solve, properly populate OriginOID and DestinationOID fields in the output Lines. Services do
-        # not preserve the original input OIDs, instead resetting from 1, unlike solves using a local network dataset,
-        # so this extra post-processing step is necessary.
-        if self.is_service:
+        # For services solve in pre-3.0 versions of ArcGIS Pro, export Origins and Destinations and properly populate
+        # OriginOID and DestinationOID fields in the output Lines. Services do not preserve the original input OIDs,
+        # instead resetting from 1, unlike solves using a local network dataset.  This issue was handled on the client
+        # side in the ArcGIS Pro 3.1 release, but for older software, this extra post-processing step is necessary.
+        if self.is_service and AnalysisHelpers.arcgis_version < "3.1":
             # Read the Lines output
             with self.solve_result.searchCursor(
                 arcpy.nax.OriginDestinationCostMatrixOutputDataType.Lines, self.output_fields
