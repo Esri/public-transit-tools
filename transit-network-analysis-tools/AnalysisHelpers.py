@@ -24,6 +24,7 @@ import arcpy
 
 # Determine if this is python 3 (which means probably ArcGIS Pro)
 isPy3 = sys.version_info > (3, 0)
+arcgis_version = arcpy.GetInstallInfo()["Version"]
 
 # Set some shared global variables that can be referenced from the other scripts
 MSG_STR_SPLITTER = " | "
