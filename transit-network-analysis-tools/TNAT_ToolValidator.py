@@ -1,11 +1,11 @@
 ################################################################################
 ## Toolbox: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 3 May 2022
+## Last updated: 6 January 2023
 ################################################################################
 """Shared tool validation methods."""
 ################################################################################
-"""Copyright 2022 Esri
+"""Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -21,7 +21,7 @@ import sys
 import re
 import datetime
 import arcpy
-from AnalysisHelpers import is_nds_service, MAX_AGOL_PROCESSES
+from AnalysisHelpers import is_nds_service, MAX_AGOL_PROCESSES, MAX_ALLOWED_MAX_PROCESSES
 
 ispy3 = sys.version_info >= (3, 0)
 
@@ -161,17 +161,43 @@ def show_only_time_travel_modes(param_network, param_travel_mode):
             pass
 
 
-def cap_max_processes_for_agol(param_network, param_max_processes):
-    """If the network data source is arcgis.com, cap max processes.
+def cap_max_processes(param_max_processes, param_network=None):
+    """Validate max processes and cap it when required.
 
     Args:
         param_network (arcpy.Parameter): Parameter for the network data source
         param_max_processes (arcpy.Parameter): Parameter for the max processes
     """
-    if param_network.altered and param_network.valueAsText and is_nds_service(param_network.valueAsText):
-        if param_max_processes.altered and param_max_processes.valueAsText:
-            if "arcgis.com" in param_network.valueAsText and param_max_processes.value > MAX_AGOL_PROCESSES:
-                param_max_processes.setErrorMessage((
-                    f"The maximum number of parallel processes cannot exceed {MAX_AGOL_PROCESSES} when the "
-                    "ArcGIS Online services are used as the network data source."
-                ))
+    if param_max_processes.altered and param_max_processes.valueAsText:
+        max_processes = param_max_processes.value
+        # Don't allow 0 or negative numbers
+        if max_processes <= 0:
+            param_max_processes.setErrorMessage("The maximum number of parallel processes must be positive.")
+            return
+        # Cap max processes to the limit allowed by the concurrent.futures module
+        if max_processes > MAX_ALLOWED_MAX_PROCESSES:
+            param_max_processes.setErrorMessage((
+                f"The maximum number of parallel processes cannot exceed {MAX_ALLOWED_MAX_PROCESSES:} due "
+                "to limitations imposed by Python's concurrent.futures module."
+            ))
+            return
+        # If the network data source is arcgis.com, cap max processes
+        if (
+            param_network and
+            max_processes > MAX_AGOL_PROCESSES and
+            param_network.altered and
+            param_network.valueAsText and
+            is_nds_service(param_network.valueAsText) and
+            "arcgis.com" in param_network.valueAsText
+        ):
+            param_max_processes.setErrorMessage((
+                f"The maximum number of parallel processes cannot exceed {MAX_AGOL_PROCESSES} when the "
+                "ArcGIS Online service is used as the network data source."
+            ))
+            return
+        # Set a warning if the user has put more processes than the number of logical cores on their machine
+        if max_processes > os.cpu_count():
+            param_max_processes.setWarningMessage((
+                "The maximum number of parallel processes is greater than the number of logical cores "
+                f"({os.cpu_count()}) in your machine."
+            ))
