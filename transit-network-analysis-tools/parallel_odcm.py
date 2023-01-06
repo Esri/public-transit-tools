@@ -760,7 +760,7 @@ class ParallelODCalculator():
         self._validate_od_settings()
 
         # Compute OD cost matrix in parallel
-        LOGGER.info("Solving OD Cost Matrix chunks in parallel...")
+        LOGGER.info(f"Solving OD Cost Matrix in parallel ({self.total_jobs} chunks)...")
         completed_jobs = 0  # Track the number of jobs completed so far to use in logging
         # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the OD cost
         # matrices
