@@ -445,6 +445,7 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
         # Preprocess inputs
         arcpy.SetProgressorLabel("Preprocessing inputs...")
         self._preprocess_inputs()
+        arcpy.AddMessage("Inputs successfully preprocessed.")
 
         # Solve the analysis
         arcpy.SetProgressorLabel("Solving analysis in parallel...")
