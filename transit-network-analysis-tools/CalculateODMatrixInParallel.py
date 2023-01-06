@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 3 May 2022
+## Last updated: 6 January 2023
 ############################################################################
 """Calculate an OD Cost Matrix in parallel.
 
@@ -35,7 +35,7 @@ parallel. It was built based off Esri's Solve Large OD Cost Matrix sample script
 available from https://github.com/Esri/large-network-analysis-tools under an Apache
 2.0 license.
 
-Copyright 2022 Esri
+Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -140,6 +140,13 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
             raise ValueError(err)
         if self.max_processes < 1:
             err = "Maximum allowed parallel processes must be greater than 0."
+            arcpy.AddError(err)
+            raise ValueError(err)
+        if self.max_processes > AnalysisHelpers.MAX_ALLOWED_MAX_PROCESSES:
+            err = (
+                f"The maximum allowed parallel processes cannot exceed {AnalysisHelpers.MAX_ALLOWED_MAX_PROCESSES:} "
+                "due to limitations imposed by Python's concurrent.futures module."
+            )
             arcpy.AddError(err)
             raise ValueError(err)
         if self.time_increment <= 0:
