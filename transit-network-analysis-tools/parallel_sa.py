@@ -678,11 +678,18 @@ def launch_parallel_sa():
     args = vars(parser.parse_args())
 
     # Initialize a parallel Service Area calculator class
-    sa_calculator = ParallelSACalculator(**args)
-    # Solve the Service Area in parallel chunks
-    start_time = time.time()
-    sa_calculator.solve_sa_in_parallel()
-    LOGGER.info(f"Parallel Service Area calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
+    try:
+        sa_calculator = ParallelSACalculator(**args)
+        # Solve the Service Area in parallel chunks
+        start_time = time.time()
+        sa_calculator.solve_sa_in_parallel()
+        LOGGER.info(
+            f"Parallel Service Area calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
+    except Exception:  # pylint: disable=broad-except
+        errs = traceback.format_exc().splitlines()
+        for err in errs:
+            LOGGER.error(err)
+        raise
 
 
 if __name__ == "__main__":
