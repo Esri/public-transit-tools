@@ -424,7 +424,11 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
 
     def solve_large_od_cost_matrix(self):
         """Solve the large OD Cost Matrix in parallel."""
+        # Set the progressor so the user is informed of progress
+        arcpy.SetProgressor("default")
+
         try:
+            arcpy.SetProgressorLabel("Validating inputs...")
             self._validate_inputs()
             arcpy.AddMessage("Inputs successfully validated.")
         except Exception:  # pylint: disable=broad-except
@@ -432,9 +436,11 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
             return
 
         # Preprocess inputs
+        arcpy.SetProgressorLabel("Preprocessing inputs...")
         self._preprocess_inputs()
 
         # Solve the analysis
+        arcpy.SetProgressorLabel("Solving analysis in parallel...")
         self._execute_solve()
 
         # Clean up
