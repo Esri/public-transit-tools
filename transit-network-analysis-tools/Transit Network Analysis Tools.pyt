@@ -1,12 +1,12 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 16 June 2022
+## Last updated: 6 January 2023
 ############################################################################
 """ Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
 suite."""
 ################################################################################
-"""Copyright 2022 Esri
+"""Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -213,8 +213,8 @@ class PrepareTimeLapsePolygons(object):
         # Make sure time increment is good
         TNAT_ToolValidator.validate_time_increment(increment)
 
-        # If the network data source is arcgis.com, cap max processes
-        TNAT_ToolValidator.cap_max_processes_for_agol(param_network, param_max_processes)
+        # Validate and cap max processes
+        TNAT_ToolValidator.cap_max_processes(param_max_processes, param_network)
 
         return
 
@@ -343,6 +343,7 @@ class CreatePercentAccessPolygons(object):
         param_in_time_lapse_polys = parameters[0]
         param_out_fc = parameters[1]
         param_cell_size = parameters[2]
+        param_max_processes = parameters[3]
         param_fc2 = parameters[4]
         param_percents = parameters[5]
         required_input_fields = set(["FacilityID", "Name", "FromBreak", "ToBreak", "TimeOfDay"])
@@ -378,6 +379,9 @@ class CreatePercentAccessPolygons(object):
             cell_size_in_meters = cell_size_to_meters(param_cell_size.valueAsText)
             if cell_size_in_meters < 5 or cell_size_in_meters > 1000:
                 param_cell_size.setErrorMessage("Cell size must be between 5 and 1000 meters.")
+
+        # Validate and cap max processes
+        TNAT_ToolValidator.cap_max_processes(param_max_processes)
 
         if param_fc2.valueAsText and not param_percents.valueAsText:
             param_percents.setWarningMessage(
@@ -687,8 +691,8 @@ class CalculateTravelTimeStatisticsOD(object):
         # Make sure time increment is good
         TNAT_ToolValidator.validate_time_increment(increment)
 
-        # If the network data source is arcgis.com, cap max processes
-        TNAT_ToolValidator.cap_max_processes_for_agol(param_network, param_max_processes)
+        # Validate and cap max processes
+        TNAT_ToolValidator.cap_max_processes(param_max_processes, param_network)
 
         return
 
@@ -865,8 +869,8 @@ class CalculateAccessibilityMatrix(object):
         # Make sure time increment is good
         TNAT_ToolValidator.validate_time_increment(increment)
 
-        # If the network data source is arcgis.com, cap max processes
-        TNAT_ToolValidator.cap_max_processes_for_agol(param_network, param_max_processes)
+        # Validate and cap max processes
+        TNAT_ToolValidator.cap_max_processes(param_max_processes, param_network)
 
         return
 
