@@ -17,8 +17,8 @@ The *Transit Network Analysis Tools* download includes the "Transit Network Anal
 
 The tools included are:
 - [Calculate Accessibility Matrix](#Calculate-Accessibility-Matrix)
-- [Calculate Travel Time Statistics (OD Cost Matrix)](#Calculate-Travel-Time-Statistics-(OD-Cost-Matrix))
-- [Calculate Travel Time Statistics (Route)](#Calculate-Travel-Time-Statistics-(Route))
+- [Calculate Travel Time Statistics (OD Cost Matrix)](#calculate-travel-time-statistics-od-cost-matrix)
+- [Calculate Travel Time Statistics (Route)](#calculate-travel-time-statistics-route)
 - [Copy Traversed Source Features With Transit](#Copy-Traversed-Source-Features-With-Transit)
 - [Create Percent Access Polygons](#Create-Percent-Access-Polygons)
 - [Prepare Time Lapse Polygons](#Prepare-Time-Lapse-Polygons)
@@ -194,7 +194,7 @@ For each route in a Route layer, the tool calculates:
 
 You can also choose to save a feature class containing the combined network analysis output for the entire time window.
 
-Note: This tool formerly also worked with an OD Cost Matrix layer, but now you should use the more efficient and optimized [Calculate Travel Time Statistics (OD Cost Matrix)](#Calculate-Travel-Time-Statistics-(OD-Cost-Matrix)) version of this tool instead.
+Note: This tool formerly also worked with an OD Cost Matrix layer, but now you should use the more efficient and optimized [Calculate Travel Time Statistics (OD Cost Matrix)](#calculate-travel-time-statistics-od-cost-matrix) version of this tool instead.
 
 Note: Unlike the other tools in this toolbox, this tool has not been overhauled and optimized to run in parallel in ArcGIS Pro. If you are using this tool and performance is a concern for you, please leave a note in our GitHub repo or on the Esri Community forums.
 
@@ -373,7 +373,7 @@ This tool populates some additional fields on the Edges output:
 - *RunDepTime*: The time of day that the transit service used for this segment departs at the beginning of the segment.
 - *RunArrTime*: The time of day that the transit service used for this segment arrives at the end of the segment.
 
-(Are you looking for some other public transit information besides what's included here?  Please [contact us](#Questions-or-problems?) to request it.  This tool is in a prototype state, and we're very interested in feedback.)
+(Are you looking for some other public transit information besides what's included here?  Please [contact us](#Questions-or-problems to request it.  This tool is in a prototype state, and we're very interested in feedback.)
 
 This tool reads the Public Transit Data Model tables and the Edges traversal result and compares the arrive or depart times along each segment to identify the most likely transit run used for that segment.  The logic is similar to what the Public Transit evaluator has done when originally solving the analysis.  However, on some occasions, the post-process done in this tool may fail to identify the transit run used for one or more rows.  This is most common with Service Area when output Lines traverse only part of a LineVariantElements transit line segment.  It is also possible, although uncommon, that there are multiple options of transit runs for the segment with matching arrival or departure times.  In these cases, it is possible that the run ultimately returned in the output will not be the same one as that returned by the Public Transit evaluator if the tie-breaking logic is different.  These cases should be rare.  [Contact us](#Questions-or-problems?) if you're experiencing widespread problems.
 
