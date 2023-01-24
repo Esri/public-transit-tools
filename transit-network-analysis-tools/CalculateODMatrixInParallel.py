@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 6 January 2023
+## Last updated: 24 January 2023
 ############################################################################
 """Calculate an OD Cost Matrix in parallel.
 
@@ -110,15 +110,7 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
         self.time_increment = time_increment
 
         # Check if origins and destinations are the same. We can skip certain steps if so.
-        # The origins and destinations can be either catalog paths or layers. If they are catalog paths, compare them
-        # directly. If they are layers, they are only equal if both their dataSources and layer names are the same. It
-        # is conceivable that someone might have two layers referencing the same data that each have a different
-        # selection set or definition query, and those should not be considered the same.
-        origins_catalog = self.origins.dataSource if hasattr(self.origins, "dataSource") else self.origins
-        dests_catalog = self.destinations.dataSource if hasattr(self.destinations, "dataSource") else self.destinations
-        origins_name = self.origins.name if hasattr(self.origins, "name") else self.origins
-        dests_name = self.destinations.name if hasattr(self.destinations, "name") else self.destinations
-        self.same_origins_destinations = bool(origins_catalog == dests_catalog) and bool(origins_name == dests_name)
+        self.same_origins_destinations = AnalysisHelpers.are_input_layers_the_same(self.origins, self.destinations)
 
         self.max_origins = self.chunk_size
         self.max_destinations = self.chunk_size
