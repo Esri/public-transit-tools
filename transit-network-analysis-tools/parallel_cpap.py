@@ -1,14 +1,14 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 6 August 2021
+## Last updated: 20 March 2023
 ############################################################################
 """Do the core logic for the Create Percent Access Polygons tool in parallel
 for maximum efficiency.
 
 This version of the tool is for ArcGIS Pro only.
 
-Copyright 2021 Esri
+Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -32,7 +32,7 @@ import logging
 import arcpy
 
 from AnalysisHelpers import FACILITY_ID_FIELD, FROM_BREAK_FIELD, TO_BREAK_FIELD, TIME_FIELD, FIELDS_TO_PRESERVE, \
-                            MSG_STR_SPLITTER
+                            MSG_STR_SPLITTER, MAX_RETRIES
 
 # Set logging for the main process.
 # LOGGER logs everything from the main process to stdout using a specific format that the tool
@@ -189,25 +189,60 @@ def count_percent_access_polygons(time_lapse_polygons, raster_template, output_f
     all_polygons = []
     # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes
     with futures.ProcessPoolExecutor(max_workers=max_processes) as executor:
-        # Each parallel process calls the solve_od_cost_matrix() function with the od_inputs dictionary for the
-        # given origin and destination OID ranges and time of day.
+        # Each parallel process calls the parallel_counter() function with the required static inputs and one of the
+        # output combos
         jobs = {executor.submit(
             parallel_counter, time_lapse_polygons, raster_template, scratch_folder, combo
         ): combo for combo in unique_output_combos}
         # As each job is completed, add some logging information and store the results to post-process later
         for future in futures.as_completed(jobs):
+            try:
+                # The job returns a results dictionary. Retrieve it.
+                result = future.result()
+            except Exception:  # pylint: disable=broad-except
+                # If we couldn't retrieve the result, some terrible error happened and the job errored.
+                # Note: This does not mean solve failed. It means some unexpected error was thrown. The most likely
+                # causes are:
+                # a) If you're calling a service, the service was temporarily down.
+                # b) You had a temporary file read/write or resource issue on your machine.
+                # c) If you're actively updating the code, you introduced an error.
+                # To make the tool more robust against temporary glitches, retry submitting the job up to the number
+                # of times designated in AnalysisHelpers.MAX_RETRIES.  If the job is still erroring after that many
+                # retries, fail the entire tool run.
+                errs = traceback.format_exc().splitlines()
+                failed_combo = jobs[future]
+                LOGGER.debug((
+                    f"Failed to get polygon cell calculation result for {failed_combo} from the parallel process. Will "
+                    f"retry up to {MAX_RETRIES} times. Errors: {errs}"
+                ))
+                job_failed = True
+                num_retries = 0
+                while job_failed and num_retries < MAX_RETRIES:
+                    num_retries += 1
+                    try:
+                        future = executor.submit(
+                            parallel_counter, time_lapse_polygons, raster_template, scratch_folder, failed_combo)
+                        result = future.result()
+                        job_failed = False
+                        LOGGER.debug(
+                            f"Polygon cell calculation for {failed_combo} succeeded after {num_retries} retries.")
+                    except Exception:  # pylint: disable=broad-except
+                        # Update exception info to the latest error
+                        errs = traceback.format_exc().splitlines()
+                if job_failed:
+                    # The job errored and did not succeed after retries.  Fail the tool run because something
+                    # terrible is happening.
+                    LOGGER.debug(
+                        f"Polygon cell calculation for {failed_combo} continued to error after {num_retries} retries.")
+                    LOGGER.error("Failed to get result from parallel processing.")
+                    errs = traceback.format_exc().splitlines()
+                    for err in errs:
+                        LOGGER.error(err)
+                    raise
+
+            # If we got this far, the job completed successfully and we retrieved results.
             completed_jobs += 1
             LOGGER.info(f"Finished polygon cell calculation chunk {completed_jobs} of {total_jobs}.")
-            try:
-                # The OD cost matrix job returns a results dictionary. Retrieve it.
-                result = future.result()
-            except Exception:
-                # If we couldn't retrieve the result, some terrible error happened. Log it.
-                LOGGER.error("Failed to get result from parallel processing.")
-                errs = traceback.format_exc().splitlines()
-                for err in errs:
-                    LOGGER.error(err)
-                raise
 
             # Log failed analysis
             if not result["polygons"]:

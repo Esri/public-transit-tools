@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 27 June 2021
+## Last updated: 29 March 2023
 ############################################################################
 """Run a Service Area analysis incrementing the time of day over a time window.
 Save the output polygons to a single feature class that can be used to generate
@@ -16,7 +16,7 @@ parallel. It was built based off Esri's Solve Large OD Cost Matrix sample script
 available from https://github.com/Esri/large-network-analysis-tools under an Apache
 2.0 license.
 
-Copyright 2021 Esri
+Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -535,19 +535,55 @@ class ParallelSACalculator():
                 solve_service_area, self.sa_inputs, time_of_day): time_of_day for time_of_day in self.start_times}
             # As each job is completed, add some logging information and store the results to post-process later
             for future in futures.as_completed(jobs):
-                completed_jobs += 1
-                LOGGER.info(
-                    f"Finished Service Area calculation {completed_jobs} of {len(self.start_times)}.")
                 try:
                     # The Service Area job returns a results dictionary. Retrieve it.
                     result = future.result()
-                except Exception:
-                    # If we couldn't retrieve the result, some terrible error happened. Log it.
-                    LOGGER.error("Failed to get Service Area result from parallel processing.")
+                except Exception:  # pylint: disable=broad-except
+                    # If we couldn't retrieve the result, some terrible error happened and the job errored.
+                    # Note: This does not mean solve failed. It means some unexpected error was thrown. The most likely
+                    # causes are:
+                    # a) If you're calling a service, the service was temporarily down.
+                    # b) You had a temporary file read/write or resource issue on your machine.
+                    # c) If you're actively updating the code, you introduced an error.
+                    # To make the tool more robust against temporary glitches, retry submitting the job up to the number
+                    # of times designated in AnalysisHelpers.MAX_RETRIES.  If the job is still erroring after that many
+                    # retries, fail the entire tool run.
                     errs = traceback.format_exc().splitlines()
-                    for err in errs:
-                        LOGGER.error(err)
-                    raise
+                    failed_time = jobs[future]
+                    LOGGER.debug((
+                        f"Failed to get results for Service Area for start time {failed_time} from the parallel "
+                        f"process. Will retry up to {AnalysisHelpers.MAX_RETRIES} times. Errors: {errs}"
+                    ))
+                    job_failed = True
+                    num_retries = 0
+                    while job_failed and num_retries < AnalysisHelpers.MAX_RETRIES:
+                        num_retries += 1
+                        try:
+                            future = executor.submit(solve_service_area, self.sa_inputs, failed_time)
+                            result = future.result()
+                            job_failed = False
+                            LOGGER.debug(
+                                f"Service Area for start time {failed_time} succeeded after {num_retries} retries.")
+                        except Exception:  # pylint: disable=broad-except
+                            # Update exception info to the latest error
+                            errs = traceback.format_exc().splitlines()
+                    if job_failed:
+                        # The job errored and did not succeed after retries.  Fail the tool run because something
+                        # terrible is happening.
+                        LOGGER.debug((
+                            f"Service Area for start time {failed_time} continued to error after {num_retries} "
+                            "retries."
+                        ))
+                        LOGGER.error("Failed to get Service Area result from parallel processing.")
+                        errs = traceback.format_exc().splitlines()
+                        for err in errs:
+                            LOGGER.error(err)
+                        raise
+
+                # If we got this far, the job completed successfully and we retrieved results.
+                completed_jobs += 1
+                LOGGER.info(
+                    f"Finished Service Area calculation {completed_jobs} of {len(self.start_times)}.")
 
                 # Parse the results dictionary and store components for post-processing.
                 if result["solveSucceeded"]:
