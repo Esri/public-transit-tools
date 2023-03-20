@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 3 May 2022
+## Last updated: 20 March 2023
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -23,7 +23,7 @@ parallel. It was built based off Esri's Solve Large OD Cost Matrix sample script
 available from https://github.com/Esri/large-network-analysis-tools under an Apache
 2.0 license.
 
-Copyright 2022 Esri
+Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -771,19 +771,51 @@ class ParallelODCalculator():
                 solve_od_cost_matrix, self.od_inputs, chunks): chunks for chunks in self.chunks}
             # As each job is completed, add some logging information and store the results to post-process later
             for future in futures.as_completed(jobs):
-                completed_jobs += 1
-                LOGGER.info(
-                    f"Finished OD Cost Matrix calculation {completed_jobs} of {self.total_jobs}.")
                 try:
                     # The OD cost matrix job returns a results dictionary. Retrieve it.
                     result = future.result()
-                except Exception:
-                    # If we couldn't retrieve the result, some terrible error happened. Log it.
-                    LOGGER.error("Failed to get OD Cost Matrix result from parallel processing.")
+                except Exception:  # pylint: disable=broad-except
+                    # If we couldn't retrieve the result, some terrible error happened and the job errored.
+                    # Note: This does not mean solve failed. It means some unexpected error was thrown. The most likely
+                    # causes are:
+                    # a) If you're calling a service, the service was temporarily down.
+                    # b) You had a temporary file read/write or resource issue on your machine.
+                    # c) If you're actively updating the code, you introduced an error.
+                    # To make the tool more robust against temporary glitches, retry submitting the job up to the number
+                    # of times designated in AnalysisHelpers.MAX_RETRIES.  If the job is still erroring after that many
+                    # retries, fail the entire tool run.
                     errs = traceback.format_exc().splitlines()
-                    for err in errs:
-                        LOGGER.error(err)
-                    raise
+                    failed_range = jobs[future]
+                    LOGGER.debug((
+                        f"Failed to get results for OD chunk {failed_range} from the parallel process. Will retry up "
+                        f"to {AnalysisHelpers.MAX_RETRIES} times. Errors: {errs}"
+                    ))
+                    job_failed = True
+                    num_retries = 0
+                    while job_failed and num_retries < AnalysisHelpers.MAX_RETRIES:
+                        num_retries += 1
+                        try:
+                            future = executor.submit(solve_od_cost_matrix, self.od_inputs, failed_range)
+                            result = future.result()
+                            job_failed = False
+                            LOGGER.debug(f"OD chunk {failed_range} succeeded after {num_retries} retries.")
+                        except Exception:  # pylint: disable=broad-except
+                            # Update exception info to the latest error
+                            errs = traceback.format_exc().splitlines()
+                    if job_failed:
+                        # The job errored and did not succeed after retries.  Fail the tool run because something
+                        # terrible is happening.
+                        LOGGER.debug(f"OD chunk {failed_range} continued to error after {num_retries} retries.")
+                        LOGGER.error("Failed to get OD Cost Matrix result from parallel processing.")
+                        errs = traceback.format_exc().splitlines()
+                        for err in errs:
+                            LOGGER.error(err)
+                        raise
+
+                # If we got this far, the job completed successfully and we retrieved results.
+                completed_jobs += 1
+                LOGGER.info(
+                    f"Finished OD Cost Matrix calculation {completed_jobs} of {self.total_jobs}.")
 
                 # Parse the results dictionary and store components for post-processing.
                 if result["solveSucceeded"]:
