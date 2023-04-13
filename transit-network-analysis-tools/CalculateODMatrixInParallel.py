@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 24 January 2023
+## Last updated: 13 April 2023
 ############################################################################
 """Calculate an OD Cost Matrix in parallel.
 
@@ -47,10 +47,7 @@ Copyright 2023 Esri
    limitations under the License.
 """
 import os
-import sys
-import time
 import traceback
-import subprocess
 
 import arcpy
 
@@ -62,7 +59,9 @@ import CalculateTravelTimeStatistics_OD_config
 arcpy.env.overwriteOutput = True
 
 
-class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-few-public-methods
+class ODCostMatrixSolver(
+    AnalysisHelpers.PrecalculateLocationsMixin
+):  # pylint: disable=too-many-instance-attributes, too-few-public-methods
     """Compute OD Cost Matrices between Origins and Destinations in parallel and combine results.
 
     This is a base class holding methods and variables relevant to multiple tools.
@@ -269,39 +268,6 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
                     "limits."
                 ))
 
-    def _precalculate_network_locations(self, input_features):
-        """Precalculate network location fields if possible for faster loading and solving later.
-
-        Cannot be used if the network data source is a service. Uses the searchTolerance, searchToleranceUnits, and
-        searchQuery properties set in the OD config file.
-
-        Args:
-            input_features (feature class catalog path): Feature class to calculate network locations for
-            network_data_source (network dataset catalog path): Network dataset to use to calculate locations
-            travel_mode (travel mode): Travel mode name, object, or json representation to use when calculating
-            locations.
-        """
-        if self.is_service:
-            arcpy.AddMessage(
-                "Skipping precalculating network location fields because the network data source is a service.")
-            return
-
-        arcpy.AddMessage(f"Precalculating network location fields for {input_features}...")
-
-        # Get location settings from config file if present
-        search_tolerance = None
-        if "searchTolerance" in self.od_props and "searchToleranceUnits" in self.od_props:
-            search_tolerance = f"{self.od_props['searchTolerance']} {self.od_props['searchToleranceUnits'].name}"
-        search_query = self.od_props.get("search_query", None)
-
-        # Calculate network location fields if network data source is local
-        arcpy.na.CalculateLocations(
-            input_features, self.network_data_source,
-            search_tolerance=search_tolerance,
-            search_query=search_query,
-            travel_mode=self.travel_mode
-        )
-
     def _preprocess_inputs(self):
         """Preprocess the input feature classes to prepare them for use in the OD Cost Matrix."""
         # Should be implemented in the child class for the needs of the specific tool.
@@ -346,14 +312,9 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
 
     def _execute_solve(self):
         """Solve the OD Cost Matrix analysis."""
-        # Launch the parallel_odcm script as a subprocess so it can spawn parallel processes. We have to do this because
-        # a tool running in the Pro UI cannot call concurrent.futures without opening multiple instances of Pro.
-        cwd = os.path.dirname(os.path.abspath(__file__))
         # Define some shared inputs for the parallel OD script. The rest should be specified in the child class's
         # implementation of self.tool_specific_od_inputs.
         odcm_inputs = [
-            os.path.join(sys.exec_prefix, "python.exe"),
-            os.path.join(cwd, "parallel_odcm.py"),
             "--network-data-source", self.network_data_source,
             "--travel-mode", self.travel_mode,
             "--max-origins", str(self.max_origins),
@@ -368,41 +329,7 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
         if self.barriers:
             odcm_inputs += ["--barriers"]
             odcm_inputs += self.barriers
-        # We do not want to show the console window when calling the command line tool from within our GP tool.
-        # This can be done by setting this hex code.
-        create_no_window = 0x08000000
-        with subprocess.Popen(
-            odcm_inputs,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            creationflags=create_no_window
-        ) as process:
-            # The while loop reads the subprocess's stdout in real time and writes the stdout messages to the GP UI.
-            # This is the only way to write the subprocess's status messages in a way that a user running the tool from
-            # the ArcGIS Pro UI can actually see them.
-            # When process.poll() returns anything other than None, the process has completed, and we should stop
-            # checking and move on.
-            while process.poll() is None:
-                output = process.stdout.readline()
-                if output:
-                    msg_string = output.strip().decode()
-                    AnalysisHelpers.parse_std_and_write_to_gp_ui(msg_string)
-                time.sleep(.1)
-
-            # Once the process is finished, check if any additional errors were returned. Messages that came after the
-            # last process.poll() above will still be in the queue here. This is especially important for detecting
-            # messages from raised exceptions, especially those with tracebacks.
-            output, _ = process.communicate()
-            if output:
-                out_msgs = output.decode().splitlines()
-                for msg in out_msgs:
-                    AnalysisHelpers.parse_std_and_write_to_gp_ui(msg)
-
-            # In case something truly horrendous happened and none of the logging caught our errors, at least fail the
-            # tool when the subprocess returns an error code. That way the tool at least doesn't happily succeed but not
-            # actually do anything.
-            return_code = process.returncode
-            if return_code != 0:
-                arcpy.AddError("OD Cost Matrix script failed.")
+        AnalysisHelpers.execute_subprocess("parallel_odcm.py", odcm_inputs)
 
     def _delete_intermediate_outputs(self):
         """Clean up intermediate outputs."""
@@ -447,7 +374,9 @@ class ODCostMatrixSolver:  # pylint: disable=too-many-instance-attributes, too-f
         self._delete_intermediate_outputs()
 
 
-class CalculateAccessibilityMatrix(ODCostMatrixSolver):  # pylint: disable=too-many-instance-attributes, too-few-public-methods
+class CalculateAccessibilityMatrix(
+    ODCostMatrixSolver
+):  # pylint: disable=too-many-instance-attributes, too-few-public-methods
     """Run the Calculate Accessibility Matrix tool.
 
     This class preprocesses and validate inputs and then spins up a subprocess to do the actual OD Cost Matrix
@@ -590,11 +519,13 @@ class CalculateAccessibilityMatrix(ODCostMatrixSolver):  # pylint: disable=too-m
 
         # Precalculate network location fields for inputs
         if not self.is_service and self.should_precalc_network_locations:
-            self._precalculate_network_locations(self.origins_for_od)
+            self.origins_for_od = self._precalculate_locations(self.origins_for_od, self.od_props)
             if not self.same_origins_destinations:
-                self._precalculate_network_locations(self.temp_destinations)
+                self.temp_destinations = self._precalculate_locations(self.temp_destinations, self.od_props)
+            updated_barriers = []
             for barrier_fc in self.barriers:
-                self._precalculate_network_locations(barrier_fc)
+                updated_barriers.append(self._precalculate_locations(barrier_fc, self.od_props))
+            self.barriers = updated_barriers
 
     def _delete_existing_output_fields(self, origin_fc):
         """Delete pre-existing output fields in origins."""
@@ -693,11 +624,13 @@ class CalculateTravelTimeStatistics(ODCostMatrixSolver):  # pylint: disable=too-
 
         # Precalculate network location fields for inputs
         if not self.is_service and self.should_precalc_network_locations:
-            self._precalculate_network_locations(self.temp_origins)
+            self.temp_origins = self._precalculate_locations(self.temp_origins, self.od_props)
             if not self.same_origins_destinations:
-                self._precalculate_network_locations(self.temp_destinations)
+                self.temp_destinations = self._precalculate_locations(self.temp_destinations, self.od_props)
+            updated_barriers = []
             for barrier_fc in self.barriers:
-                self._precalculate_network_locations(barrier_fc)
+                updated_barriers.append(self._precalculate_locations(barrier_fc, self.od_props))
+            self.barriers = updated_barriers
 
     def _execute_solve(self):  # pylint: disable=arguments-differ
         """Solve the OD Cost Matrix analysis."""
