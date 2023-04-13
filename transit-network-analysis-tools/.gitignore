@@ -1,0 +1,4 @@
+*.pyc
+
+/unittests/TestInput
+/unittests/TestOutput
