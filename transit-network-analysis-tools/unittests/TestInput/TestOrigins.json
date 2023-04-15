@@ -1,0 +1,19 @@
+{
+  "displayFieldName" : "",
+  "fieldAliases" : {
+    "OBJECTID" : "OBJECTID"
+  },
+  "geometryType" : "esriGeometryPoint",
+  "spatialReference" : {
+    "wkid" : 102723,
+    "latestWkid" : 3735
+  },
+  "fields" : [
+    {
+      "name" : "OBJECTID",
+      "type" : "esriFieldTypeOID",
+      "alias" : "OBJECTID"
+    }
+  ],
+  "features" : [{"attributes":{"OBJECTID":1},"geometry":{"x":1395262.0030903816,"y":407498.79280781746}},{"attributes":{"OBJECTID":2},"geometry":{"x":1397936.0941988826,"y":410550.43335805833}},{"attributes":{"OBJECTID":3},"geometry":{"x":1401255.4231901318,"y":396242.41735473275}},{"attributes":{"OBJECTID":4},"geometry":{"x":1374231.542526722,"y":415367.57825131714}},{"attributes":{"OBJECTID":5},"geometry":{"x":1411576.1446746439,"y":424717.82267414033}},{"attributes":{"OBJECTID":6},"geometry":{"x":1404564.816833809,"y":439105.67381964624}},{"attributes":{"OBJECTID":7},"geometry":{"x":1381480.7829494774,"y":414422.54995764792}},{"attributes":{"OBJECTID":8},"geometry":{"x":1406002.1299040616,"y":405316.15937781334}},{"attributes":{"OBJECTID":9},"geometry":{"x":1417429.2448450476,"y":401178.73392564058}},{"attributes":{"OBJECTID":10},"geometry":{"x":1431558.7090401351,"y":401423.24426339567}},{"attributes":{"OBJECTID":11},"geometry":{"x":1401714.5098703802,"y":419722.75884538889}},{"attributes":{"OBJECTID":12},"geometry":{"x":1393346.0856623948,"y":416642.43298506737}},{"attributes":{"OBJECTID":13},"geometry":{"x":1384517.1403938085,"y":420031.40324123204}}]
+}

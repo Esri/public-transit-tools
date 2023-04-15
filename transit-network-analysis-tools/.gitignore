@@ -1,4 +1,4 @@
 *.pyc
 
-/unittests/TestInput
+/unittests/TestInput/CincinnatiTransitNetwork.gdb
 /unittests/TestOutput
