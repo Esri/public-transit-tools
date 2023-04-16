@@ -71,7 +71,7 @@ class TestParallelODCM(unittest.TestCase):
             "time_units": arcpy.nax.TimeUnits.Minutes,
             "cutoff": 120,
             "scratch_folder": self.scratch_folder,
-            "od_output_location": "",
+            "od_output_location": self.scratch_folder,
             "barriers": []
         }
 
