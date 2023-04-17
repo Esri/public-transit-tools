@@ -479,7 +479,7 @@ class ParallelODCalculator():
         self, tool, origins, destinations, network_data_source, travel_mode, max_origins, max_destinations,
         time_window_start_day, time_window_start_time, time_window_end_day, time_window_end_time, time_increment,
         max_processes, time_units=None, cutoff=None, weight_field=None, barriers=None,
-        out_csv_file=None, out_na_folder=None
+        out_csv_file=None, out_na_folder=None, origin_orig_oid_field=None, dest_orig_oid_field=None
     ):
         """Compute OD Cost Matrices between Origins and Destinations in parallel for all increments in the time window.
 
@@ -528,6 +528,8 @@ class ParallelODCalculator():
             LOGGER.warning("A weight field is not supported for this tool and will be ignored.")
             self.weight_field = None
         self.out_csv_file = out_csv_file
+        self.origin_orig_oid_field = origin_orig_oid_field
+        self.dest_orig_oid_field = dest_orig_oid_field
 
         # Validate time window inputs and convert them into a list of times of day to run the analysis
         try:
@@ -871,6 +873,20 @@ class ParallelODCalculator():
         LOGGER.info("Calculating travel time statistics...")
         t0 = time.time()
 
+        # Create mappings to the original OID field values, which might have changed during preprocessing
+        o_map = {}
+        d_map = {}
+        if self.origin_orig_oid_field:
+            for row in arcpy.da.SearchCursor(  # pylint: disable=no-member
+                self.origins, ["OID@", self.origin_orig_oid_field]
+            ):
+                o_map[row[0]] = row[1]
+        if self.dest_orig_oid_field:
+            for row in arcpy.da.SearchCursor(  # pylint: disable=no-member
+                self.destinations, ["OID@", self.dest_orig_oid_field]
+            ):
+                d_map[row[0]] = row[1]
+
         # Clean up any existing output if necessary
         if os.path.exists(self.out_csv_file):
             os.remove(self.out_csv_file)
@@ -900,6 +916,12 @@ class ParallelODCalculator():
             )
             stats.columns = stats.columns.droplevel(0)
             stats.reset_index(inplace=True)
+
+            # Remap OIDs if necessary
+            if o_map:
+                stats.replace({"OriginOID": o_map}, inplace=True)
+            if d_map:
+                stats.replace({"DestinationOID": d_map}, inplace=True)
 
             if first:
                 # Create the output CSV file
@@ -1028,6 +1050,18 @@ def launch_parallel_od():
     help_string = "Catalog path for a folder to store the outputs of the network analysis."
     parser.add_argument(
         "-of", "--out-na-folder", action="store", dest="out_na_folder", help=help_string, required=False)
+
+    # --origin-orig-oid-field parameter
+    help_string = "Name of field holding the values of the original origin input's OIDs."
+    parser.add_argument(
+        "-ooid", "--origin-orig-oid-field", action="store", dest="origin_orig_oid_field", help=help_string,
+        required=False)
+
+    # --dest-orig-oid-field parameter
+    help_string = "Name of field holding the values of the original destination input's OIDs."
+    parser.add_argument(
+        "-doid", "--dest-orig-oid-field", action="store", dest="dest_orig_oid_field", help=help_string,
+        required=False)
 
     try:
         # Get arguments as dictionary.
