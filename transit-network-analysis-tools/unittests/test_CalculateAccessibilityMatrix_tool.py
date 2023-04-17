@@ -83,7 +83,6 @@ class TestCalculateAccessibilityMatrixTool(unittest.TestCase):
 
     def test_diff_points_unweighted(self):
         """Test that the tool runs with different origin and destination points not using a weight field."""
-        # Run tool
         out_origins = os.path.join(self.output_gdb, "Origins_pts_unweighted")
         arcpy.TransitNetworkAnalysisTools.CalculateAccessibilityMatrix(  # pylint: disable=no-member
             self.origins,
@@ -108,7 +107,6 @@ class TestCalculateAccessibilityMatrixTool(unittest.TestCase):
 
     def test_diff_points_weighted(self):
         """Test that the tool runs with different origin and destination points using a weight field."""
-        # Run tool
         out_origins = os.path.join(self.output_gdb, "Origins_pts_weighted")
         arcpy.TransitNetworkAnalysisTools.CalculateAccessibilityMatrix(  # pylint: disable=no-member
             self.origins,
@@ -160,7 +158,6 @@ class TestCalculateAccessibilityMatrixTool(unittest.TestCase):
 
         Also use a specific date.
         """
-        # Run tool
         out_origins = os.path.join(self.output_gdb, "Origins_unchunked")
         arcpy.TransitNetworkAnalysisTools.CalculateAccessibilityMatrix(  # pylint: disable=no-member
             self.origins,
@@ -185,7 +182,6 @@ class TestCalculateAccessibilityMatrixTool(unittest.TestCase):
 
     def test_polygon_inputs(self):
         """Test using polygon feature classes as inputs."""
-        # Run tool
         out_origins = os.path.join(self.output_gdb, "Origins_polygons")
         arcpy.TransitNetworkAnalysisTools.CalculateAccessibilityMatrix(  # pylint: disable=no-member
             self.origins + "_Polygons",
