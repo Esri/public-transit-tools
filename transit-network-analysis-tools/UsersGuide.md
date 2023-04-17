@@ -168,7 +168,7 @@ The CSV files have a specific naming scheme, ODLines_O_[a]_[b]_D_[c]_[d]_T_[e]_[
 - [a] refers to the starting origin ObjectID for the chunk
 - [b] refers to the ending origin ObjectID for the chunk
 - [c] refers to the starting destination ObjectID for the chunk
-- [d] refers to the ending desination ObjectID for the chunk
+- [d] refers to the ending destination ObjectID for the chunk
 - [e] refers to the date for the time slide in YYYYMMDD format
 - [f] refers to the time for the time slide in HHMMSS format
 
