@@ -20,10 +20,19 @@ def make_feature_classes_from_json(input_data_folder):
     cinci_gdb = os.path.join(input_data_folder, "CincinnatiTransitNetwork.gdb")
     if not os.path.exists(cinci_gdb):
         raise RuntimeError(f"Required test input gdb {cinci_gdb} does not exist.")
+    # Create point feature classes for use in testing
     in_data_names = ["TestOrigins", "TestOrigins_Subset", "TestDestinations", "TestDestinations_Subset"]
     for in_data_name in in_data_names:
-        in_json = os.path.join(input_data_folder, in_data_name + ".json")
         out_fc = os.path.join(cinci_gdb, in_data_name)
         if not arcpy.Exists(out_fc):
+            in_json = os.path.join(input_data_folder, in_data_name + ".json")
             arcpy.conversion.JSONToFeatures(in_json, out_fc)
             print(f"Created test dataset {out_fc}.")
+    # Create polygon feature classes for use in testing. The actual polygons don't matter very much, so just create
+    # buffers around the point feature classes.
+    for in_data_name in ["TestOrigins", "TestDestinations"]:
+        pg_fc = os.path.join(cinci_gdb, in_data_name + "_Polygons")
+        if not arcpy.Exists(pg_fc):
+            pt_fc = os.path.join(cinci_gdb, in_data_name)
+            arcpy.analysis.Buffer(pt_fc, pg_fc, "100 Meters")
+            print(f"Created test dataset {pg_fc}.")
