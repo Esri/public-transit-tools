@@ -519,7 +519,12 @@ class CalculateAccessibilityMatrix(
 
         # Precalculate network location fields for inputs
         if not self.is_service and self.should_precalc_network_locations:
-            self.origins_for_od = self._precalculate_locations(self.origins_for_od, self.od_props)
+            precalced_origins = self._precalculate_locations(self.origins_for_od, self.od_props)
+            # Clean up and rename the output of this process
+            if precalced_origins != self.origins_for_od:
+                arcpy.management.Delete(self.origins_for_od)
+                with arcpy.EnvManager(workspace=os.path.dirname(self.origins_for_od)):
+                    arcpy.management.Rename(os.path.basename(precalced_origins), os.path.basename(self.origins_for_od))
             if not self.same_origins_destinations:
                 self.temp_destinations = self._precalculate_locations(self.temp_destinations, self.od_props)
             updated_barriers = []
