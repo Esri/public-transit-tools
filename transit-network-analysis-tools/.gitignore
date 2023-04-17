@@ -1,0 +1,4 @@
+*.pyc
+
+/unittests/TestInput/CincinnatiTransitNetwork.gdb
+/unittests/TestOutput

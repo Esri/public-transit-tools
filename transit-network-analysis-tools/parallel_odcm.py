@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 20 March 2023
+## Last updated: 13 April 2023
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -86,79 +86,9 @@ LOGGER.addHandler(console_handler)
 DELETE_INTERMEDIATE_OD_OUTPUTS = True  # Set to False for debugging purposes
 
 
-def run_gp_tool(tool, tool_args=None, tool_kwargs=None, log_to_use=LOGGER):
-    """Run a geoprocessing tool with nice logging.
-
-    The purpose of this function is simply to wrap the call to a geoprocessing tool in a way that we can log errors,
-    warnings, and info messages as well as tool run time into our logging. This helps pipe the messages back to our
-    script tool dialog.
-
-    Args:
-        tool (arcpy geoprocessing tool class): GP tool class command, like arcpy.management.CreateFileGDB
-        tool_args (list, optional): Ordered list of values to use as tool arguments. Defaults to None.
-        tool_kwargs (dictionary, optional): Dictionary of tool parameter names and values that can be used as named
-            arguments in the tool command. Defaults to None.
-        log_to_use (logging.logger, optional): logger class to use for messages. Defaults to LOGGER. When calling this
-            from the ODCostMatrix class, use self.logger instead so the messages go to the processes's log file instead
-            of stdout.
-
-    Returns:
-        GP result object: GP result object returned from the tool run.
-
-    Raises:
-        arcpy.ExecuteError if the tool fails
-    """
-    # Try to retrieve and log the name of the tool
-    tool_name = repr(tool)
-    try:
-        tool_name = tool.__esri_toolname__
-    except Exception:  # pylint: disable=broad-except
-        try:
-            tool_name = tool.__name__
-        except Exception:  # pylint: disable=broad-except
-            # Probably the tool didn't have an __esri_toolname__ property or __name__. Just don't worry about it.
-            pass
-    log_to_use.debug(f"Running geoprocessing tool {tool_name}...")
-
-    # Try running the tool, and log all messages
-    try:
-        if tool_args is None:
-            tool_args = []
-        if tool_kwargs is None:
-            tool_kwargs = {}
-        result = tool(*tool_args, **tool_kwargs)
-        info_msgs = [msg for msg in result.getMessages(0).splitlines() if msg]
-        warning_msgs = [msg for msg in result.getMessages(1).splitlines() if msg]
-        for msg in info_msgs:
-            log_to_use.debug(msg)
-        for msg in warning_msgs:
-            log_to_use.warning(msg)
-    except arcpy.ExecuteError:
-        log_to_use.error(f"Error running geoprocessing tool {tool_name}.")
-        # First check if it's a tool error and if so, handle warning and error messages.
-        info_msgs = [msg for msg in arcpy.GetMessages(0).strip("\n").splitlines() if msg]
-        warning_msgs = [msg for msg in arcpy.GetMessages(1).strip("\n").splitlines() if msg]
-        error_msgs = [msg for msg in arcpy.GetMessages(2).strip("\n").splitlines() if msg]
-        for msg in info_msgs:
-            log_to_use.debug(msg)
-        for msg in warning_msgs:
-            log_to_use.warning(msg)
-        for msg in error_msgs:
-            log_to_use.error(msg)
-        raise
-    except Exception:
-        # Unknown non-tool error
-        log_to_use.error(f"Error running geoprocessing tool {tool_name}.")
-        errs = traceback.format_exc().splitlines()
-        for err in errs:
-            log_to_use.error(err)
-        raise
-
-    log_to_use.debug(f"Finished running geoprocessing tool {tool_name}.")
-    return result
-
-
-class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
+class ODCostMatrix(
+    AnalysisHelpers.JobFolderMixin, AnalysisHelpers.LoggingMixin, AnalysisHelpers.MakeNDSLayerMixin
+):  # pylint:disable = too-many-instance-attributes
     """Used for solving an OD Cost Matrix problem in parallel for a designated chunk of the input datasets."""
 
     def __init__(self, **kwargs):
@@ -202,14 +132,11 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             raise ValueError("Invalid OD Cost Matrix tool.")
 
         # Create a job ID and a folder for this job
-        self.job_id = uuid.uuid4().hex
+        self._create_job_folder()
 
         # Setup the class logger. Logs for each parallel process are not written to the console but instead to a
         # process-specific log file.
-        self.log_file = os.path.join(self.scratch_folder, f"ODCostMatrix_{self.job_id}.log")
-        cls_logger = logging.getLogger("ODCostMatrix_" + self.job_id)
-        self.setup_logger(cls_logger)
-        self.logger = cls_logger
+        self.setup_logger("ODCostMatrix")
 
         # Set up other instance attributes
         self.is_service = AnalysisHelpers.is_nds_service(self.network_data_source)
@@ -220,11 +147,9 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.input_destinations_layer_obj = None
         self.solve_result = None
 
-        # Create a network dataset layer
-        self.nds_layer_name = "NetworkDatasetLayer"
+        # Create a network dataset layer if needed
         if not self.is_service:
             self._make_nds_layer()
-            self.network_data_source = self.nds_layer_name
 
         # Prepare a dictionary to store info about the analysis results
         self.job_result = {
@@ -242,20 +167,6 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         self.destinations_oid_field_name = desc_destinations.oidFieldName
         self.orig_origin_oid_field = "Orig_Origin_OID"
         self.orig_dest_oid_field = "Orig_Dest_OID"
-
-    def _make_nds_layer(self):
-        """Create a network dataset layer if one does not already exist."""
-        if self.is_service:
-            return
-        if arcpy.Exists(self.nds_layer_name):
-            self.logger.debug(f"Using existing network dataset layer: {self.nds_layer_name}")
-        else:
-            self.logger.debug("Creating network dataset layer...")
-            run_gp_tool(
-                arcpy.na.MakeNetworkDatasetLayer,
-                [self.network_data_source, self.nds_layer_name],
-                log_to_use=self.logger
-            )
 
     def initialize_od_solver(self, time_of_day=None):
         """Initialize an OD solver object and set properties."""
@@ -281,14 +192,14 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             od_props_set_by_tool = CalculateTravelTimeStatistics_OD_config.OD_PROPS_SET_BY_TOOL
         else:
             raise ValueError("Invalid OD Cost Matrix tool.")
-        for prop in od_props:
+        for prop, val in od_props.items():
             if prop in od_props_set_by_tool:
                 self.logger.warning(
                     f"OD config file property {prop} is handled explicitly by the tool parameters and will be ignored."
                 )
                 continue
             try:
-                setattr(self.od_solver, prop, od_props[prop])
+                setattr(self.od_solver, prop, val)
             except Exception as ex:  # pylint: disable=broad-except
                 # Suppress warnings for older services (pre 11.0) that don't support locate settings and services
                 # that don't support accumulating attributes because we don't want the tool to always throw a warning.
@@ -483,7 +394,7 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             od_df.to_csv(out_csv_file, index=False)
 
         else:  # Local network dataset output
-            with open(out_csv_file, "w", newline='') as f:
+            with open(out_csv_file, "w", newline='', encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow(self.output_fields)
                 for row in self.solve_result.searchCursor(
@@ -517,10 +428,10 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
             f"{self.origins_oid_field_name} >= {origins_criteria[0]} "
             f"AND {self.origins_oid_field_name} <= {origins_criteria[1]}"
         )
-        self.input_origins_layer_obj = run_gp_tool(
+        self.input_origins_layer_obj = AnalysisHelpers.run_gp_tool(
+            self.logger,
             arcpy.management.MakeFeatureLayer,
-            [self.origins, self.input_origins_layer, origins_where_clause],
-            log_to_use=self.logger
+            [self.origins, self.input_origins_layer, origins_where_clause]
         ).getOutput(0)
 
         # Select the destinations with ObjectIDs in this range subject to the global destination where clause
@@ -531,32 +442,11 @@ class ODCostMatrix:  # pylint:disable = too-many-instance-attributes
         )
         if self.destination_where_clause:
             destinations_where_clause += f" AND {self.destination_where_clause}"
-        self.input_destinations_layer_obj = run_gp_tool(
+        self.input_destinations_layer_obj = AnalysisHelpers.run_gp_tool(
+            self.logger,
             arcpy.management.MakeFeatureLayer,
-            [self.destinations, self.input_destinations_layer, destinations_where_clause],
-            log_to_use=self.logger
+            [self.destinations, self.input_destinations_layer, destinations_where_clause]
         ).getOutput(0)
-
-    def setup_logger(self, logger_obj):
-        """Set up the logger used for logging messages for this process. Logs are written to a text file.
-
-        Args:
-            logger_obj: The logger instance.
-        """
-        logger_obj.setLevel(logging.DEBUG)
-        if len(logger_obj.handlers) <= 1:
-            file_handler = logging.FileHandler(self.log_file)
-            file_handler.setLevel(logging.DEBUG)
-            logger_obj.addHandler(file_handler)
-            formatter = logging.Formatter("%(process)d | %(message)s")
-            file_handler.setFormatter(formatter)
-            logger_obj.addHandler(file_handler)
-
-    def teardown_logger(self):
-        """Clean up and close the logger."""
-        for handler in self.logger.handlers:
-            handler.close()
-            self.logger.removeHandler(handler)
 
 
 def solve_od_cost_matrix(inputs, chunk):
@@ -589,7 +479,7 @@ class ParallelODCalculator():
         self, tool, origins, destinations, network_data_source, travel_mode, max_origins, max_destinations,
         time_window_start_day, time_window_start_time, time_window_end_day, time_window_end_time, time_increment,
         max_processes, time_units=None, cutoff=None, weight_field=None, barriers=None,
-        out_csv_file=None, out_na_folder=None
+        out_csv_file=None, out_na_folder=None, origin_orig_oid_field=None, dest_orig_oid_field=None
     ):
         """Compute OD Cost Matrices between Origins and Destinations in parallel for all increments in the time window.
 
@@ -634,7 +524,12 @@ class ParallelODCalculator():
             barriers = []
         self.max_processes = max_processes
         self.weight_field = weight_field
+        if self.tool == AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
+            LOGGER.warning("A weight field is not supported for this tool and will be ignored.")
+            self.weight_field = None
         self.out_csv_file = out_csv_file
+        self.origin_orig_oid_field = origin_orig_oid_field
+        self.dest_orig_oid_field = dest_orig_oid_field
 
         # Validate time window inputs and convert them into a list of times of day to run the analysis
         try:
@@ -978,6 +873,20 @@ class ParallelODCalculator():
         LOGGER.info("Calculating travel time statistics...")
         t0 = time.time()
 
+        # Create mappings to the original OID field values, which might have changed during preprocessing
+        o_map = {}
+        d_map = {}
+        if self.origin_orig_oid_field:
+            for row in arcpy.da.SearchCursor(  # pylint: disable=no-member
+                self.origins, ["OID@", self.origin_orig_oid_field]
+            ):
+                o_map[row[0]] = row[1]
+        if self.dest_orig_oid_field:
+            for row in arcpy.da.SearchCursor(  # pylint: disable=no-member
+                self.destinations, ["OID@", self.dest_orig_oid_field]
+            ):
+                d_map[row[0]] = row[1]
+
         # Clean up any existing output if necessary
         if os.path.exists(self.out_csv_file):
             os.remove(self.out_csv_file)
@@ -1007,6 +916,12 @@ class ParallelODCalculator():
             )
             stats.columns = stats.columns.droplevel(0)
             stats.reset_index(inplace=True)
+
+            # Remap OIDs if necessary
+            if o_map:
+                stats.replace({"OriginOID": o_map}, inplace=True)
+            if d_map:
+                stats.replace({"DestinationOID": d_map}, inplace=True)
 
             if first:
                 # Create the output CSV file
@@ -1135,6 +1050,18 @@ def launch_parallel_od():
     help_string = "Catalog path for a folder to store the outputs of the network analysis."
     parser.add_argument(
         "-of", "--out-na-folder", action="store", dest="out_na_folder", help=help_string, required=False)
+
+    # --origin-orig-oid-field parameter
+    help_string = "Name of field holding the values of the original origin input's OIDs."
+    parser.add_argument(
+        "-ooid", "--origin-orig-oid-field", action="store", dest="origin_orig_oid_field", help=help_string,
+        required=False)
+
+    # --dest-orig-oid-field parameter
+    help_string = "Name of field holding the values of the original destination input's OIDs."
+    parser.add_argument(
+        "-doid", "--dest-orig-oid-field", action="store", dest="dest_orig_oid_field", help=help_string,
+        required=False)
 
     try:
         # Get arguments as dictionary.

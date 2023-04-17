@@ -1,0 +1,25 @@
+{
+  "displayFieldName" : "",
+  "fieldAliases" : {
+    "OBJECTID" : "OBJECTID",
+    "NumJobs" : "NumJobs"
+  },
+  "geometryType" : "esriGeometryPoint",
+  "spatialReference" : {
+    "wkid" : 102723,
+    "latestWkid" : 3735
+  },
+  "fields" : [
+    {
+      "name" : "OBJECTID",
+      "type" : "esriFieldTypeOID",
+      "alias" : "OBJECTID"
+    },
+    {
+      "name" : "NumJobs",
+      "type" : "esriFieldTypeInteger",
+      "alias" : "NumJobs"
+    }
+  ],
+  "features" : [{"attributes":{"OBJECTID":1,"NumJobs":0},"geometry":{"x":1392266.3722706437,"y":409043.88814280927}},{"attributes":{"OBJECTID":2,"NumJobs":5},"geometry":{"x":1400924.1777896434,"y":416862.27965822816}},{"attributes":{"OBJECTID":3,"NumJobs":10},"geometry":{"x":1405951.2474598885,"y":438841.80459672213}},{"attributes":{"OBJECTID":4,"NumJobs":20},"geometry":{"x":1386737.8521597236,"y":429781.69804506004}},{"attributes":{"OBJECTID":5,"NumJobs":30},"geometry":{"x":1402253.9162718803,"y":422199.89201447368}},{"attributes":{"OBJECTID":6,"NumJobs":10},"geometry":{"x":1417444.2923871428,"y":430035.61748473346}},{"attributes":{"OBJECTID":7,"NumJobs":11},"geometry":{"x":1407699.467060551,"y":402556.55958205462}},{"attributes":{"OBJECTID":8,"NumJobs":10},"geometry":{"x":1396069.5506878942,"y":397524.46465939283}},{"attributes":{"OBJECTID":9,"NumJobs":10},"geometry":{"x":1372020.3186027259,"y":393250.23797164857}},{"attributes":{"OBJECTID":10,"NumJobs":10},"geometry":{"x":1372443.5926905572,"y":406230.47808723152}},{"attributes":{"OBJECTID":11,"NumJobs":56},"geometry":{"x":1384517.1403938085,"y":420031.40324123204}},{"attributes":{"OBJECTID":12,"NumJobs":10},"geometry":{"x":1392047.4895063043,"y":412782.4354557246}},{"attributes":{"OBJECTID":13,"NumJobs":10},"geometry":{"x":1396923.6090191305,"y":408628.41882939637}},{"attributes":{"OBJECTID":14,"NumJobs":10},"geometry":{"x":1397825.2446830571,"y":397407.52755731344}},{"attributes":{"OBJECTID":15,"NumJobs":10},"geometry":{"x":1400484.5142988861,"y":399759.72528073192}}]
+}

@@ -1,0 +1,25 @@
+{
+  "displayFieldName" : "",
+  "fieldAliases" : {
+    "OBJECTID" : "OBJECTID",
+    "NumJobs" : "NumJobs"
+  },
+  "geometryType" : "esriGeometryPoint",
+  "spatialReference" : {
+    "wkid" : 102723,
+    "latestWkid" : 3735
+  },
+  "fields" : [
+    {
+      "name" : "OBJECTID",
+      "type" : "esriFieldTypeOID",
+      "alias" : "OBJECTID"
+    },
+    {
+      "name" : "NumJobs",
+      "type" : "esriFieldTypeInteger",
+      "alias" : "NumJobs"
+    }
+  ],
+  "features" : [{"attributes":{"OBJECTID":1,"NumJobs":0},"geometry":{"x":1392266.3722706437,"y":409043.88814280927}},{"attributes":{"OBJECTID":2,"NumJobs":5},"geometry":{"x":1400924.1777896434,"y":416862.27965822816}},{"attributes":{"OBJECTID":3,"NumJobs":10},"geometry":{"x":1405951.2474598885,"y":438841.80459672213}},{"attributes":{"OBJECTID":4,"NumJobs":20},"geometry":{"x":1386737.8521597236,"y":429781.69804506004}}]
+}
