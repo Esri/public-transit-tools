@@ -42,7 +42,7 @@ SA_PROPS = {
     "outputType": arcpy.nax.ServiceAreaOutputType.Polygons,  # Tool won't work if you change this.
     "overrides": "",
     "polygonBufferDistance": 100,
-    "polygonBufferDistance": arcpy.nax.DistanceUnits.Meters,
+    "polygonBufferDistanceUnits": arcpy.nax.DistanceUnits.Meters,
     "polygonDetail": arcpy.nax.ServiceAreaPolygonDetail.High,
     # "searchQuery": [],  # This parameter is very network specific. Only uncomment if you are using it.
     "searchTolerance": 500,
