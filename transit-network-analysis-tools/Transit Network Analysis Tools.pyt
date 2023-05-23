@@ -22,7 +22,7 @@ import os
 import arcpy
 import TNAT_ToolValidator
 from AnalysisHelpers import TIME_UNITS, cell_size_to_meters, get_catalog_path_from_param, \
-    does_travel_mode_use_transit_evaluator, TransitNetworkAnalysisToolsError
+    does_travel_mode_use_transit_evaluator, TransitNetworkAnalysisToolsError, arcgis_version
 from TransitTraversal import TransitTraversalResultCalculator, AnalysisTimeType
 
 
@@ -150,7 +150,11 @@ class PrepareTimeLapsePolygons(object):
         ]
 
         params[0].filter.list = ["Point"]
-        # params[4].parameterDependencies = [params[3].name]  # travel mode
+        params[3].parameterDependencies = [params[2].name]  # travel mode
+        if arcgis_version >= "3.0":
+            # Prior to 3.0, a bug prevented the travel mode parameter unit type filter list from working,
+            # so don't try to use it in older software.
+            params[3].filter.list = ["Time"]
         params[5].filter.list = TIME_UNITS
         params[5].value = "Minutes"
         params[11].filter.list = ["Away From Facilities", "Toward Facilities"]
@@ -171,16 +175,12 @@ class PrepareTimeLapsePolygons(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
         param_network = parameters[2]
-        param_travel_mode = parameters[3]
         param_cutoffs = parameters[4]
         param_geom_at_cutoffs = parameters[12]
         param_precalc = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
         TNAT_ToolValidator.update_precalculate_parameter(param_network, param_precalc)
-
-        # Populate travel mode parameter with time-based travel modes only.
-        TNAT_ToolValidator.show_only_time_travel_modes(param_network, param_travel_mode)
 
         # Disable Geometry At Cutoff parameter if there's only one cutoff
         if not param_cutoffs.hasBeenValidated and param_cutoffs.altered and param_cutoffs.valueAsText and \
@@ -225,7 +225,7 @@ class PrepareTimeLapsePolygons(object):
             "facilities": parameters[0].value,
             "output_polygons": parameters[1].valueAsText,
             "network_data_source": get_catalog_path_from_param(parameters[2]),
-            "travel_mode": parameters[3].valueAsText,
+            "travel_mode": parameters[3].value,
             "cutoffs": parameters[4].values,
             "time_units": parameters[5].valueAsText,
             "time_window_start_day": parameters[6].valueAsText,
@@ -625,6 +625,12 @@ class CalculateTravelTimeStatisticsOD(object):
 
         ]
 
+        params[4].parameterDependencies = [params[3].name]  # travel mode
+        if arcgis_version >= "3.0":
+            # Prior to 3.0, a bug prevented the travel mode parameter unit type filter list from working,
+            # so don't try to use it in older software.
+            params[4].filter.list = ["Time"]
+
         return params
 
     def isLicensed(self):
@@ -636,7 +642,6 @@ class CalculateTravelTimeStatisticsOD(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
         param_network = parameters[3]
-        param_travel_mode = parameters[4]
         param_save_na_results = parameters[12]
         param_out_na_folder = parameters[13]
         param_precalc = parameters[15]
@@ -652,9 +657,6 @@ class CalculateTravelTimeStatisticsOD(object):
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
         TNAT_ToolValidator.update_precalculate_parameter(param_network, param_precalc)
-
-        # Populate travel mode parameter with time-based travel modes only.
-        TNAT_ToolValidator.show_only_time_travel_modes(param_network, param_travel_mode)
 
         return
 
@@ -820,7 +822,11 @@ class CalculateAccessibilityMatrix(object):
 
         params[14].filter.list = ["Short", "Long", "Double"]  # destination weight field
         params[14].parameterDependencies = [params[1].name]  # destination weight field
-        # params[4].parameterDependencies = [params[3].name]  # travel mode
+        params[4].parameterDependencies = [params[3].name]  # travel mode
+        if arcgis_version >= "3.0":
+            # Prior to 3.0, a bug prevented the travel mode parameter unit type filter list from working,
+            # so don't try to use it in older software.
+            params[4].filter.list = ["Time"]
         params[6].filter.list = TIME_UNITS
         params[6].value = "Minutes"
 
@@ -835,14 +841,10 @@ class CalculateAccessibilityMatrix(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
         param_network = parameters[3]
-        param_travel_mode = parameters[4]
         param_precalc = parameters[16]
 
         # Turn off and hide Precalculate Network Locations parameter if the network data source is a service
         TNAT_ToolValidator.update_precalculate_parameter(param_network, param_precalc)
-
-        # Populate travel mode parameter with time-based travel modes only.
-        TNAT_ToolValidator.show_only_time_travel_modes(param_network, param_travel_mode)
 
         return
 
@@ -1175,7 +1177,7 @@ PARAM_NETWORK = CommonParameter(
 PARAM_TRAVEL_MODE = CommonParameter(
     displayName="Travel Mode",
     name="Travel_Mode",
-    datatype="GPString",
+    datatype="NetworkTravelMode",
     parameterType="Required",
     direction="Input"
 )
