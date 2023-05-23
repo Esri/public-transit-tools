@@ -526,12 +526,6 @@ class CalculateTravelTimeStatistics(object):
         saveCombined = parameters[7].value
         combinedOutFC = parameters[8].valueAsText
 
-        # For some reason there are problems passing layer objects through in ArcMap when the input is a map layer,
-        # so create a fresh layer object from it.
-        if not TNAT_ToolValidator.ispy3:
-            if not isinstance(NAlayer, (unicode, str)):
-                NAlayer = arcpy.mapping.Layer(NAlayer.name)
-
         CalculateTravelTimeStats.runTool(
             NAlayer,
             out_table,
