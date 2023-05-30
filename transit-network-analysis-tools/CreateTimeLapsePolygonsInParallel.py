@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 6 January 2023
+## Last updated: 30 May 2023
 ############################################################################
 """Run a Service Area analysis incrementing the time of day over a time window.
 Save the output polygons to a single feature class that can be used to generate
@@ -36,8 +36,6 @@ import arcpy
 
 import AnalysisHelpers
 from CreateTimeLapsePolygons_SA_config import SA_PROPS  # Import Service Area settings from config file
-
-arcpy.env.overwriteOutput = True
 
 
 class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-few-public-methods
@@ -161,7 +159,11 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
 
         # For a services solve, get tool limits and validate max processes and chunk size
         if self.is_service:
+            if not self.network_data_source.endswith("/"):
+                self.network_data_source = self.network_data_source + "/"
             self._get_tool_limits_and_is_agol()
+            self.service_limits, self.is_agol = AnalysisHelpers.get_tool_limits_and_is_agol(
+                self.network_data_source, "asyncServiceArea", "GenerateServiceAreas")
             if self.is_agol and self.max_processes > AnalysisHelpers.MAX_AGOL_PROCESSES:
                 arcpy.AddWarning((
                     f"The specified maximum number of parallel processes, {self.max_processes}, exceeds the limit "
@@ -210,34 +212,6 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
         # Return a JSON string representation of the travel mode to pass to the subprocess
         return sa.travelMode._JSON  # pylint: disable=protected-access
 
-    def _get_tool_limits_and_is_agol(
-            self, service_name="asyncServiceArea", tool_name="GenerateServiceAreas"):
-        """Retrieve a dictionary of various limits supported by a portal tool and whether the portal uses AGOL services.
-
-        Assumes that we have already determined that the network data source is a service.
-
-        Args:
-            service_name (str, optional): Name of the service. Defaults to "asyncODCostMatrix".
-            tool_name (str, optional): Tool name for the designated service. Defaults to
-                "GenerateOriginDestinationCostMatrix".
-        """
-        arcpy.AddMessage("Getting tool limits from the portal...")
-        if not self.network_data_source.endswith("/"):
-            self.network_data_source = self.network_data_source + "/"
-        try:
-            tool_info = arcpy.nax.GetWebToolInfo(service_name, tool_name, self.network_data_source)
-            # serviceLimits returns the maximum origins and destinations allowed by the service, among other things
-            self.service_limits = tool_info["serviceLimits"]
-            # isPortal returns True for Enterprise portals and False for AGOL or hybrid portals that fall back to using
-            # the AGOL services
-            self.is_agol = not tool_info["isPortal"]
-        except Exception:
-            arcpy.AddError("Error getting tool limits from the portal.")
-            errs = traceback.format_exc().splitlines()
-            for err in errs:
-                arcpy.AddError(err)
-            raise
-
     def _precalculate_network_locations(self, input_features):
         """Precalculate network location fields if possible for faster loading and solving later.
 
@@ -255,7 +229,7 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
                 "Skipping precalculating network location fields because the network data source is a service.")
             return
 
-        arcpy.AddMessage(f"Precalculating network location fields for facilities...")
+        arcpy.AddMessage("Precalculating network location fields for facilities...")
 
         # Get location settings from config file if present
         search_tolerance = None

@@ -1,7 +1,7 @@
 ################################################################################
 ## Toolbox: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 20 March 2023
+## Last updated: 30 May 2023
 ################################################################################
 """Helper methods for analysis tools."""
 ################################################################################
@@ -86,6 +86,38 @@ def is_nds_service(network_data_source):
     return False
 
 
+def get_tool_limits_and_is_agol(network_data_source, service_name, tool_name):
+    """Retrieve a dictionary of various limits supported by a portal tool and whether the portal uses AGOL services.
+
+    Assumes that we have already determined that the network data source is a service.
+
+    Args:
+        network_data_source (str): URL to the service being used as the network data source.
+        service_name (str): Name of the service, such as "asyncODCostMatrix" or "asyncRoute".
+        tool_name (_type_): Tool name for the designated service, such as "GenerateOriginDestinationCostMatrix" or
+            "FindRoutes".
+
+    Returns:
+        (dict, bool): Dictionary of service limits; Boolean indicating if the service is ArcGIS Online or a hybrid
+            portal that falls back to ArcGIS Online.
+    """
+    arcpy.AddMessage("Getting tool limits from the portal...")
+    try:
+        tool_info = arcpy.nax.GetWebToolInfo(service_name, tool_name, network_data_source)
+        # serviceLimits returns the maximum origins and destinations allowed by the service, among other things
+        service_limits = tool_info["serviceLimits"]
+        # isPortal returns True for Enterprise portals and False for AGOL or hybrid portals that fall back to using
+        # the AGOL services
+        is_agol = not tool_info["isPortal"]
+        return service_limits, is_agol
+    except Exception:
+        arcpy.AddError("Error getting tool limits from the portal.")
+        errs = traceback.format_exc().splitlines()
+        for err in errs:
+            arcpy.AddError(err)
+        raise
+
+
 def does_travel_mode_use_transit_evaluator(network: str, travel_mode: arcpy.nax.TravelMode) -> bool:
     """Check if the travel mode uses the Public Transit evaluator.
 
@@ -158,7 +190,7 @@ def convert_geometry_at_cutoff_str_to_enum(geometry_at_cutoff):
 
 
 def convert_geometry_at_overlap_str_to_enum(geometry_at_overlap):
-    """Convert a string representation of geometry at cutoff to an arcpy.nax enum.
+    """Convert a string representation of geometry at overlap to an arcpy.nax enum.
 
     Raises:
         ValueError: If the string cannot be parsed as a valid arcpy.nax.ServiceAreaOverlapGeometry enum value.
