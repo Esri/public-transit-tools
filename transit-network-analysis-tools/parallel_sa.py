@@ -133,7 +133,9 @@ def run_gp_tool(tool, tool_args=None, tool_kwargs=None, log_to_use=LOGGER):
     return result
 
 
-class ServiceArea:  # pylint:disable = too-many-instance-attributes
+class ServiceArea(
+    AnalysisHelpers.JobFolderMixin, AnalysisHelpers.LoggingMixin, AnalysisHelpers.MakeNDSLayerMixin
+):  # pylint:disable = too-many-instance-attributes
     """Used for solving a Service Area in parallel for a designated time of day."""
 
     def __init__(self, **kwargs):
@@ -159,33 +161,28 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         self.travel_direction = kwargs["travel_direction"]
         self.geometry_at_cutoff = kwargs["geometry_at_cutoff"]
         self.geometry_at_overlap = kwargs["geometry_at_overlap"]
-        self.output_folder = kwargs["output_folder"]
+        self.scratch_folder = kwargs["output_folder"]
         self.barriers = []
-        if "barriers" in kwargs:
+        if "barriers" in kwargs and kwargs["barriers"]:
             self.barriers = kwargs["barriers"]
 
-        # Create a job ID and a folder and scratch gdb for this job
-        self.job_id = uuid.uuid4().hex
-        self.job_folder = os.path.join(self.output_folder, self.job_id)
-        os.mkdir(self.job_folder)
-        self.od_workspace = os.path.join(self.job_folder, "scratch.gdb")
+        # Create a job ID and a folder for this job
+        self._create_job_folder()
 
         # Setup the class logger. Logs for each parallel process are not written to the console but instead to a
         # process-specific log file.
-        self.log_file = os.path.join(self.job_folder, 'ServiceArea.log')
-        cls_logger = logging.getLogger("ServiceArea_" + self.job_id)
-        self.setup_logger(cls_logger)
-        self.logger = cls_logger
+        self.setup_logger("ServiceArea")
+
+        # Create a job ID and a folder and scratch gdb for this job
+        self.sa_workspace = self._create_output_gdb()
 
         # Set up other instance attributes
         self.is_service = AnalysisHelpers.is_nds_service(self.network_data_source)
         self.sa_solver = None
 
-        # Create a network dataset layer
-        self.nds_layer_name = "NetworkDatasetLayer"
+        # Create a network dataset layer if needed
         if not self.is_service:
             self._make_nds_layer()
-            self.network_data_source = self.nds_layer_name
 
         # Prepare a dictionary to store info about the analysis results
         self.job_result = {
@@ -195,20 +192,6 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
             "solveMessages": "",
             "logFile": self.log_file
         }
-
-    def _make_nds_layer(self):
-        """Create a network dataset layer if one does not already exist."""
-        if self.is_service:
-            return
-        if arcpy.Exists(self.nds_layer_name):
-            self.logger.debug(f"Using existing network dataset layer: {self.nds_layer_name}")
-        else:
-            self.logger.debug("Creating network dataset layer...")
-            run_gp_tool(
-                arcpy.na.MakeNetworkDatasetLayer,
-                [self.network_data_source, self.nds_layer_name],
-                log_to_use=self.logger
-            )
 
     def initialize_sa_solver(self, time_of_day=None):
         """Initialize a Service Area solver object and set properties."""
@@ -266,7 +249,7 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         Raises:
             ValueError: If the travel mode's impedance units are not time based.
         """
-        # Get the travel mode object from the already-instantiated OD solver object. This saves us from having to parse
+        # Get the travel mode object from the already-instantiated SA solver object. This saves us from having to parse
         # the user's input travel mode from its string name, object, or json representation.
         travel_mode = self.sa_solver.travelMode
         impedance = travel_mode.impedance
@@ -347,12 +330,12 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
         self.logger.debug("Creating output geodatabase for Service Area analysis...")
         run_gp_tool(
             arcpy.management.CreateFileGDB,
-            [os.path.dirname(self.od_workspace), os.path.basename(self.od_workspace)],
+            [os.path.dirname(self.sa_workspace), os.path.basename(self.sa_workspace)],
             log_to_use=self.logger
         )
 
         # Export the Service Area polygons output to a feature class
-        output_polygons = os.path.join(self.od_workspace, "output_polygons")
+        output_polygons = os.path.join(self.sa_workspace, "output_polygons")
         self.logger.debug(f"Exporting Service Area polygons output to {output_polygons}...")
         solve_result.export(arcpy.nax.ServiceAreaOutputDataType.Polygons, output_polygons)
 
@@ -373,27 +356,6 @@ class ServiceArea:  # pylint:disable = too-many-instance-attributes
 
         self.job_result["outputPolygons"] = output_polygons
         self.logger.debug("Finished calculating Service Area.")
-
-    def setup_logger(self, logger_obj):
-        """Set up the logger used for logging messages for this process. Logs are written to a text file.
-
-        Args:
-            logger_obj: The logger instance.
-        """
-        logger_obj.setLevel(logging.DEBUG)
-        if len(logger_obj.handlers) <= 1:
-            file_handler = logging.FileHandler(self.log_file)
-            file_handler.setLevel(logging.DEBUG)
-            logger_obj.addHandler(file_handler)
-            formatter = logging.Formatter("%(process)d | %(message)s")
-            file_handler.setFormatter(formatter)
-            logger_obj.addHandler(file_handler)
-
-    def teardown_logger(self):
-        """Clean up and close the logger."""
-        for handler in self.logger.handlers:
-            handler.close()
-            self.logger.removeHandler(handler)
 
 
 def solve_service_area(inputs, time_of_day):
