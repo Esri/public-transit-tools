@@ -266,8 +266,6 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
         # a tool running in the Pro UI cannot call concurrent.futures without opening multiple instances of Pro.
         cwd = os.path.dirname(os.path.abspath(__file__))
         sa_inputs = [
-            os.path.join(sys.exec_prefix, "python.exe"),
-            os.path.join(cwd, "parallel_sa.py"),
             "--facilities", self.temp_facilities,
             "--output-polygons", self.output_polygons,
             "--network-data-source", self.network_data_source,
@@ -287,41 +285,7 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
         if self.barriers:
             sa_inputs += ["--barriers"]
             sa_inputs += self.barriers
-        # We do not want to show the console window when calling the command line tool from within our GP tool.
-        # This can be done by setting this hex code.
-        create_no_window = 0x08000000
-        with subprocess.Popen(
-            sa_inputs,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            creationflags=create_no_window
-        ) as process:
-            # The while loop reads the subprocess's stdout in real time and writes the stdout messages to the GP UI.
-            # This is the only way to write the subprocess's status messages in a way that a user running the tool from
-            # the ArcGIS Pro UI can actually see them.
-            # When process.poll() returns anything other than None, the process has completed, and we should stop
-            # checking and move on.
-            while process.poll() is None:
-                output = process.stdout.readline()
-                if output:
-                    msg_string = output.strip().decode()
-                    AnalysisHelpers.parse_std_and_write_to_gp_ui(msg_string)
-                time.sleep(.1)
-
-            # Once the process is finished, check if any additional errors were returned. Messages that came after the
-            # last process.poll() above will still be in the queue here. This is especially important for detecting
-            # messages from raised exceptions, especially those with tracebacks.
-            output, _ = process.communicate()
-            if output:
-                out_msgs = output.decode().splitlines()
-                for msg in out_msgs:
-                    AnalysisHelpers.parse_std_and_write_to_gp_ui(msg)
-
-            # In case something truly horrendous happened and none of the logging caught our errors, at least fail the
-            # tool when the subprocess returns an error code. That way the tool at least doesn't happily succeed but not
-            # actually do anything.
-            return_code = process.returncode
-            if return_code != 0:
-                arcpy.AddError("Service Area script failed.")
+        AnalysisHelpers.execute_subprocess("parallel_sa.py", sa_inputs)
 
     def solve_service_areas_in_parallel(self):
         """Solve the Service Areas in parallel over a time window."""
