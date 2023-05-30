@@ -16,16 +16,13 @@ Copyright 2023 Esri
 import sys
 import os
 import datetime
-import subprocess
 import unittest
 from copy import deepcopy
-from glob import glob
 import arcpy
 
 CWD = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(CWD))
 import CreateTimeLapsePolygonsInParallel  # noqa: E402, pylint: disable=wrong-import-position
-import AnalysisHelpers  # noqa: E402, pylint: disable=wrong-import-position
 from AnalysisHelpers import MAX_ALLOWED_MAX_PROCESSES, arcgis_version  # noqa: E402, pylint: disable=wrong-import-position
 import input_data_helper  # noqa: E402, pylint: disable=wrong-import-position
 
