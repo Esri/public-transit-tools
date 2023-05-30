@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 17 April 2023
+## Last updated: 30 May 2023
 ############################################################################
 """Calculate an OD Cost Matrix in parallel.
 
@@ -172,7 +172,10 @@ class ODCostMatrixSolver(
 
         # For a services solve, get tool limits and validate max processes and chunk size
         if self.is_service:
-            self._get_tool_limits_and_is_agol()
+            if not self.network_data_source.endswith("/"):
+                self.network_data_source = self.network_data_source + "/"
+            self.service_limits, self.is_agol = AnalysisHelpers.get_tool_limits_and_is_agol(
+                self.network_data_source, "asyncODCostMatrix", "GenerateOriginDestinationCostMatrix")
             if self.is_agol and self.max_processes > AnalysisHelpers.MAX_AGOL_PROCESSES:
                 arcpy.AddWarning((
                     f"The specified maximum number of parallel processes, {self.max_processes}, exceeds the limit of "
@@ -220,34 +223,6 @@ class ODCostMatrixSolver(
         """
         # Child classes for specific tools should implement this as needed.
         return odcm
-
-    def _get_tool_limits_and_is_agol(
-            self, service_name="asyncODCostMatrix", tool_name="GenerateOriginDestinationCostMatrix"):
-        """Retrieve a dictionary of various limits supported by a portal tool and whether the portal uses AGOL services.
-
-        Assumes that we have already determined that the network data source is a service.
-
-        Args:
-            service_name (str, optional): Name of the service. Defaults to "asyncODCostMatrix".
-            tool_name (str, optional): Tool name for the designated service. Defaults to
-                "GenerateOriginDestinationCostMatrix".
-        """
-        arcpy.AddMessage("Getting tool limits from the portal...")
-        if not self.network_data_source.endswith("/"):
-            self.network_data_source = self.network_data_source + "/"
-        try:
-            tool_info = arcpy.nax.GetWebToolInfo(service_name, tool_name, self.network_data_source)
-            # serviceLimits returns the maximum origins and destinations allowed by the service, among other things
-            self.service_limits = tool_info["serviceLimits"]
-            # isPortal returns True for Enterprise portals and False for AGOL or hybrid portals that fall back to using
-            # the AGOL services
-            self.is_agol = not tool_info["isPortal"]
-        except Exception:
-            arcpy.AddError("Error getting tool limits from the portal.")
-            errs = traceback.format_exc().splitlines()
-            for err in errs:
-                arcpy.AddError(err)
-            raise
 
     def _update_max_inputs_for_service(self):
         """Check the user's specified max origins and destinations and reduce max to portal limits if required."""
