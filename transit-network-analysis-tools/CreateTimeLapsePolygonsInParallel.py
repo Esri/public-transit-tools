@@ -161,7 +161,6 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
         if self.is_service:
             if not self.network_data_source.endswith("/"):
                 self.network_data_source = self.network_data_source + "/"
-            self._get_tool_limits_and_is_agol()
             self.service_limits, self.is_agol = AnalysisHelpers.get_tool_limits_and_is_agol(
                 self.network_data_source, "asyncServiceArea", "GenerateServiceAreas")
             if self.is_agol and self.max_processes > AnalysisHelpers.MAX_AGOL_PROCESSES:
