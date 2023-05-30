@@ -264,7 +264,6 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
         """Solve the Service Area analysis."""
         # Launch the parallel_sa script as a subprocess so it can spawn parallel processes. We have to do this because
         # a tool running in the Pro UI cannot call concurrent.futures without opening multiple instances of Pro.
-        cwd = os.path.dirname(os.path.abspath(__file__))
         sa_inputs = [
             "--facilities", self.temp_facilities,
             "--output-polygons", self.output_polygons,
