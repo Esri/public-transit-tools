@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 16 June 2022
+## Last updated: 31 May 2023
 ############################################################################
 """
 This is a shared module with classes for adding transit information, such
@@ -10,7 +10,7 @@ edges, or traversal result.  The TransitTraversalResultCalculator class can
 be used with a traversal result generated from a network analysis layer or
 a Route solver object.
 
-Copyright 2022 Esri
+Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -151,8 +151,8 @@ class TransitTraversalResultCalculator:
             route_id_field (str): Field name separating routes in the traversed edges feature class.  RouteID for Route
                 and Closest Facility analysis; FacilityID for Service Area.
             use_impedance_in_field_names (bool): Whether to use field names of the form Attr_[impedance] and
-                Cumul_[impedance] (as for NA layers) or use the standard Attr_Minutes and Cumul_Minutes (as for solver
-                objects)
+                Cumul_[impedance] (as for NA layers) (True) or use the standard Attr_Minutes and Cumul_Minutes
+                (as for solver objects) (False)
         """
         self.traversed_edges_fc = traversed_edges_fc
         self.analysis_datetime = analysis_datetime
@@ -168,7 +168,7 @@ class TransitTraversalResultCalculator:
             raise TransitNetworkAnalysisToolsError(
                 f"Analysis datetime must be a datetime.datetime object. Actual type: {type(self.analysis_datetime)}")
         if not isinstance(transit_fd, str):
-            raise TransitNetworkAnalysisToolsError(f"Invalid Public Transit Data Model feature dataset.")
+            raise TransitNetworkAnalysisToolsError("Invalid Public Transit Data Model feature dataset.")
         self._validate_travel_mode()
 
         # Initialize the Public Transit Data Model tables
@@ -279,7 +279,7 @@ class TransitTraversalResultCalculator:
         # Read traversed edges
         where = "SourceName = 'LineVariantElements'"
         fields = [self.te_oid_field_name, "SourceOID", self.attr_field, self.cumul_field, self.route_id_field]
-        with arcpy.da.SearchCursor(self.traversed_edges_fc, fields, where) as cur:
+        with arcpy.da.SearchCursor(self.traversed_edges_fc, fields, where) as cur:  # pylint: disable=no-member
             self.df_traversal = pd.DataFrame(cur, columns=fields)
         if self.df_traversal.empty:
             arcpy.AddWarning((
@@ -312,7 +312,7 @@ class TransitTraversalResultCalculator:
         elif self.analysis_time_type is AnalysisTimeType.CFLayerEndTime:
             # We have to do some extra work figure out the total length of each route.
             fields = [self.route_id_field, self.cumul_field]
-            with arcpy.da.SearchCursor(self.traversed_edges_fc, fields) as cur:
+            with arcpy.da.SearchCursor(self.traversed_edges_fc, fields) as cur:  # pylint: disable=no-member
                 df_route_lengths = pd.DataFrame(cur, columns=fields)
             route_lengths = df_route_lengths.groupby(self.route_id_field)[self.cumul_field].max()
             route_lengths.rename("RouteMin", inplace=True)
@@ -359,11 +359,6 @@ class TransitTraversalResultCalculator:
         # Cache the transit info for the day before the analysis date in case runs from yesterday are carrying over
         # into the early hours of the morning
         df_lve_yesterday = self._cache_transit_dm_for_day(DayType.Yesterday)
-        # if df_lve_yesterday:
-        #     df_lve_yesterday[self.segment_start_time_field] = \
-        #         df_lve_yesterday[self.segment_start_time_field] - MINS_IN_DAY
-        #     df_lve_yesterday[self.segment_end_time_field] = \
-        #         df_lve_yesterday[self.segment_end_time_field] - MINS_IN_DAY
 
         # Cache the transit info for the day after the analysis date if any of the traversed edges end up finishing
         # in the early hours of the following day
@@ -533,7 +528,7 @@ class TransitTraversalResultCalculator:
         # Read relevant LineVariantElements into a dataframe
         lve_oid_field_name = arcpy.Describe(self.transit_dm.line_variant_elements).oidFieldName
         where = f"{lve_oid_field_name} IN ({', '.join([str(oid) for oid in line_variant_element_oids])})"
-        with arcpy.da.SearchCursor(
+        with arcpy.da.SearchCursor(  # pylint: disable=no-member
             self.transit_dm.line_variant_elements, [lve_oid_field_name, "LineVarID", "SqIdx"], where
         ) as cur:
             df_lve = pd.DataFrame(cur, columns=["LVE_OID", "LineVarID", "SqIdx"])
