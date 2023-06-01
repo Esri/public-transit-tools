@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 6 January 2023
+## Last updated: 1 June 2023
 ############################################################################
 """ Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
 suite."""
@@ -1039,7 +1039,7 @@ class CopyTraversedSourceFeaturesWithTransit(object):
                         "so public transit lines were not used in the analysis.")
             try:
                 network_desc = arcpy.Describe(na_layer).network
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 # The Describe object for an NA layer cannot return the .network property if the layer references a
                 # service. This tool doesn't support layer's using services anyway because we can't retrieve the
                 # public transit data model tables and because the generic Copy Traversed Source Features tool doesn't
@@ -1050,7 +1050,7 @@ class CopyTraversedSourceFeaturesWithTransit(object):
             if not does_travel_mode_use_transit_evaluator(network, travel_mode):
                 return "The Input Network Analysis Layer's travel mode does not use the Public Transit evaluator."
             return
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             return
 
     def updateMessages(self, parameters):
@@ -1122,9 +1122,9 @@ class CopyTraversedSourceFeaturesWithTransit(object):
         except TransitNetworkAnalysisToolsError as ex:
             arcpy.AddError("Could not add public transit information to the traversal result.")
             arcpy.AddError(str(ex))
-        except Exception as ex:
+        except Exception:  # pylint: disable=broad-except
             arcpy.AddError("Could not add public transit information to the traversal result for an unknown reason:")
-            import traceback
+            import traceback  # pylint: disable=import-outside-toplevel
             arcpy.AddError(traceback.format_exc())
 
         return
