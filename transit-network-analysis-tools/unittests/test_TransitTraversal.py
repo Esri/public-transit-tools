@@ -1,5 +1,12 @@
 """Unit tests for the TransitTraversal.py module.
 
+These test cases focus on correctness of the transit data returned by the code
+using a special, relatively simple toy network dataset that is included in a
+zip file in the repo.  The network's geodatabase includes several feature
+classes with traversed edges already calculated for known situations, and the
+tests verify that the correct transit information is added based on a known
+solution.
+
 Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -34,7 +41,7 @@ class TestTransitTraversal(unittest.TestCase):
         self.maxDiff = None
 
         self.input_data_folder = os.path.join(CWD, "TestInput")
-        # input_data_helper.make_feature_classes_from_json(self.input_data_folder)
+        input_data_helper.extract_toy_network(self.input_data_folder)
         self.toy_gdb = os.path.join(self.input_data_folder, "TransitToyNetwork.gdb")
         self.toy_fd = os.path.join(self.toy_gdb, "TransitNetwork")
         self.toy_nd = os.path.join(self.toy_fd, "Transit_Network_ND")
