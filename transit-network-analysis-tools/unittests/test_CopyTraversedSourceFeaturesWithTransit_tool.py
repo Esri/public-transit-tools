@@ -197,16 +197,28 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
         arcpy.na.Solve(lyr)
         # Run the tool
         out_edges = layer_name + "_Edges"
-        arcpy.TransitNetworkAnalysisTools.CopyTraversedSourceFeaturesWithTransit(  # pylint: disable=no-member
+        out_junctions = layer_name + "_Junctions"
+        out_turns = layer_name + "_Turns"
+        result = arcpy.TransitNetworkAnalysisTools.CopyTraversedSourceFeaturesWithTransit(  # pylint: disable=no-member
             lyr,
             self.output_gdb,
             out_edges,
-            layer_name + "_Junctions",
-            layer_name + "_Turns",
+            out_junctions,
+            out_turns,
         )
         warnings = arcpy.GetMessages(1)
         expect_nulls = "Could not find public transit traversal information" in warnings
         self.check_results(out_edges, expect_nulls)
+        # Check derived outputs
+        self.assertEqual(
+            os.path.join(self.output_gdb, out_edges), result.getOutput(0), "Incorrect derived output edges.")
+        out_junctions_path = os.path.join(self.output_gdb, out_junctions)
+        self.assertEqual(out_junctions_path, result.getOutput(1), "Incorrect derived output junctions.")
+        self.assertTrue(arcpy.Exists(out_junctions_path), "Output junctions does not exist.")
+        out_turns_path = os.path.join(self.output_gdb, out_turns)
+        self.assertEqual(out_turns_path, result.getOutput(2), "Incorrect derived output turns.")
+        self.assertTrue(arcpy.Exists(out_turns_path), "Output turns does not exist.")
+        self.assertTrue(result.getOutput(3).isNetworkAnalystLayer, "Derived output is not an NA layer.")
 
 
 if __name__ == '__main__':
