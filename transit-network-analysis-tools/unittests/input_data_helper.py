@@ -12,6 +12,7 @@ Copyright 2023 Esri
    limitations under the License.
 """
 import os
+import zipfile
 import arcpy
 
 
@@ -36,3 +37,21 @@ def make_feature_classes_from_json(input_data_folder):
             pt_fc = os.path.join(cinci_gdb, in_data_name)
             arcpy.analysis.Buffer(pt_fc, pg_fc, "100 Meters")
             print(f"Created test dataset {pg_fc}.")
+
+
+def extract_toy_network(input_data_folder):
+    """Extract the transit toy network from zip file."""
+    toy_gdb = os.path.join(input_data_folder, "TransitToyNetwork.gdb")
+    if os.path.exists(toy_gdb):
+        # Data is already present and extracted
+        return
+    toy_zip = toy_gdb + ".zip"
+    if not os.path.exists(toy_zip):
+        raise RuntimeError(f"Required test input zip file {toy_zip} does not exist.")
+    if not zipfile.is_zipfile(toy_zip):
+        raise RuntimeError(f"Required test input zip file {toy_zip} is not a valid zip file.")
+    with zipfile.ZipFile(toy_zip) as zf:
+        zf.extractall(input_data_folder)
+    if not os.path.exists(toy_gdb):
+        raise RuntimeError(f"Required test input gdb file {toy_gdb} does not exist after unzipping.")
+    print(f"Extracted {toy_gdb} from {toy_zip}.")
