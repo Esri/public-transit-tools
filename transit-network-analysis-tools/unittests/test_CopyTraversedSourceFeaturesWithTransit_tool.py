@@ -16,6 +16,7 @@ Copyright 2023 Esri
 import os
 import datetime
 import unittest
+import random
 import arcpy
 import input_data_helper
 
@@ -131,7 +132,7 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
 
     def test_sa_layer(self):
         """Test the tool with a service area layer."""
-        # Create and solve a service layer
+        # Create and solve a service area layer
         layer_name = "SA"
         lyr = arcpy.na.MakeServiceAreaAnalysisLayer(
             self.local_nd, layer_name, self.local_tm_time,
@@ -166,7 +167,7 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
 
     def test_rt_layer(self):
         """Test the tool with a route layer."""
-        # Create and solve a service layer
+        # Create and solve a route layer
         layer_name = "RT"
         lyr = arcpy.na.MakeRouteAnalysisLayer(
             self.local_nd, layer_name, self.local_tm_time,
@@ -219,6 +220,122 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
         self.assertEqual(out_turns_path, result.getOutput(2), "Incorrect derived output turns.")
         self.assertTrue(arcpy.Exists(out_turns_path), "Output turns does not exist.")
         self.assertTrue(result.getOutput(3).isNetworkAnalystLayer, "Derived output is not an NA layer.")
+
+    def test_wrong_solver(self):
+        """Check for correct error when an incorrect solver type is used."""
+        # Create a layer of one of the unsupported types
+        # Don't attempt to test VRP because the test network doesn't even support VRP.
+        layer_name = "WrongType"
+        solver_tool = random.choice([
+            arcpy.na.MakeODCostMatrixAnalysisLayer,
+            arcpy.na.MakeLocationAllocationAnalysisLayer
+        ])
+        lyr = solver_tool(self.local_nd, layer_name, self.local_tm_time)
+        # Run the tool
+        with self.assertRaises(arcpy.ExecuteError):
+            arcpy.TransitNetworkAnalysisTools.CopyTraversedSourceFeaturesWithTransit(  # pylint: disable=no-member
+                lyr,
+                self.output_gdb,
+                layer_name + "_Edges",
+                layer_name + "_Junctions",
+                layer_name + "_Turns"
+            )
+        expected_message = "The Input Network Analysis Layer must be a Route, Closest Facility, or Service Area layer."
+        actual_messages = arcpy.GetMessages(2)
+        self.assertIn(expected_message, actual_messages)
+
+    def test_no_time(self):
+        """Check for correct error when the input layer doesn't use a time of day."""
+        # Create and solve a closest facility layer without a time of day set
+        layer_name = "NoTime"
+        lyr = arcpy.na.MakeClosestFacilityAnalysisLayer(
+            self.local_nd, layer_name, self.local_tm_time,
+            number_of_facilities_to_find=1
+        ).getOutput(0)
+        # Run the tool
+        with self.assertRaises(arcpy.ExecuteError):
+            arcpy.TransitNetworkAnalysisTools.CopyTraversedSourceFeaturesWithTransit(  # pylint: disable=no-member
+                lyr,
+                self.output_gdb,
+                layer_name + "_Edges",
+                layer_name + "_Junctions",
+                layer_name + "_Turns"
+            )
+        expected_message = "The Input Network Analysis Layer must have an analysis time of day set."
+        actual_messages = arcpy.GetMessages(2)
+        self.assertIn(expected_message, actual_messages)
+
+    def test_sa_layer_no_lines(self):
+        """Check for correct error when the input service area layer doesn't output lines."""
+        # Create and solve a service area layer with polygon output only
+        layer_name = "NoLines"
+        lyr = arcpy.na.MakeServiceAreaAnalysisLayer(
+            self.local_nd, layer_name, self.local_tm_time,
+            cutoffs=[30],
+            time_of_day=datetime.datetime(1900, 1, 3, 17, 0, 0),
+            output_type="Polygons"
+        ).getOutput(0)
+        # Run the tool
+        with self.assertRaises(arcpy.ExecuteError):
+            arcpy.TransitNetworkAnalysisTools.CopyTraversedSourceFeaturesWithTransit(  # pylint: disable=no-member
+                lyr,
+                self.output_gdb,
+                layer_name + "_Edges",
+                layer_name + "_Junctions",
+                layer_name + "_Turns"
+            )
+        expected_message = "Service Area output needs to include lines"
+        actual_messages = arcpy.GetMessages(2)
+        self.assertIn(expected_message, actual_messages)
+
+    def test_distance_impedance(self):
+        """Check for correct error when the travel mode uses a distance-based impedance."""
+        tm = arcpy.nax.TravelMode(arcpy.nax.GetTravelModes(self.local_nd)[self.local_tm_time])
+        tm.impedance = "Length"
+        layer_name = "DistanceImpedance"
+        lyr = arcpy.na.MakeClosestFacilityAnalysisLayer(
+            self.local_nd, layer_name, tm,
+            number_of_facilities_to_find=1,
+            time_of_day=datetime.datetime(1900, 1, 3, 17, 0, 0)
+        ).getOutput(0)
+        # Run the tool
+        with self.assertRaises(arcpy.ExecuteError):
+            arcpy.TransitNetworkAnalysisTools.CopyTraversedSourceFeaturesWithTransit(  # pylint: disable=no-member
+                lyr,
+                self.output_gdb,
+                layer_name + "_Edges",
+                layer_name + "_Junctions",
+                layer_name + "_Turns"
+            )
+        expected_message = (
+            "The Input Network Analysis Layer's travel mode does not use a time-based impedance attribute, "
+            "so public transit lines were not used in the analysis.")
+        actual_messages = arcpy.GetMessages(2)
+        self.assertIn(expected_message, actual_messages)
+
+    def test_non_transit_impedance(self):
+        """Check for correct error when the travel mode uses an impedance without the Public Transit evaluator."""
+        tm = arcpy.nax.TravelMode(arcpy.nax.GetTravelModes(self.local_nd)[self.local_tm_time])
+        tm.impedance = "WalkTime"
+        tm.timeAttributeName = "WalkTime"
+        layer_name = "NonTransitImpedance"
+        lyr = arcpy.na.MakeClosestFacilityAnalysisLayer(
+            self.local_nd, layer_name, tm,
+            number_of_facilities_to_find=1,
+            time_of_day=datetime.datetime(1900, 1, 3, 17, 0, 0)
+        ).getOutput(0)
+        # Run the tool
+        with self.assertRaises(arcpy.ExecuteError):
+            arcpy.TransitNetworkAnalysisTools.CopyTraversedSourceFeaturesWithTransit(  # pylint: disable=no-member
+                lyr,
+                self.output_gdb,
+                layer_name + "_Edges",
+                layer_name + "_Junctions",
+                layer_name + "_Turns"
+            )
+        expected_message = "The Input Network Analysis Layer's travel mode does not use the Public Transit evaluator."
+        actual_messages = arcpy.GetMessages(2)
+        self.assertIn(expected_message, actual_messages)
 
 
 if __name__ == '__main__':
