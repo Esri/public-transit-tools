@@ -708,6 +708,26 @@ def execute_subprocess(script_name, inputs):
             raise RuntimeError(err)
 
 
+def configure_global_logger(log_level):
+    """Configure a global logger for the main process.
+
+    The logger logs everything from the main process to stdout using a specific format that the tools in this
+    toolbox can parse and write to the geoprocessing message feed.
+
+    Args:
+        log_level: logging module message level, such as logging.INFO or logging.DEBUG.
+    """
+    logger = logging.getLogger(__name__)  # pylint:disable=invalid-name
+    logger.setLevel(log_level)
+    sys.stdout.reconfigure(encoding="utf-8")
+    console_handler = logging.StreamHandler(stream=sys.stdout)
+    console_handler.setLevel(log_level)
+    # Used by script tool to split message text from message level to add correct message type to GP window
+    console_handler.setFormatter(logging.Formatter("%(levelname)s" + MSG_STR_SPLITTER + "%(message)s"))
+    logger.addHandler(console_handler)
+    return logger
+
+
 class PrecalculateLocationsMixin:  # pylint:disable = too-few-public-methods
     """Used to precalculate network locations either directly or calling the parallelized version."""
 
