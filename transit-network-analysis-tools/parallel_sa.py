@@ -161,9 +161,6 @@ class ServiceArea(
         # process-specific log file.
         self.setup_logger("ServiceArea")
 
-        # Create a job ID and a folder and scratch gdb for this job
-        self.sa_workspace = self._create_output_gdb()
-
         # Set up other instance attributes
         self.is_service = AnalysisHelpers.is_nds_service(self.network_data_source)
         self.sa_solver = None
@@ -314,16 +311,9 @@ class ServiceArea(
         self.logger.debug("Solve succeeded.")
         self.job_result["solveSucceeded"] = True
 
-        # Make output gdb
-        self.logger.debug("Creating output geodatabase for Service Area analysis...")
-        run_gp_tool(
-            arcpy.management.CreateFileGDB,
-            [os.path.dirname(self.sa_workspace), os.path.basename(self.sa_workspace)],
-            log_to_use=self.logger
-        )
-
         # Export the Service Area polygons output to a feature class
-        output_polygons = os.path.join(self.sa_workspace, "output_polygons")
+        out_gdb = self._create_output_gdb()
+        output_polygons = os.path.join(out_gdb, "output_polygons")
         self.logger.debug(f"Exporting Service Area polygons output to {output_polygons}...")
         solve_result.export(arcpy.nax.ServiceAreaOutputDataType.Polygons, output_polygons)
 
