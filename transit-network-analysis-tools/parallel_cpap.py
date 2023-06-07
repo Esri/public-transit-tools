@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 20 March 2023
+## Last updated: 7 June 2023
 ############################################################################
 """Do the core logic for the Create Percent Access Polygons tool in parallel
 for maximum efficiency.
@@ -21,7 +21,6 @@ Copyright 2023 Esri
 """
 # pylint: disable=logging-fstring-interpolation
 from concurrent import futures
-import sys
 import os
 import time
 import uuid
@@ -30,23 +29,14 @@ import traceback
 import argparse
 import logging
 import arcpy
-
+import AnalysisHelpers
 from AnalysisHelpers import FACILITY_ID_FIELD, FROM_BREAK_FIELD, TO_BREAK_FIELD, TIME_FIELD, FIELDS_TO_PRESERVE, \
-                            MSG_STR_SPLITTER, MAX_RETRIES
+                            MAX_RETRIES
 
-# Set logging for the main process.
-# LOGGER logs everything from the main process to stdout using a specific format that the tool
-# can parse and write to the geoprocessing message feed.
-LOG_LEVEL = logging.INFO  # Set to logging.DEBUG to see verbose debug messages
-LOGGER = logging.getLogger(__name__)  # pylint:disable=invalid-name
-LOGGER.setLevel(LOG_LEVEL)
-console_handler = logging.StreamHandler(stream=sys.stdout)
-console_handler.setLevel(LOG_LEVEL)
-# Used by script tool to split message text from message level to add correct message type to GP window
-console_handler.setFormatter(logging.Formatter("%(levelname)s" + MSG_STR_SPLITTER + "%(message)s"))
-LOGGER.addHandler(console_handler)
+DELETE_INTERMEDIATE_OUTPUTS = True  # Set to False for debugging purposes
 
-DELETE_INTERMEDIATE_OD_OUTPUTS = True  # Set to False for debugging purposes
+# Change logging.INFO to logging.DEBUG to see verbose debug messages
+LOGGER = AnalysisHelpers.configure_global_logger(logging.INFO)
 
 
 def parallel_counter(time_lapse_polygons, raster_template, scratch_folder, combo):
@@ -263,7 +253,7 @@ def count_percent_access_polygons(time_lapse_polygons, raster_template, output_f
 
     # Cleanup
     # Delete the job folders if the job succeeded
-    if DELETE_INTERMEDIATE_OD_OUTPUTS:
+    if DELETE_INTERMEDIATE_OUTPUTS:
         LOGGER.info("Deleting intermediate outputs...")
         try:
             shutil.rmtree(scratch_folder, ignore_errors=True)
