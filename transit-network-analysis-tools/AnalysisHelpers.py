@@ -49,6 +49,7 @@ FIELDS_TO_PRESERVE = [FACILITY_ID_FIELD, NAME_FIELD, FROM_BREAK_FIELD, TO_BREAK_
 
 class TransitNetworkAnalysisToolsError(Exception):
     """Generic error class that can be raised for known problems in these tools."""
+
     pass
 
 
@@ -63,11 +64,11 @@ def validate_input_feature_class(feature_class):
         ValueError: The input feature class has no rows.
     """
     if not arcpy.Exists(feature_class):
-        err = "Input dataset %s does not exist." % feature_class
+        err = f"Input dataset {feature_class} does not exist."
         arcpy.AddError(err)
         raise ValueError(err)
     if int(arcpy.management.GetCount(feature_class).getOutput(0)) <= 0:
-        err = "Input dataset %s has no rows." % feature_class
+        err = f"Input dataset {feature_class} has no rows."
         arcpy.AddError(err)
         raise ValueError(err)
 
@@ -241,8 +242,7 @@ def get_catalog_path(layer):
     """
     if hasattr(layer, "dataSource"):
         return layer.dataSource
-    else:
-        return layer
+    return layer
 
 
 def get_catalog_path_from_param(param):
@@ -256,8 +256,7 @@ def get_catalog_path_from_param(param):
     """
     if hasattr(param.value, "dataSource"):
         return param.value.dataSource
-    else:
-        return param.valueAsText
+    return param.valueAsText
 
 
 def are_input_layers_the_same(input_layer_1, input_layer_2):
@@ -292,9 +291,7 @@ def are_input_layers_the_same(input_layer_1, input_layer_2):
 
 def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input):
     """Make a list of datetimes to use as input for a network analysis time of day run in a loop"""
-
     start_time, end_time = convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input, end_time_input)
-
     # How much to increment the time in each solve, in minutes
     increment = datetime.timedelta(minutes=increment_input)
     timelist = []  # Actual list of times to use for the analysis.
@@ -302,16 +299,13 @@ def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_in
     while t <= end_time:
         timelist.append(t)
         t += increment
-
     return timelist
 
 
 def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input, end_time_input):
     """Parse start and end day and time from tool inputs and convert them to datetimes"""
-
-    # For an explanation of special ArcMap generic weekday dates, see the time_of_day parameter
-    # description in the Make Service Area Layer tool documentation
-    # http://desktop.arcgis.com/en/arcmap/latest/tools/network-analyst-toolbox/make-service-area-layer.htm
+    # For an explanation of special generic weekday dates, see this documentation:
+    # https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/dates-and-times.htm
     days = {
         "Monday": datetime.datetime(1900, 1, 1),
         "Tuesday": datetime.datetime(1900, 1, 2),
@@ -319,11 +313,12 @@ def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input
         "Thursday": datetime.datetime(1900, 1, 4),
         "Friday": datetime.datetime(1900, 1, 5),
         "Saturday": datetime.datetime(1900, 1, 6),
-        "Sunday": datetime.datetime(1899, 12, 31)}
+        "Sunday": datetime.datetime(1899, 12, 31)
+    }
 
     # Lower end of time window (HH:MM in 24-hour time)
     generic_weekday = False
-    if start_day_input in days: # Generic weekday
+    if start_day_input in days:  # Generic weekday
         generic_weekday = True
         start_day = days[start_day_input]
     else:  # Specific date
@@ -690,7 +685,7 @@ def execute_subprocess(script_name, inputs):
         while process.poll() is None:
             output = process.stdout.readline()
             if output:
-                msg_string = output.strip().decode()
+                msg_string = output.strip().decode(encoding="utf-8")
                 parse_std_and_write_to_gp_ui(msg_string)
             time.sleep(.1)
 
@@ -699,7 +694,7 @@ def execute_subprocess(script_name, inputs):
         # messages from raised exceptions, especially those with tracebacks.
         output, _ = process.communicate()
         if output:
-            out_msgs = output.decode().splitlines()
+            out_msgs = output.decode(encoding="utf-8").splitlines()
             for msg in out_msgs:
                 parse_std_and_write_to_gp_ui(msg)
 
@@ -711,6 +706,26 @@ def execute_subprocess(script_name, inputs):
             err = f"Parallelization using {script_name} failed."
             arcpy.AddError(err)
             raise RuntimeError(err)
+
+
+def configure_global_logger(log_level):
+    """Configure a global logger for the main process.
+
+    The logger logs everything from the main process to stdout using a specific format that the tools in this
+    toolbox can parse and write to the geoprocessing message feed.
+
+    Args:
+        log_level: logging module message level, such as logging.INFO or logging.DEBUG.
+    """
+    logger = logging.getLogger(__name__)  # pylint:disable=invalid-name
+    logger.setLevel(log_level)
+    sys.stdout.reconfigure(encoding="utf-8")
+    console_handler = logging.StreamHandler(stream=sys.stdout)
+    console_handler.setLevel(log_level)
+    # Used by script tool to split message text from message level to add correct message type to GP window
+    console_handler.setFormatter(logging.Formatter("%(levelname)s" + MSG_STR_SPLITTER + "%(message)s"))
+    logger.addHandler(console_handler)
+    return logger
 
 
 class PrecalculateLocationsMixin:  # pylint:disable = too-few-public-methods
@@ -800,7 +815,7 @@ class LoggingMixin:
 
         self.logger.setLevel(logging.DEBUG)
         if len(self.logger.handlers) <= 1:
-            file_handler = logging.FileHandler(self.log_file)
+            file_handler = logging.FileHandler(self.log_file, encoding="utf-8")
             file_handler.setLevel(logging.DEBUG)
             self.logger.addHandler(file_handler)
             formatter = logging.Formatter("%(process)d | %(message)s")
