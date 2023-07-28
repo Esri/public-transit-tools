@@ -84,6 +84,8 @@ ArcGIS has many tools, products, and solutions applicable to public transit agen
 
 Find a bug or want to request a new feature?  Please let us know by submitting an [issue](../../issues), or post a question in the [Esri Community forums](https://community.esri.com/t5/public-transit-questions/bd-p/public-transit-questions).
 
+If you have more general questions about how your public transit agency can leverage ArcGIS, contact [transit@esri.com](mailto:transit@esri.com).
+
 ## Contributing
 
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing).
