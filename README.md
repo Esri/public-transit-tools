@@ -1,7 +1,5 @@
 # public-transit-tools
 
-![Banner image](./docs/images/Banner.png)
-
 This repo contains free, downloadable sample tools provided by Esri for analysis using public transit data in ArcGIS.  These tools are intended to extend the capabilities of Esri's core products.
 
 ### Transit Network Analysis Tools
