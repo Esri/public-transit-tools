@@ -512,7 +512,7 @@ class ParallelODCalculator():
             barriers = []
         self.max_processes = max_processes
         self.weight_field = weight_field
-        if self.tool == AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
+        if self.weight_field and self.tool is AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
             LOGGER.warning("A weight field is not supported for this tool and will be ignored.")
             self.weight_field = None
         self.out_csv_file = out_csv_file
