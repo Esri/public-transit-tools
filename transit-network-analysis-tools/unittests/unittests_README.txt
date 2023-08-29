@@ -1,1 +1,3 @@
 The unit tests use data and from the Network Analyst\Tutorial\PublicTransit\CincinnatiTransitNetwork.gdb geodatabase from the ArcGIS Pro Network Analyst tutorial data. Download the data from https://links.esri.com/NetworkAnalyst/TutorialData/Pro. Extract the zip file and copy CincinnatiTransitNetwork.gdb to the TestInput folder.
+
+The AnalysisHelpers test also requires valid values for a test portal with network analysis services in the portal_credentials.py file.
