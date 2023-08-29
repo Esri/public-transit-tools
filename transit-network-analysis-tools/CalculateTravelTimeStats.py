@@ -2,18 +2,18 @@
 ## Toolbox: Transit Network Analysis Tools
 ## Tool name: Calculate Travel Time Statistics
 ## Created by: Melinda Morang, Esri
-## Last updated: 28 April 2022
+## Last updated: 29 August 2023
 ################################################################################
-'''Solve a Route iteratively over a time window and output a 
+"""Solve a Route iteratively over a time window and output a
 table of statistics describing the travel time over the time window for each
 origin-destination pair or route:
 - minimum travel time
 - maximum travel time
 - mean travel time
 - number of times the origin-destination pair or route was considered
-'''
+"""
 ################################################################################
-'''Copyright 2022 Esri
+"""Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -22,7 +22,7 @@ origin-destination pair or route:
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.'''
+   limitations under the License."""
 ################################################################################
 
 import os
@@ -38,12 +38,12 @@ def runTool(input_network_analyst_layer, output_table,
             end_day_input="Wednesday", end_time_input="09:00", increment_input=1,
             save_combined_output=False, combined_output=None):
     """Calculates some simple statistics about the total transit travel time between locations over a time window.
-    
+
     For each origin-destination pair in an OD Cost Matrix layer or each route in a Route layer, the tool calculates:
     - Minimum travel time
     - Maximum travel time
     - Mean travel time
-    
+
     The output is written to a table.
 
     Parameters:
@@ -157,11 +157,20 @@ def runTool(input_network_analyst_layer, output_table,
 
         if save_combined_output:
             # Add the TimeOfDay field to the output sublayer to track results
-            time_field = AnalysisHelpers.add_TimeOfDay_field_to_sublayer(
-                input_network_analyst_layer,
-                output_subLayer,
-                output_sublayer_name
-                )
+            # Clean up any pre-existing fields with this name (unlikely case)
+            poly_fields = [f for f in arcpy.Describe(output_subLayer).fields if f.name == AnalysisHelpers.TIME_FIELD]
+            if poly_fields:
+                for f in poly_fields:
+                    if f.name == AnalysisHelpers.TIME_FIELD and f.type != "Date":
+                        msg = (
+                            f"Your network analysis layer's {output_sublayer_name} sublayer already contained a field "
+                            f"called {AnalysisHelpers.TIME_FIELD} of a type other than Date.  This field will be "
+                            "deleted and replaced with a field of type Date used for the output of this tool."
+                        )
+                        arcpy.AddWarning(msg)
+                        arcpy.management.DeleteField(output_subLayer, AnalysisHelpers.TIME_FIELD)
+            # Add the TimeOfDay field to the sublayer.  If it already exists, this will do nothing.
+            arcpy.na.AddFieldToAnalysisLayer(input_network_analyst_layer, output_sublayer_name, AnalysisHelpers.TIME_FIELD, "DATE")
 
         # Initialize a dictionary to track output stats
         # {key: [Min travel time, Max travel time, Num times reached, Mean travel time]}

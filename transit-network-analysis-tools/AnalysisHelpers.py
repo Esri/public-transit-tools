@@ -374,25 +374,6 @@ def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input
     return start_time, end_time
 
 
-def add_TimeOfDay_field_to_sublayer(nalayer, sublayer_object, sublayer_name):
-    """Add a field called TimeOfDay of type DATE to an NA sublayer"""
-    # Clean up any pre-existing fields with this name (unlikely case)
-    poly_fields = [f for f in arcpy.Describe(sublayer_object).fields if f.name == TIME_FIELD]
-    if poly_fields:
-        for f in poly_fields:
-            if f.name == TIME_FIELD and f.type != "Date":
-                msg = "Your network analysis layer's %s sublayer already contained a field called %s of a type " + \
-                      "other than Date.  This field will be deleted and replaced with a field of type Date used " + \
-                      "for the output of this tool."
-                arcpy.AddWarning(msg % (sublayer_name, TIME_FIELD))
-                arcpy.management.DeleteField(sublayer_object, TIME_FIELD)
-
-    # Add the TimeOfDay field to the sublayer.  If it already exists, this will do nothing.
-    arcpy.na.AddFieldToAnalysisLayer(nalayer, sublayer_name, TIME_FIELD, "DATE")
-
-    return TIME_FIELD
-
-
 def calculate_TimeOfDay_field(sublayer_object, time_field, time_of_day):
     """Set the TimeOfDay field to a specific time of day"""
     expression = '"' + str(time_of_day) + '"'  # Unclear why a DATE field requires a string expression, but it does.
