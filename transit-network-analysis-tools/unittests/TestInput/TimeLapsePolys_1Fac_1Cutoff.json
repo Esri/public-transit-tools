@@ -1,0 +1,95 @@
+{
+  "displayFieldName" : "",
+  "fieldAliases" : {
+    "OBJECTID" : "OBJECTID",
+    "Shape_Length" : "Shape_Length",
+    "Shape_Area" : "Shape_Area",
+    "Name" : "Name",
+    "FromBreak" : "FromBreak",
+    "ToBreak" : "ToBreak",
+    "FacilityOID" : "FacilityOID",
+    "FacilityID" : "FacilityID",
+    "Name_1" : "Facility: Name",
+    "TimeOfDay" : "Facility: TimeOfDay",
+    "Breaks" : "Facility: Breaks",
+    "AdditionalTime" : "Facility: AdditionalTime",
+    "AdditionalDistance" : "Facility: AdditionalDistance"
+  },
+  "geometryType" : "esriGeometryPolygon",
+  "spatialReference" : {
+    "wkid" : 4326,
+    "latestWkid" : 4326
+  },
+  "fields" : [
+    {
+      "name" : "OBJECTID",
+      "type" : "esriFieldTypeOID",
+      "alias" : "OBJECTID"
+    },
+    {
+      "name" : "Shape_Length",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Shape_Length"
+    },
+    {
+      "name" : "Shape_Area",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Shape_Area"
+    },
+    {
+      "name" : "Name",
+      "type" : "esriFieldTypeString",
+      "alias" : "Name",
+      "length" : 1024
+    },
+    {
+      "name" : "FromBreak",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "FromBreak"
+    },
+    {
+      "name" : "ToBreak",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "ToBreak"
+    },
+    {
+      "name" : "FacilityOID",
+      "type" : "esriFieldTypeInteger",
+      "alias" : "FacilityOID"
+    },
+    {
+      "name" : "FacilityID",
+      "type" : "esriFieldTypeInteger",
+      "alias" : "FacilityID"
+    },
+    {
+      "name" : "Name_1",
+      "type" : "esriFieldTypeString",
+      "alias" : "Facility: Name",
+      "length" : 500
+    },
+    {
+      "name" : "TimeOfDay",
+      "type" : "esriFieldTypeDate",
+      "alias" : "Facility: TimeOfDay",
+      "length" : 8
+    },
+    {
+      "name" : "Breaks",
+      "type" : "esriFieldTypeString",
+      "alias" : "Facility: Breaks",
+      "length" : 128
+    },
+    {
+      "name" : "AdditionalTime",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Facility: AdditionalTime"
+    },
+    {
+      "name" : "AdditionalDistance",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Facility: AdditionalDistance"
+    }
+  ],
+  "features" : [{"attributes":{"OBJECTID":1,"Shape_Length":0.03085285399993154,"Shape_Area":5.9017839146145041e-05,"Name":"Location 1 : 0 - 30","FromBreak":0,"ToBreak":30,"FacilityOID":1,"FacilityID":null,"Name_1":"Location 1","TimeOfDay":-2208790800000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0},"geometry":{"rings":[[[-84.525533020999944,39.112389088000043],[-84.517130007999981,39.112389088000043],[-84.517130007999981,39.105365674000041],[-84.525533020999944,39.105365674000041],[-84.525533020999944,39.112389088000043]]]}},{"attributes":{"OBJECTID":2,"Shape_Length":0.029975892695996646,"Shape_Area":5.5722469470037314e-05,"Name":"Location 1 : 0 - 30","FromBreak":0,"ToBreak":30,"FacilityOID":1,"FacilityID":null,"Name_1":"Location 1","TimeOfDay":-2208790740000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0},"geometry":{"rings":[[[-84.520641714999954,39.114395778000073],[-84.512489537999954,39.114395778000073],[-84.512489537999954,39.107497782000053],[-84.520641714999954,39.107623200000035],[-84.520641714999954,39.114395778000073]]]}},{"attributes":{"OBJECTID":3,"Shape_Length":0.022200397360001518,"Shape_Area":3.0790888125629539e-05,"Name":"Location 1 : 0 - 30","FromBreak":0,"ToBreak":30,"FacilityOID":1,"FacilityID":null,"Name_1":"Location 1","TimeOfDay":-2208790680000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0},"geometry":{"rings":[[[-84.519638369999939,39.10398607500008],[-84.519638369999939,39.109504471000037],[-84.513994554999954,39.109379053000055],[-84.513994554999954,39.10398607500008],[-84.519638369999939,39.10398607500008]]]}},{"attributes":{"OBJECTID":4,"Shape_Length":0.021722415999988698,"Shape_Area":1.9327299660369377e-05,"Name":"Location 1 : 0 - 30","FromBreak":0,"ToBreak":30,"FacilityOID":1,"FacilityID":null,"Name_1":"Location 1","TimeOfDay":-2208790620000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0},"geometry":{"rings":[[[-84.518399238999962,39.116241932000037],[-84.518399238999962,39.107623200000035],[-84.520641714999954,39.107623200000035],[-84.520641714999954,39.116241932000037],[-84.518399238999962,39.116241932000037]]]}}]
+}
