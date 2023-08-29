@@ -3,10 +3,10 @@
 ## Tool name: Create Percent Access Polygons
 ## Created by: David Wasserman, Fehr & Peers, https://github.com/d-wasserman
 ##        and: Melinda Morang, Esri
-## Last updated: 28 April 2022
+## Last updated: 29 August 2023
 ################################################################################
 ################################################################################
-'''Copyright 2018 Fehr & Peers
+"""Copyright 2018 Fehr & Peers
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -15,10 +15,10 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.'''
+   limitations under the License."""
 ################################################################################
 ################################################################################
-'''Copyright 2022 Esri
+"""Copyright 2023 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -27,7 +27,7 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.'''
+   limitations under the License."""
 ################################################################################
 import sys
 import os
@@ -133,7 +133,7 @@ class PercentAccessPolygonCalculator():
             arcpy.conversion.FeatureToRaster(temp_points, pt_oid, temp_raster2, cell_size=self.cell_size)
 
             # Convert this raster to polygons.  The result contains one square polygon per raster cell and can be used
-            # forcalculating spatial joins with the original time lapse polygon dataset.
+            # for calculating spatial joins with the original time lapse polygon dataset.
             self.raster_template = self._make_temporary_output_path("PolyRasterTemplate")
             arcpy.conversion.RasterToPolygon(temp_raster2, self.raster_template, simplify=False)
 

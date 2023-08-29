@@ -1,0 +1,95 @@
+{
+  "displayFieldName" : "",
+  "fieldAliases" : {
+    "OBJECTID" : "OBJECTID",
+    "Name" : "Name",
+    "FromBreak" : "FromBreak",
+    "ToBreak" : "ToBreak",
+    "FacilityOID" : "FacilityOID",
+    "FacilityID" : "FacilityID",
+    "Name_1" : "Facility: Name",
+    "TimeOfDay" : "Facility: TimeOfDay",
+    "Breaks" : "Facility: Breaks",
+    "AdditionalTime" : "Facility: AdditionalTime",
+    "AdditionalDistance" : "Facility: AdditionalDistance",
+    "Shape_Length" : "Shape_Length",
+    "Shape_Area" : "Shape_Area"
+  },
+  "geometryType" : "esriGeometryPolygon",
+  "spatialReference" : {
+    "wkid" : 4326,
+    "latestWkid" : 4326
+  },
+  "fields" : [
+    {
+      "name" : "OBJECTID",
+      "type" : "esriFieldTypeOID",
+      "alias" : "OBJECTID"
+    },
+    {
+      "name" : "Name",
+      "type" : "esriFieldTypeString",
+      "alias" : "Name",
+      "length" : 1024
+    },
+    {
+      "name" : "FromBreak",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "FromBreak"
+    },
+    {
+      "name" : "ToBreak",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "ToBreak"
+    },
+    {
+      "name" : "FacilityOID",
+      "type" : "esriFieldTypeInteger",
+      "alias" : "FacilityOID"
+    },
+    {
+      "name" : "FacilityID",
+      "type" : "esriFieldTypeInteger",
+      "alias" : "FacilityID"
+    },
+    {
+      "name" : "Name_1",
+      "type" : "esriFieldTypeString",
+      "alias" : "Facility: Name",
+      "length" : 500
+    },
+    {
+      "name" : "TimeOfDay",
+      "type" : "esriFieldTypeDate",
+      "alias" : "Facility: TimeOfDay",
+      "length" : 8
+    },
+    {
+      "name" : "Breaks",
+      "type" : "esriFieldTypeString",
+      "alias" : "Facility: Breaks",
+      "length" : 128
+    },
+    {
+      "name" : "AdditionalTime",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Facility: AdditionalTime"
+    },
+    {
+      "name" : "AdditionalDistance",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Facility: AdditionalDistance"
+    },
+    {
+      "name" : "Shape_Length",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Shape_Length"
+    },
+    {
+      "name" : "Shape_Area",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Shape_Area"
+    }
+  ],
+  "features" : [{"attributes":{"OBJECTID":1,"Name":"Location 1 : 0 - 30","FromBreak":0,"ToBreak":30,"FacilityOID":1,"FacilityID":1,"Name_1":"Location 1","TimeOfDay":-2208790800000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0,"Shape_Length":0.03085285399993154,"Shape_Area":5.9017839146145041e-05},"geometry":{"rings":[[[-84.525533020999944,39.112389088000043],[-84.517130007999981,39.112389088000043],[-84.517130007999981,39.105365674000041],[-84.525533020999944,39.105365674000041],[-84.525533020999944,39.112389088000043]]]}},{"attributes":{"OBJECTID":2,"Name":"Location 1 : 0 - 30","FromBreak":0,"ToBreak":30,"FacilityOID":1,"FacilityID":1,"Name_1":"Location 1","TimeOfDay":-2208790740000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0,"Shape_Length":0.029975892695996646,"Shape_Area":5.5722469470037314e-05},"geometry":{"rings":[[[-84.520641714999954,39.114395778000073],[-84.512489537999954,39.114395778000073],[-84.512489537999954,39.107497782000053],[-84.520641714999954,39.107623200000035],[-84.520641714999954,39.114395778000073]]]}},{"attributes":{"OBJECTID":3,"Name":"Location 1 : 0 - 40","FromBreak":0,"ToBreak":40,"FacilityOID":1,"FacilityID":1,"Name_1":"Location 1","TimeOfDay":-2208790800000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0,"Shape_Length":0.055545385411734295,"Shape_Area":0.00019168729357845355},"geometry":{"rings":[[[-84.528949409999939,39.104066343000056],[-84.528949409999939,39.116843939000034],[-84.513994554999954,39.116843939000034],[-84.513994554999954,39.10398607500008],[-84.528949409999939,39.104066343000056]]]}},{"attributes":{"OBJECTID":4,"Name":"Location 1 : 0 - 40","FromBreak":0,"ToBreak":40,"FacilityOID":1,"FacilityID":1,"Name_1":"Location 1","TimeOfDay":-2208790740000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0,"Shape_Length":0.043234130000087134,"Shape_Area":0.00011648279475486691},"geometry":{"rings":[[[-84.518399238999962,39.11784728400005],[-84.518399238999962,39.107623200000035],[-84.52979221999999,39.107623200000035],[-84.52979221999999,39.11784728400005],[-84.518399238999962,39.11784728400005]]]}},{"attributes":{"OBJECTID":9,"Name":"Location 2 : 0 - 30","FromBreak":0,"ToBreak":30,"FacilityOID":2,"FacilityID":2,"Name_1":"Location 2","TimeOfDay":-2208790800000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0,"Shape_Length":0.03085285399993154,"Shape_Area":5.9017839146145041e-05},"geometry":{"rings":[[[-84.511726995999936,39.117767016000073],[-84.503323982999973,39.117767016000073],[-84.503323982999973,39.11074360200007],[-84.511726995999936,39.11074360200007],[-84.511726995999936,39.117767016000073]]]}},{"attributes":{"OBJECTID":10,"Name":"Location 2 : 0 - 30","FromBreak":0,"ToBreak":30,"FacilityOID":2,"FacilityID":2,"Name_1":"Location 2","TimeOfDay":-2208790740000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0,"Shape_Length":0.029975892695940677,"Shape_Area":5.5722469469805614e-05},"geometry":{"rings":[[[-84.506835689999946,39.119773706000046],[-84.498683512999946,39.119773706000046],[-84.498683512999946,39.112875710000026],[-84.506835689999946,39.113001128000064],[-84.506835689999946,39.119773706000046]]]}},{"attributes":{"OBJECTID":11,"Name":"Location 2 : 0 - 40","FromBreak":0,"ToBreak":40,"FacilityOID":2,"FacilityID":2,"Name_1":"Location 2","TimeOfDay":-2208790800000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0,"Shape_Length":0.055545385411961669,"Shape_Area":0.00019168729358003223},"geometry":{"rings":[[[-84.515143384999988,39.109444271000029],[-84.515143384999988,39.122221867000064],[-84.500188529999946,39.122221867000064],[-84.500188529999946,39.109364003000053],[-84.515143384999988,39.109444271000029]]]}},{"attributes":{"OBJECTID":12,"Name":"Location 2 : 0 - 40","FromBreak":0,"ToBreak":40,"FacilityOID":2,"FacilityID":2,"Name_1":"Location 2","TimeOfDay":-2208790740000,"Breaks":null,"AdditionalTime":0,"AdditionalDistance":0,"Shape_Length":0.043234130000087134,"Shape_Area":0.00011648279475486691},"geometry":{"rings":[[[-84.504593213999954,39.123225212000079],[-84.504593213999954,39.113001128000064],[-84.515986194999982,39.113001128000064],[-84.515986194999982,39.123225212000079],[-84.504593213999954,39.123225212000079]]]}}]
+}

@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 7 June 2023
+## Last updated: 29 August 2023
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -512,7 +512,7 @@ class ParallelODCalculator():
             barriers = []
         self.max_processes = max_processes
         self.weight_field = weight_field
-        if self.tool == AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
+        if self.weight_field and self.tool is AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
             LOGGER.warning("A weight field is not supported for this tool and will be ignored.")
             self.weight_field = None
         self.out_csv_file = out_csv_file

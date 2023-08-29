@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 7 June 2023
+## Last updated: 29 August 2023
 ############################################################################
 """Do the core logic for the Create Percent Access Polygons tool in parallel
 for maximum efficiency.
@@ -174,7 +174,7 @@ def count_percent_access_polygons(time_lapse_polygons, raster_template, output_f
     num_time_steps = len(set(unique_times))
 
     # For each set of time lapse polygons, generate the cell-like counts. Do this in parallel for maximum efficiency.
-    LOGGER.info("Counting polygons overlapping each cell parallel...")
+    LOGGER.info("Counting polygons overlapping each cell in parallel...")
     completed_jobs = 0  # Track the number of jobs completed so far to use in logging
     all_polygons = []
     # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes
