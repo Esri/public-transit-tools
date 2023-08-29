@@ -374,12 +374,6 @@ def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input
     return start_time, end_time
 
 
-def calculate_TimeOfDay_field(sublayer_object, time_field, time_of_day):
-    """Set the TimeOfDay field to a specific time of day"""
-    expression = '"' + str(time_of_day) + '"'  # Unclear why a DATE field requires a string expression, but it does.
-    arcpy.management.CalculateField(sublayer_object, time_field, expression, "PYTHON_9.3")
-
-
 def cell_size_to_meters(cell_size_param_value):
     """Convert the cell size tool parameter string value to a numerical value in units of meters.
 

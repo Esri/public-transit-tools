@@ -201,7 +201,9 @@ def runTool(input_network_analyst_layer, output_table,
 
             if save_combined_output:
                 # Calculate the TimeOfDay field
-                AnalysisHelpers.calculate_TimeOfDay_field(output_subLayer, time_field, t)
+                # Unclear why a DATE field requires a string expression, but it does.
+                expression = '"' + str(t) + '"'
+                arcpy.management.CalculateField(output_subLayer, AnalysisHelpers.TIME_FIELD, expression, "PYTHON_9.3")
                 #Append the polygons to the output feature class. If this was the first
                 #solve, create the feature class.
                 if first:
