@@ -68,8 +68,15 @@ class TestCreatePercentAccessPolygonsTool(unittest.TestCase):
             shapes[row[0]] = row[1]
         return shapes
 
-    def test_tool(self):
-        """Test the tool."""
+    def test_tool_simple(self):
+        """Test the tool with a simple input modeling one facility and one cutoff.
+
+        The purpose of this test is to make sure the output has the correct polygon geometry.  We're not doing an exact
+        comparison to avoid test flakiness, but we're testing that the polygons have the correct relationship to each
+        other.  If you're going to substantially alter the tool's internal logic, you would probably want to write some
+        more comprehensive tests to check the exact output, but this is sufficient as a confidence test for minor
+        changes.
+        """
         in_fc = os.path.join(self.in_gdb, "TimeLapsePolys_1Fac_1Cutoff")
         out_fc = os.path.join(self.output_gdb, "CPAP_1Fac_1Cutoff")
         out_fc_th = os.path.join(self.output_gdb, "CPAP_Th_1Fac_1Cutoff")
@@ -104,6 +111,46 @@ class TestCreatePercentAccessPolygonsTool(unittest.TestCase):
             self.assertTrue(th_shapes[50].contains(out_shapes[percent]))
         for percent in [75, 100]:
             self.assertTrue(th_shapes[75].contains(out_shapes[percent]))
+
+    def test_tool_multi_facilities_cutoffs(self):
+        """Test the tool with multiple facilities and cutoffs.
+
+        The purpose of this test is to make sure the code is correctly handling time lapse polygons with multiple
+        facilities and multiple break values.  Those should be counted and reported separately in the output.
+        """
+        in_fc = os.path.join(self.in_gdb, "TimeLapsePolys_2Fac_2Cutoffs")
+        out_fc = os.path.join(self.output_gdb, "CPAP_2Fac_2Cutoffs")
+        out_fc_th = os.path.join(self.output_gdb, "CPAP_Th_2Fac_2Cutoffs")
+        # Run the tool
+        arcpy.TransitNetworkAnalysisTools.CreatePercentAccessPolygons(  # pylint: disable=no-member
+            in_fc,
+            out_fc,
+            "100 Meters",
+            4,  # Parallel processes
+            out_fc_th,
+            [50, 75]
+        )
+        self.assertTrue(arcpy.Exists(out_fc))
+        self.assertTrue(arcpy.Exists(out_fc_th))
+
+        # Get a list of unique facility and cutoff combinations
+        combos = set()
+        for row in arcpy.da.SearchCursor(in_fc, ["FacilityID", "FromBreak", "ToBreak"]):
+            combos.add(row)
+        # The main output should have 50% and 100% rows for each input combo
+        out_dict = {}  # {combo: percent}
+        for row in arcpy.da.SearchCursor(out_fc, ["FacilityID", "FromBreak", "ToBreak", "Percent"]):
+            out_dict.setdefault(tuple([v for v in row[:3]]), []).append(row[3])
+        self.assertEqual(combos, set(list(out_dict.keys())))
+        for combo, percents in out_dict.items():
+            self.assertEqual([50, 100], sorted(percents), f"Incorrect percents for combo {combo}.")
+        # The threshold output should have 50% and 75% rows for each input combo
+        out_dict = {}  # {combo: percent}
+        for row in arcpy.da.SearchCursor(out_fc_th, ["FacilityID", "FromBreak", "ToBreak", "Percent"]):
+            out_dict.setdefault(tuple([v for v in row[:3]]), []).append(row[3])
+        self.assertEqual(combos, set(list(out_dict.keys())))
+        for combo, percents in out_dict.items():
+            self.assertEqual([50, 75], sorted(percents), f"Incorrect percents for combo {combo}.")
 
 
 if __name__ == '__main__':
