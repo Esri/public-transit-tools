@@ -147,51 +147,13 @@ class PercentAccessPolygonCalculator():
         """Calculate the percent access polygons in parallel."""
         # Launch the parallel_cpap.py script as a subprocess so it can spawn parallel processes. We have to do this
         # because a tool running in the Pro UI cannot call concurrent.futures without opening multiple instances of Pro.
-        cwd = os.path.dirname(os.path.abspath(__file__))
-        sa_inputs = [
-            os.path.join(sys.exec_prefix, "python.exe"),
-            os.path.join(cwd, "parallel_cpap.py"),
+        inputs = [
             "--time-lapse-polygons", self.projected_polygons,
             "--raster-template", self.raster_template,
             "--output-fc", self.out_cell_counts_fc,
             "--max-processes", str(self.max_processes)
         ]
-        # We do not want to show the console window when calling the command line tool from within our GP tool.
-        # This can be done by setting this hex code.
-        create_no_window = 0x08000000
-        with subprocess.Popen(
-            sa_inputs,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            creationflags=create_no_window
-        ) as process:
-            # The while loop reads the subprocess's stdout in real time and writes the stdout messages to the GP UI.
-            # This is the only way to write the subprocess's status messages in a way that a user running the tool from
-            # the ArcGIS Pro UI can actually see them.
-            # When process.poll() returns anything other than None, the process has completed, and we should stop
-            # checking and move on.
-            while process.poll() is None:
-                output = process.stdout.readline()
-                if output:
-                    msg_string = output.strip().decode(encoding="utf-8")
-                    AnalysisHelpers.parse_std_and_write_to_gp_ui(msg_string)
-                time.sleep(.1)
-
-            # Once the process is finished, check if any additional errors were returned. Messages that came after the
-            # last process.poll() above will still be in the queue here. This is especially important for detecting
-            # messages from raised exceptions, especially those with tracebacks.
-            output, _ = process.communicate()
-            if output:
-                out_msgs = output.decode(encoding="utf-8").splitlines()
-                for msg in out_msgs:
-                    AnalysisHelpers.parse_std_and_write_to_gp_ui(msg)
-
-            # In case something truly horrendous happened and none of the logging caught our errors, at least fail the
-            # tool when the subprocess returns an error code. That way the tool at least doesn't happily succeed but not
-            # actually do anything.
-            return_code = process.returncode
-            if return_code != 0:
-                arcpy.AddError("Create Percent Access Polygons parallelization script failed.")
-                sys.exit()
+        AnalysisHelpers.execute_subprocess("parallel_cpap.py", inputs)
 
         # At this point, the main output feature class should exist
         if not arcpy.Exists(self.out_cell_counts_fc):

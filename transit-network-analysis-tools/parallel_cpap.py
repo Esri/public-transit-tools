@@ -39,8 +39,115 @@ DELETE_INTERMEDIATE_OUTPUTS = True  # Set to False for debugging purposes
 LOGGER = AnalysisHelpers.configure_global_logger(logging.INFO)
 
 
-def parallel_counter(time_lapse_polygons, raster_template, scratch_folder, combo):
-    """Calculate percent access polygons for the designated facility, from break, to break combo.
+class ParallelCounter(AnalysisHelpers.JobFolderMixin, AnalysisHelpers.LoggingMixin):
+    """Calculate percent access polygons for the designated facility, from break, to break combo."""
+
+    def __init__(self, time_lapse_polygons, raster_template, facility_id, from_break, to_break, scratch_folder):
+        """Initialize the parallel counter for the given inputs.
+
+        Args:
+            time_lapse_polygons (feature class catalog path): Time lapse polygons
+            raster_template (feature class catalog path): Raster-like polygons template
+            facility_id (int): ID of the Service Area facility to select for processing this chunk
+            from_break (float): Service Area FromBreak field value to select for processing this chunk
+            to_break (float): Service Area ToBreak field value to select for processing this chunk
+            scratch_folder (folder): Folder location to write intermediate outputs
+        """
+        self.time_lapse_polygons = time_lapse_polygons
+        self.raster_template = raster_template
+        self.facility_id = facility_id
+        self.from_break = from_break
+        self.to_break = to_break
+        self.scratch_folder = scratch_folder
+
+        # Create a job ID and a folder for this job
+        self._create_job_folder()
+        self.scratch_gdb = None  # Set later
+
+        # Setup the class logger. Logs for each parallel process are not written to the console but instead to a
+        # process-specific log file.
+        self.setup_logger("PercAccPoly")
+
+        # Prepare a dictionary to store info about the analysis results
+        self.job_result = {
+            "jobId": self.job_id,
+            "jobFolder": self.job_folder,
+            "logFile": self.log_file,
+            "polygons": None  # Set later
+        }
+
+    def make_percent_access_polygons(self):
+        """Calculate percent access polygons for the designated facility, from break, to break combo."""
+        self.logger.info(
+            f"Processing FacilityID {self.facility_id}, FromBreak {self.from_break}, ToBreak {self.to_break}...")
+        self.scratch_gdb = self._create_output_gdb()
+        selected_polygons = self._select_polygons()
+        joined_polygons = self._join_polygons(selected_polygons)
+        dissolved_polygons = self._dissolve_cells(joined_polygons)
+        self.job_result["polygons"] = dissolved_polygons
+
+    def _select_polygons(self):
+        """Select the subset of polygons for this FacilityID/FromBreak/ToBreak combo and return the layer."""
+        selected_polys_layer = "SelectedPolys_" + self.job_id
+        if self.facility_id is None:
+            facility_query = arcpy.AddFieldDelimiters(self.time_lapse_polygons, FACILITY_ID_FIELD) + " IS NULL"
+        else:
+            facility_query = arcpy.AddFieldDelimiters(self.time_lapse_polygons, FACILITY_ID_FIELD) + " = " + \
+                str(self.facility_id)
+        query = facility_query + " AND " + \
+            arcpy.AddFieldDelimiters(self.time_lapse_polygons, FROM_BREAK_FIELD) + " = " + str(self.from_break) + \
+            " AND " + \
+            arcpy.AddFieldDelimiters(self.time_lapse_polygons, TO_BREAK_FIELD) + " = " + str(self.to_break)
+        arcpy.management.MakeFeatureLayer(self.time_lapse_polygons, selected_polys_layer, where_clause=query)
+        self.logger.info(
+            f"{int(arcpy.management.GetCount(selected_polys_layer).getOutput(0))} time lapse polygons selected.")
+        return selected_polys_layer
+
+    def _join_polygons(self, selected_polygons):
+        """Spatially join polygons and return the path to the output feature class."""
+        # Do a spatial join in order to count the number of time lapse polygons intersect each "cell" in the raster-like
+        # polygon template.  We are effectively applying the template to a specific set of time lapse polygons, doing the
+        # count, and creating the raw output.  The result is a polygon feature class of raster-like cells with a field
+        # called Join_Count that shows the number of input time lapse polygons that intersect the cell using the specified
+        # match_option.
+        # Create a FieldMappings object for Spatial Join to preserve informational input fields
+        field_mappings = arcpy.FieldMappings()
+        for field in FIELDS_TO_PRESERVE:
+            fmap = arcpy.FieldMap()
+            fmap.addInputField(self.time_lapse_polygons, field)
+            fmap.mergeRule = "First"
+            field_mappings.addFieldMap(fmap)
+        # Do the spatial join
+        temp_spatial_join_fc = os.path.join(self.scratch_gdb, "SpatialJoin")
+        t0 = time.time()
+        arcpy.analysis.SpatialJoin(
+            self.raster_template,
+            selected_polygons,
+            temp_spatial_join_fc,
+            "JOIN_ONE_TO_ONE",  # Output keeps only one copy of each "cell" when multiple time lapse polys intersect it
+            "KEEP_COMMON",  # Delete any "cells" that don't overlap the time lapse polys being considered
+            field_mapping=field_mappings,  # Preserve some fields from the original data
+            match_option="HAVE_THEIR_CENTER_IN"
+        )
+        self.logger.info(f"Finished spatial join in {time.time() - t0} seconds.")
+        return temp_spatial_join_fc
+
+    def _dissolve_cells(self, joined_polygons):
+        """Dissolve percent access cells with the same values and return the path to the output feature class."""
+        # Dissolve all the little cells that were reached the same number of times to make the output more manageable
+        # Currently, the feature class contains a large number of little square polygons representing raster cells. The
+        # Join_Count field added by Spatial Join says how many of the input time lapse polygons overlapped the cell.  We
+        # don't need all the little squares.  We can dissolve them so that we have one polygon per unique value of
+        # Join_Count.
+        dissolved_polygons = os.path.join(self.scratch_gdb, "DissolvedPolys")
+        t0 = time.time()
+        arcpy.management.Dissolve(joined_polygons, dissolved_polygons, FIELDS_TO_PRESERVE + ["Join_Count"])
+        self.logger.info(f"Finished dissolve in {time.time() - t0} seconds.")
+        return dissolved_polygons
+
+
+def parallel_calculate_access(time_lapse_polygons, raster_template, scratch_folder, combo):
+    """Calculate the percent access polygons for this chunk.
 
     Args:
         time_lapse_polygons (feature class catalog path): Time lapse polygons
@@ -51,93 +158,12 @@ def parallel_counter(time_lapse_polygons, raster_template, scratch_folder, combo
     Returns:
         dict: job result parameters
     """
-    # Create a job ID and a folder and scratch gdb for this job
-    job_id = uuid.uuid4().hex
-    job_folder = os.path.join(scratch_folder, job_id)
-    os.mkdir(job_folder)
-    scratch_gdb = os.path.join(job_folder, "scratch.gdb")
-    arcpy.management.CreateFileGDB(job_folder, "scratch.gdb")
-
-    # Setup the logger. Logs for each parallel process are not written to the console but instead to a
-    # process-specific log file.
-    log_file = os.path.join(job_folder, 'log.log')
-    logger = logging.getLogger("PercAccPoly_" + job_id)
-    logger.setLevel(logging.DEBUG)
-    if len(logger.handlers) <= 1:
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(logging.DEBUG)
-        logger.addHandler(file_handler)
-        formatter = logging.Formatter("%(process)d | %(message)s")
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-
-    # Prepare a dictionary to store info about the analysis results
-    job_result = {
-        "jobId": job_id,
-        "jobFolder": job_folder,
-        "logFile": log_file,
-        "polygons": None
-    }
-
-    # Parse parameters for this process
     facility_id, from_break, to_break = combo
-    logger.info(f"Processing FacilityID {facility_id}, FromBreak {from_break}, ToBreak {to_break}...")
-
-    # Select the subset of polygons for this FacilityID/FromBreak/ToBreak combo
-    selected_polys_layer = "SelectedPolys_" + job_id
-    if facility_id is None:
-        facility_query = arcpy.AddFieldDelimiters(time_lapse_polygons, FACILITY_ID_FIELD) + " IS NULL"
-    else:
-        facility_query = arcpy.AddFieldDelimiters(time_lapse_polygons, FACILITY_ID_FIELD) + " = " + str(facility_id)
-    query = facility_query + " AND " + \
-        arcpy.AddFieldDelimiters(time_lapse_polygons, FROM_BREAK_FIELD) + " = " + str(from_break) + " AND " + \
-        arcpy.AddFieldDelimiters(time_lapse_polygons, TO_BREAK_FIELD) + " = " + str(to_break)
-    arcpy.management.MakeFeatureLayer(time_lapse_polygons, selected_polys_layer, where_clause=query)
-    logger.info(f"{int(arcpy.management.GetCount(selected_polys_layer).getOutput(0))} time lapse polygons selected.")
-
-    # Do a spatial join in order to count the number of time lapse polygons intersect each "cell" in the raster-like
-    # polygon template.  We are effectively applying the template to a specific set of time lapse polygons, doing the
-    # count, and creating the raw output.  The result is a polygon feature class of raster-like cells with a field
-    # called Join_Count that shows the number of input time lapse polygons that intersect the cell using the specified
-    # match_option.
-    # Create a FieldMappings object for Spatial Join to preserve informational input fields
-    field_mappings = arcpy.FieldMappings()
-    for field in FIELDS_TO_PRESERVE:
-        fmap = arcpy.FieldMap()
-        fmap.addInputField(time_lapse_polygons, field)
-        fmap.mergeRule = "First"
-        field_mappings.addFieldMap(fmap)
-    # Do the spatial join
-    temp_spatial_join_fc = os.path.join(scratch_gdb, "SpatialJoin")
-    t0 = time.time()
-    arcpy.analysis.SpatialJoin(
-        raster_template,
-        selected_polys_layer,
-        temp_spatial_join_fc,
-        "JOIN_ONE_TO_ONE",  # Output keeps only one copy of each "cell" when multiple time lapse polys intersect it
-        "KEEP_COMMON",  # Delete any "cells" that don't overlap the time lapse polys being considered
-        field_mapping=field_mappings,  # Preserve some fields from the original data
-        match_option="HAVE_THEIR_CENTER_IN"
-    )
-    logger.info(f"Finished spatial join in {time.time() - t0} seconds.")
-
-    # Dissolve all the little cells that were reached the same number of times to make the output more manageable
-    # Currently, the feature class contains a large number of little square polygons representing raster cells. The
-    # Join_Count field added by Spatial Join says how many of the input time lapse polygons overlapped the cell.  We
-    # don't need all the little squares.  We can dissolve them so that we have one polygon per unique value of
-    # Join_Count.
-    dissolved_polygons = os.path.join(scratch_gdb, "DissolvedPolys")
-    t0 = time.time()
-    arcpy.management.Dissolve(temp_spatial_join_fc, dissolved_polygons, FIELDS_TO_PRESERVE + ["Join_Count"])
-    logger.info(f"Finished dissolve in {time.time() - t0} seconds.")
-    job_result["polygons"] = dissolved_polygons
-
-    # Clean up and close the logger.
-    for handler in logger.handlers:
-        handler.close()
-        logger.removeHandler(handler)
-
-    return job_result
+    cpap_counter = ParallelCounter(
+        time_lapse_polygons, raster_template, facility_id, from_break, to_break, scratch_folder)
+    cpap_counter.make_percent_access_polygons()
+    cpap_counter.teardown_logger()
+    return cpap_counter.job_result
 
 
 def count_percent_access_polygons(time_lapse_polygons, raster_template, output_fc, max_processes):
@@ -182,7 +208,7 @@ def count_percent_access_polygons(time_lapse_polygons, raster_template, output_f
         # Each parallel process calls the parallel_counter() function with the required static inputs and one of the
         # output combos
         jobs = {executor.submit(
-            parallel_counter, time_lapse_polygons, raster_template, scratch_folder, combo
+            parallel_calculate_access, time_lapse_polygons, raster_template, scratch_folder, combo
         ): combo for combo in unique_output_combos}
         # As each job is completed, add some logging information and store the results to post-process later
         for future in futures.as_completed(jobs):
@@ -211,7 +237,8 @@ def count_percent_access_polygons(time_lapse_polygons, raster_template, output_f
                     num_retries += 1
                     try:
                         future = executor.submit(
-                            parallel_counter, time_lapse_polygons, raster_template, scratch_folder, failed_combo)
+                            parallel_calculate_access,
+                            time_lapse_polygons, raster_template, scratch_folder, failed_combo)
                         result = future.result()
                         job_failed = False
                         LOGGER.debug(
