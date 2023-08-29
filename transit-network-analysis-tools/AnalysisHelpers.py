@@ -290,7 +290,7 @@ def are_input_layers_the_same(input_layer_1, input_layer_2):
 
 
 def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input):
-    """Make a list of datetimes to use as input for a network analysis time of day run in a loop"""
+    """Make a list of datetimes to use as input for a network analysis time of day run in a loop."""
     start_time, end_time = convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input, end_time_input)
     # How much to increment the time in each solve, in minutes
     increment = datetime.timedelta(minutes=increment_input)
@@ -303,7 +303,7 @@ def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_in
 
 
 def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input, end_time_input):
-    """Parse start and end day and time from tool inputs and convert them to datetimes"""
+    """Parse start and end day and time from tool inputs and convert them to datetimes."""
     # For an explanation of special generic weekday dates, see this documentation:
     # https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/dates-and-times.htm
     days = {
