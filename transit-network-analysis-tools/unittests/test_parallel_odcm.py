@@ -139,7 +139,7 @@ class TestParallelODCM(unittest.TestCase):
     def test_solve_od_cost_matrix(self):
         """Test the solve_od_cost_matrix function."""
         result = parallel_odcm.solve_od_cost_matrix(
-            self.od_args, [[1, 3], [11, 15], datetime.datetime(1900, 1, 3, 10, 0, 0)])
+            [[1, 3], [11, 15], datetime.datetime(1900, 1, 3, 10, 0, 0)], self.od_args)
         # Check results
         self.assertIsInstance(result, dict)
         self.assertTrue(os.path.exists(result["logFile"]), "Log file does not exist.")

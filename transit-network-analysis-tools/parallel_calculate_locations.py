@@ -31,7 +31,6 @@ Copyright 2023 Esri
    limitations under the License.
 """
 # pylint: disable=logging-fstring-interpolation
-from concurrent import futures
 import os
 import uuid
 import logging
@@ -142,12 +141,12 @@ class LocationCalculator(
         self.job_result["oidRange"] = tuple(oid_range)
 
 
-def calculate_locations_for_chunk(calc_locs_settings, chunk):
+def calculate_locations_for_chunk(chunk, calc_locs_settings):
     """Calculate locations for a range of OIDs in the input dataset.
 
     Args:
-        calc_locs_settings (dict): Dictionary of kwargs for the LocationCalculator class.
         chunk (list): OID range to calculate locations for. Specified as a list of [start range, end range], inclusive.
+        calc_locs_settings (dict): Dictionary of kwargs for the LocationCalculator class.
 
     Returns:
         dict: Dictionary of job results for the chunk
@@ -217,70 +216,16 @@ class ParallelLocationCalculator:
 
     def calc_locs_in_parallel(self):
         """Calculate locations in parallel."""
-        total_jobs = len(self.ranges)
-        LOGGER.info(f"Beginning parallel Calculate Locations ({total_jobs} chunks)")
-        completed_jobs = 0  # Track the number of jobs completed so far to use in logging
-        # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that calculate chunks of
-        # locations
-        with futures.ProcessPoolExecutor(max_workers=self.max_processes) as executor:
-            # Each parallel process calls the calculate_locations_for_chunk() function for the given range of OIDs
-            # in the input dataset
-            jobs = {executor.submit(
-                calculate_locations_for_chunk, self.calc_locs_inputs, chunk
-                ): chunk for chunk in self.ranges}
-            # As each job is completed, add some logging information and store the results to post-process later
-            for future in futures.as_completed(jobs):
-                try:
-                    # The job returns a results dictionary. Retrieve it.
-                    result = future.result()
-                except Exception:  # pylint: disable=broad-except
-                    # If we couldn't retrieve the result, some terrible error happened and the job errored.
-                    # Note: This does not mean solve failed. It means some unexpected error was thrown. The most likely
-                    # causes are:
-                    # a) If you're calling a service, the service was temporarily down.
-                    # b) You had a temporary file read/write or resource issue on your machine.
-                    # c) If you're actively updating the code, you introduced an error.
-                    # To make the tool more robust against temporary glitches, retry submitting the job up to the number
-                    # of times designated in AnalysisHelpers.MAX_RETRIES.  If the job is still erroring after that many retries,
-                    # fail the entire tool run.
-                    errs = traceback.format_exc().splitlines()
-                    failed_range = jobs[future]
-                    LOGGER.debug((
-                        f"Failed to get results for Calculate Locations chunk {failed_range} from the parallel process."
-                        f" Will retry up to {AnalysisHelpers.MAX_RETRIES} times. Errors: {errs}"
-                    ))
-                    job_failed = True
-                    num_retries = 0
-                    while job_failed and num_retries < AnalysisHelpers.MAX_RETRIES:
-                        num_retries += 1
-                        try:
-                            future = executor.submit(calculate_locations_for_chunk, self.calc_locs_inputs, failed_range)
-                            result = future.result()
-                            job_failed = False
-                            LOGGER.debug(
-                                f"Calculate Locations chunk {failed_range} succeeded after {num_retries} retries.")
-                        except Exception:  # pylint: disable=broad-except
-                            # Update exception info to the latest error
-                            errs = traceback.format_exc().splitlines()
-                    if job_failed:
-                        # The job errored and did not succeed after retries.  Fail the tool run because something
-                        # terrible is happening.
-                        LOGGER.debug(
-                            f"Calculate Locations chunk {failed_range} continued to error after {num_retries} retries.")
-                        LOGGER.error("Failed to get Calculate Locations result from parallel processing.")
-                        errs = traceback.format_exc().splitlines()
-                        for err in errs:
-                            LOGGER.error(err)
-                        raise
-
-                # If we got this far, the job completed successfully and we retrieved results.
-                completed_jobs += 1
-                LOGGER.info(
-                    f"Finished Calculate Locations chunk {completed_jobs} of {total_jobs}.")
-
-                # Parse the results dictionary and store components for post-processing.
-                # Store the ranges as dictionary keys to facilitate sorting.
-                self.temp_out_fcs[result["oidRange"]] = result["outputFC"]
+        # Calculate locations in parallel
+        job_results = AnalysisHelpers.run_parallel_processes(
+            LOGGER, calculate_locations_for_chunk, [self.calc_locs_inputs], self.ranges,
+            len(self.ranges), self.max_processes,
+            "Calculating locations", "Calculate Locations"
+        )
+        for result in job_results:
+            # Parse the results dictionary and store components for post-processing.
+            # Store the ranges as dictionary keys to facilitate sorting.
+            self.temp_out_fcs[result["oidRange"]] = result["outputFC"]
 
         # Rejoin the chunked feature classes into one.
         LOGGER.info("Rejoining chunked data...")
