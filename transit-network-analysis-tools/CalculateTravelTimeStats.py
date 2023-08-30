@@ -2,7 +2,7 @@
 ## Toolbox: Transit Network Analysis Tools
 ## Tool name: Calculate Travel Time Statistics
 ## Created by: Melinda Morang, Esri
-## Last updated: 29 August 2023
+## Last updated: 30 August 2023
 ################################################################################
 """Solve a Route iteratively over a time window and output a
 table of statistics describing the travel time over the time window for each
@@ -126,10 +126,7 @@ def runTool(input_network_analyst_layer, output_table,
         # Get the sublayer names and objects for use later
         sublayer_names = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
         output_sublayer_name = sublayer_names[solver_opts["Output Sublayer Name"]]
-        if not AnalysisHelpers.isPy3:
-            output_subLayer = arcpy.mapping.ListLayers(input_network_analyst_layer, output_sublayer_name)[0]
-        else:
-            output_subLayer = input_network_analyst_layer.listLayers(output_sublayer_name)[0]
+        output_subLayer = input_network_analyst_layer.listLayers(output_sublayer_name)[0]
 
 
         # ----- Solve NA layer in a loop for each time of day -----
