@@ -1,7 +1,7 @@
 ################################################################################
 ## Toolbox: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 30 May 2023
+## Last updated: 30 August 2023
 ################################################################################
 """Helper methods for analysis tools."""
 ################################################################################
@@ -26,6 +26,7 @@ import subprocess
 import uuid
 import logging
 import traceback
+from concurrent import futures
 import arcpy
 
 # Determine if this is python 3 (which means probably ArcGIS Pro)
@@ -701,6 +702,88 @@ def configure_global_logger(log_level):
     console_handler.setFormatter(logging.Formatter("%(levelname)s" + MSG_STR_SPLITTER + "%(message)s"))
     logger.addHandler(console_handler)
     return logger
+
+
+def run_parallel_processes(
+        logger, function_to_call, static_args, chunks, total_jobs, max_processes,
+        msg_intro_verb, msg_process_str
+):
+    """Launch and manage parallel processes and return a results dictionary.
+
+    Args:
+        logger (logging.logger): Logger to use for the parallelized process
+        function_to_call (function): Function called in each parallelized job
+        static_args (list): List of values used as static arguments to the function_to_call
+        chunks (iterator): Iterator with values that will be passed one at a time to the function_to_call, with each
+            value being one parallelized chunk.
+        total_jobs (int): Total number of jobs that will be run. Used in messaging.
+        max_processes (int): Maximum number of parallel processes allowed.
+        msg_intro_verb (str): Text to include in the intro message f"{msg_intro_verb} in parallel..."
+        msg_process_str (_type_): Text to include in messages representing whatever is being parallelized.
+
+    Returns:
+        list: List of returned values from the parallel processes.
+    """
+    logger.info(f"{msg_intro_verb} in parallel ({total_jobs} chunks)...")
+    completed_jobs = 0  # Track the number of jobs completed so far to use in logging
+    job_results = []
+    # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that call the function
+    with futures.ProcessPoolExecutor(max_workers=max_processes) as executor:
+        # Each parallel process calls the designated function with the designated static inputs and a unique chunk
+        jobs = {executor.submit(
+            function_to_call, chunk, *static_args): chunk for chunk in chunks}
+        # As each job is completed, add some logging information and store the results to post-process later
+        for future in futures.as_completed(jobs):
+            try:
+                # Retrieve the results returned by the process
+                result = future.result()
+            except Exception:  # pylint: disable=broad-except
+                # If we couldn't retrieve the result, some terrible error happened and the job errored.
+                # Note: For processes that do network analysis workflows, this does not mean solve failed.
+                # It means some unexpected error was thrown. The most likely
+                # causes are:
+                # a) If you're calling a service, the service was temporarily down.
+                # b) You had a temporary file read/write or resource issue on your machine.
+                # c) If you're actively updating the code, you introduced an error.
+                # To make the tool more robust against temporary glitches, retry submitting the job up to the number
+                # of times designated in MAX_RETRIES.  If the job is still erroring after that many
+                # retries, fail the entire tool run.
+                errs = traceback.format_exc().splitlines()
+                failed_range = jobs[future]
+                logger.debug((
+                    f"Failed to get results for {msg_process_str} chunk {failed_range} from the parallel process. "
+                    f"Will retry up to {MAX_RETRIES} times. Errors: {errs}"
+                ))
+                job_failed = True
+                num_retries = 0
+                while job_failed and num_retries < MAX_RETRIES:
+                    num_retries += 1
+                    try:
+                        future = executor.submit(function_to_call, failed_range, *static_args)
+                        result = future.result()
+                        job_failed = False
+                        logger.debug(f"{msg_process_str} chunk {failed_range} succeeded after {num_retries} retries.")
+                    except Exception:  # pylint: disable=broad-except
+                        # Update exception info to the latest error
+                        errs = traceback.format_exc().splitlines()
+                if job_failed:
+                    # The job errored and did not succeed after retries.  Fail the tool run because something
+                    # terrible is happening.
+                    logger.debug(
+                        f"{msg_process_str} chunk {failed_range} continued to error after {num_retries} retries.")
+                    logger.error(f"Failed to get {msg_process_str} result from parallel processing.")
+                    errs = traceback.format_exc().splitlines()
+                    for err in errs:
+                        logger.error(err)
+                    raise
+
+            # If we got this far, the job completed successfully and we retrieved results.
+            completed_jobs += 1
+            logger.info(
+                f"Finished {msg_process_str} {completed_jobs} of {total_jobs}.")
+            job_results.append(result)
+
+        return job_results
 
 
 class PrecalculateLocationsMixin:  # pylint:disable = too-few-public-methods
