@@ -290,7 +290,7 @@ def are_input_layers_the_same(input_layer_1, input_layer_2):
 
 
 def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_input, end_time_input, increment_input):
-    """Make a list of datetimes to use as input for a network analysis time of day run in a loop"""
+    """Make a list of datetimes to use as input for a network analysis time of day run in a loop."""
     start_time, end_time = convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input, end_time_input)
     # How much to increment the time in each solve, in minutes
     increment = datetime.timedelta(minutes=increment_input)
@@ -303,7 +303,7 @@ def make_analysis_time_of_day_list(start_day_input, end_day_input, start_time_in
 
 
 def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input, end_time_input):
-    """Parse start and end day and time from tool inputs and convert them to datetimes"""
+    """Parse start and end day and time from tool inputs and convert them to datetimes."""
     # For an explanation of special generic weekday dates, see this documentation:
     # https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/dates-and-times.htm
     days = {
@@ -372,31 +372,6 @@ def convert_inputs_to_datetimes(start_day_input, end_day_input, start_time_input
         raise ValueError(err)
 
     return start_time, end_time
-
-
-def add_TimeOfDay_field_to_sublayer(nalayer, sublayer_object, sublayer_name):
-    """Add a field called TimeOfDay of type DATE to an NA sublayer"""
-    # Clean up any pre-existing fields with this name (unlikely case)
-    poly_fields = [f for f in arcpy.Describe(sublayer_object).fields if f.name == TIME_FIELD]
-    if poly_fields:
-        for f in poly_fields:
-            if f.name == TIME_FIELD and f.type != "Date":
-                msg = "Your network analysis layer's %s sublayer already contained a field called %s of a type " + \
-                      "other than Date.  This field will be deleted and replaced with a field of type Date used " + \
-                      "for the output of this tool."
-                arcpy.AddWarning(msg % (sublayer_name, TIME_FIELD))
-                arcpy.management.DeleteField(sublayer_object, TIME_FIELD)
-
-    # Add the TimeOfDay field to the sublayer.  If it already exists, this will do nothing.
-    arcpy.na.AddFieldToAnalysisLayer(nalayer, sublayer_name, TIME_FIELD, "DATE")
-
-    return TIME_FIELD
-
-
-def calculate_TimeOfDay_field(sublayer_object, time_field, time_of_day):
-    """Set the TimeOfDay field to a specific time of day"""
-    expression = '"' + str(time_of_day) + '"'  # Unclear why a DATE field requires a string expression, but it does.
-    arcpy.management.CalculateField(sublayer_object, time_field, expression, "PYTHON_9.3")
 
 
 def cell_size_to_meters(cell_size_param_value):
