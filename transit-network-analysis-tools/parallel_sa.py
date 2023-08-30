@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 7 June 2023
+## Last updated: 30 August 2023
 ############################################################################
 """Run a Service Area analysis incrementing the time of day over a time window.
 Save the output polygons to a single feature class that can be used to generate
@@ -28,7 +28,6 @@ Copyright 2023 Esri
    limitations under the License.
 """
 # pylint: disable=logging-fstring-interpolation
-from concurrent import futures
 import os
 import uuid
 import logging
@@ -336,12 +335,12 @@ class ServiceArea(
         self.logger.debug("Finished calculating Service Area.")
 
 
-def solve_service_area(inputs, time_of_day):
+def solve_service_area(time_of_day, inputs):
     """Solve a Service Area analysis for the given time of day.
 
     Args:
-        inputs (dict): Dictionary of keyword inputs suitable for initializing the ServiceArea class
         time_of_day (datetime.datetime): Start time and date for the Service Area
+        inputs (dict): Dictionary of keyword inputs suitable for initializing the ServiceArea class
 
     Returns:
         dict: Dictionary of results from the ServiceArea class
@@ -464,74 +463,21 @@ class ParallelSACalculator():
         # the optimized that are guaranteed to all fail.
         self._validate_sa_settings()
 
-        # Compute Service Area in parallel
-        LOGGER.info("Solving Service Areas in parallel...")
-        completed_jobs = 0  # Track the number of jobs completed so far to use in logging
-        # Use the concurrent.futures ProcessPoolExecutor to spin up parallel processes that solve the Service Areas
-        with futures.ProcessPoolExecutor(max_workers=self.max_processes) as executor:
-            # Each parallel process calls the solve_service_area() function with the sa_inputs dictionary for the
-            # given time of day.
-            jobs = {executor.submit(
-                solve_service_area, self.sa_inputs, time_of_day): time_of_day for time_of_day in self.start_times}
-            # As each job is completed, add some logging information and store the results to post-process later
-            for future in futures.as_completed(jobs):
-                try:
-                    # The Service Area job returns a results dictionary. Retrieve it.
-                    result = future.result()
-                except Exception:  # pylint: disable=broad-except
-                    # If we couldn't retrieve the result, some terrible error happened and the job errored.
-                    # Note: This does not mean solve failed. It means some unexpected error was thrown. The most likely
-                    # causes are:
-                    # a) If you're calling a service, the service was temporarily down.
-                    # b) You had a temporary file read/write or resource issue on your machine.
-                    # c) If you're actively updating the code, you introduced an error.
-                    # To make the tool more robust against temporary glitches, retry submitting the job up to the number
-                    # of times designated in AnalysisHelpers.MAX_RETRIES.  If the job is still erroring after that many
-                    # retries, fail the entire tool run.
-                    errs = traceback.format_exc().splitlines()
-                    failed_time = jobs[future]
-                    LOGGER.debug((
-                        f"Failed to get results for Service Area for start time {failed_time} from the parallel "
-                        f"process. Will retry up to {AnalysisHelpers.MAX_RETRIES} times. Errors: {errs}"
-                    ))
-                    job_failed = True
-                    num_retries = 0
-                    while job_failed and num_retries < AnalysisHelpers.MAX_RETRIES:
-                        num_retries += 1
-                        try:
-                            future = executor.submit(solve_service_area, self.sa_inputs, failed_time)
-                            result = future.result()
-                            job_failed = False
-                            LOGGER.debug(
-                                f"Service Area for start time {failed_time} succeeded after {num_retries} retries.")
-                        except Exception:  # pylint: disable=broad-except
-                            # Update exception info to the latest error
-                            errs = traceback.format_exc().splitlines()
-                    if job_failed:
-                        # The job errored and did not succeed after retries.  Fail the tool run because something
-                        # terrible is happening.
-                        LOGGER.debug((
-                            f"Service Area for start time {failed_time} continued to error after {num_retries} "
-                            "retries."
-                        ))
-                        LOGGER.error("Failed to get Service Area result from parallel processing.")
-                        errs = traceback.format_exc().splitlines()
-                        for err in errs:
-                            LOGGER.error(err)
-                        raise
+        # Compute Service Areas in parallel
+        job_results = AnalysisHelpers.run_parallel_processes(
+            LOGGER, solve_service_area, [self.sa_inputs], self.start_times,
+            len(self.start_times), self.max_processes,
+            "Solving Service Areas", "Service Area"
+        )
 
-                # If we got this far, the job completed successfully and we retrieved results.
-                completed_jobs += 1
-                LOGGER.info(
-                    f"Finished Service Area calculation {completed_jobs} of {len(self.start_times)}.")
-
-                # Parse the results dictionary and store components for post-processing.
-                if result["solveSucceeded"]:
-                    self.sa_poly_fcs.append(result["outputPolygons"])
-                else:
-                    LOGGER.warning(f"Solve failed for job id {result['jobId']}")
-                    msgs = result["solveMessages"]
-                    LOGGER.warning(msgs)
+        # Parse the results and store components for post-processing.
+        for result in job_results:
+            if result["solveSucceeded"]:
+                self.sa_poly_fcs.append(result["outputPolygons"])
+            else:
+                LOGGER.warning(f"Solve failed for job id {result['jobId']}")
+                msgs = result["solveMessages"]
+                LOGGER.warning(msgs)
 
         # Merge all the individual Service Area polygons feature classes
         if not self.sa_poly_fcs:
