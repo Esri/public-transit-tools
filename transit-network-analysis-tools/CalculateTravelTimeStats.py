@@ -116,12 +116,8 @@ def runTool(input_network_analyst_layer, output_table,
             raise CustomError
 
         # If the input NA layer is a layer file, convert it to a layer object
-        if not AnalysisHelpers.isPy3:
-            if isinstance(input_network_analyst_layer, (unicode, str)) and input_network_analyst_layer.endswith(".lyr"):
-                input_network_analyst_layer = arcpy.mapping.Layer(input_network_analyst_layer)
-        else:
-            if isinstance(input_network_analyst_layer, str) and input_network_analyst_layer.endswith(".lyrx"):
-                input_network_analyst_layer = arcpy.mp.LayerFile(input_network_analyst_layer).listLayers()[0]
+        if isinstance(input_network_analyst_layer, str) and input_network_analyst_layer.endswith(".lyrx"):
+            input_network_analyst_layer = arcpy.mp.LayerFile(input_network_analyst_layer).listLayers()[0]
 
         # Get the sublayer names and objects for use later
         sublayer_names = arcpy.na.GetNAClassNames(input_network_analyst_layer) # To ensure compatibility with localized software
