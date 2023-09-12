@@ -34,7 +34,7 @@ from AnalysisHelpers import FACILITY_ID_FIELD, FROM_BREAK_FIELD, TO_BREAK_FIELD,
 DELETE_INTERMEDIATE_OUTPUTS = True  # Set to False for debugging purposes
 
 # Change logging.INFO to logging.DEBUG to see verbose debug messages
-LOGGER = AnalysisHelpers.configure_global_logger(logging.INFO)
+LOG_LEVEL = logging.INFO
 
 
 class ParallelCounter(AnalysisHelpers.JobFolderMixin, AnalysisHelpers.LoggingMixin):

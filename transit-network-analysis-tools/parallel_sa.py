@@ -45,7 +45,7 @@ import AnalysisHelpers
 DELETE_INTERMEDIATE_SA_OUTPUTS = True  # Set to False for debugging purposes
 
 # Change logging.INFO to logging.DEBUG to see verbose debug messages
-LOGGER = AnalysisHelpers.configure_global_logger(logging.INFO)
+LOG_LEVEL = logging.INFO
 
 
 def run_gp_tool(tool, tool_args=None, tool_kwargs=None, log_to_use=LOGGER):
