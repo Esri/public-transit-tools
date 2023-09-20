@@ -242,7 +242,11 @@ def get_catalog_path(layer):
         string: Catalog path to the data
     """
     if hasattr(layer, "dataSource"):
-        return layer.dataSource
+        catalog_path = layer.dataSource
+        if "DB_CONNECTION_PROPERTIES" in catalog_path:
+            # Handle weird SDE or MMPK layers where the .dataSource property returns extra garbage
+            catalog_path = arcpy.Describe(layer).catalogPath
+        return catalog_path
     return layer
 
 
@@ -255,8 +259,17 @@ def get_catalog_path_from_param(param):
     Returns:
         string: Catalog path to the data
     """
-    if hasattr(param.value, "dataSource"):
-        return param.value.dataSource
+    param_value = param.value
+    if not param_value:
+        return ""
+    # If the value is a layer object, get its data source (catalog path)
+    if hasattr(param_value, "dataSource"):
+        catalog_path = param_value.dataSource
+        if "DB_CONNECTION_PROPERTIES" in catalog_path:
+            # Handle weird SDE or MMPK layers where the .dataSource property returns extra garbage
+            catalog_path = arcpy.Describe(param_value).catalogPath
+        return catalog_path
+    # Otherwise, it's probably already a string catalog path. Just return its text value.
     return param.valueAsText
 
 
