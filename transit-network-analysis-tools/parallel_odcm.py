@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 30 August 2023
+## Last updated: 20 September 2023
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -70,7 +70,7 @@ import AnalysisHelpers
 DELETE_INTERMEDIATE_OD_OUTPUTS = True  # Set to False for debugging purposes
 
 # Change logging.INFO to logging.DEBUG to see verbose debug messages
-LOGGER = AnalysisHelpers.configure_global_logger(logging.INFO)
+LOG_LEVEL = logging.INFO
 
 
 class ODCostMatrix(
@@ -463,7 +463,7 @@ class ParallelODCalculator():
     """Solves a large OD Cost Matrix by chunking the problem, solving in parallel, and combining results."""
 
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
-        self, tool, origins, destinations, network_data_source, travel_mode, max_origins, max_destinations,
+        self, logger, tool, origins, destinations, network_data_source, travel_mode, max_origins, max_destinations,
         time_window_start_day, time_window_start_time, time_window_end_day, time_window_end_time, time_increment,
         max_processes, time_units=None, cutoff=None, weight_field=None, barriers=None,
         out_csv_file=None, out_na_folder=None, origin_orig_oid_field=None, dest_orig_oid_field=None
@@ -476,6 +476,8 @@ class ParallelODCalculator():
         This class assumes that the inputs have already been pre-processed and validated.
 
         Args:
+            logger (logging.logger): Logger class to use for messages that get written to the GP window. Set up using
+                AnalysisHelpers.configure_global_logger().
             tool (str): Enum string name corresponding to a value in AnalysisHelpers.ODTool
             origins (str): Catalog path to origins
             destinations (str): Catalog path to destinations
@@ -500,6 +502,7 @@ class ParallelODCalculator():
                 Defaults to None.
             out_csv_file (str, optional): Catalog path to the output CSV file for calculated statistics
         """
+        self.logger = logger
         self.tool = AnalysisHelpers.ODTool[tool]
         self.origins = origins
         self.destinations = destinations
@@ -512,7 +515,7 @@ class ParallelODCalculator():
         self.max_processes = max_processes
         self.weight_field = weight_field
         if self.weight_field and self.tool is AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
-            LOGGER.warning("A weight field is not supported for this tool and will be ignored.")
+            self.logger.warning("A weight field is not supported for this tool and will be ignored.")
             self.weight_field = None
         self.out_csv_file = out_csv_file
         self.origin_orig_oid_field = origin_orig_oid_field
@@ -526,15 +529,15 @@ class ParallelODCalculator():
             )
         except Exception as ex:
             err = "Error parsing input time window."
-            LOGGER.error(err)
-            LOGGER.error(str(ex))
+            self.logger.error(err)
+            self.logger.error(str(ex))
             raise ValueError from ex
 
         # Scratch folder to store intermediate outputs from the OD Cost Matrix processes
         unique_id = uuid.uuid4().hex
         self.scratch_folder = os.path.join(
             arcpy.env.scratchFolder, "CalcAccMtx_" + unique_id)  # pylint: disable=no-member
-        LOGGER.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
+        self.logger.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
         os.mkdir(self.scratch_folder)
         if out_na_folder:
             os.mkdir(out_na_folder)
@@ -577,17 +580,17 @@ class ParallelODCalculator():
         """Validate OD cost matrix settings before spinning up a bunch of parallel processes doomed to failure."""
         # Create a dummy ODCostMatrix object, initialize an OD solver object, and set properties. This allows us to
         # detect any errors prior to spinning up a bunch of parallel processes and having them all fail.
-        LOGGER.debug("Validating OD Cost Matrix settings...")
+        self.logger.debug("Validating OD Cost Matrix settings...")
         odcm = None
         try:
             odcm = ODCostMatrix(**self.od_inputs)
             odcm.initialize_od_solver()
-            LOGGER.debug("OD Cost Matrix settings successfully validated.")
+            self.logger.debug("OD Cost Matrix settings successfully validated.")
         except Exception:
-            LOGGER.error("Error initializing OD Cost Matrix analysis.")
+            self.logger.error("Error initializing OD Cost Matrix analysis.")
             errs = traceback.format_exc().splitlines()
             for err in errs:
-                LOGGER.error(err)
+                self.logger.error(err)
             raise
         finally:
             if odcm:
@@ -643,7 +646,7 @@ class ParallelODCalculator():
 
         # Compute OD cost matrix in parallel
         job_results = AnalysisHelpers.run_parallel_processes(
-            LOGGER, solve_od_cost_matrix, [self.od_inputs], self.chunks,
+            self.logger, solve_od_cost_matrix, [self.od_inputs], self.chunks,
             self.total_jobs, self.max_processes,
             "Solving OD Cost Matrix", "OD Cost Matrix"
         )
@@ -658,8 +661,8 @@ class ParallelODCalculator():
                 # likely, reasons for solve failure. Write solve messages to the main GP message thread in debug
                 # mode only in case the user is having problems. The user can also check the individual OD log
                 # files.
-                LOGGER.debug(f"Solve failed for job id {result['jobId']}.")
-                LOGGER.debug(result["solveMessages"])
+                self.logger.debug(f"Solve failed for job id {result['jobId']}.")
+                self.logger.debug(result["solveMessages"])
 
         # Post-process and write out results according to which tool is being run
         if self.od_line_files:
@@ -671,32 +674,32 @@ class ParallelODCalculator():
             elif self.tool is AnalysisHelpers.ODTool.CalculateTravelTimeStatistics:
                 self._calculate_travel_time_statistics_outputs()
             if self.od_output_location != self.scratch_folder:
-                LOGGER.info(f"Individual network analysis results written to {self.od_output_location}.")
+                self.logger.info(f"Individual network analysis results written to {self.od_output_location}.")
         else:
-            LOGGER.warning("All OD Cost Matrix solves failed, so no output was produced.")
+            self.logger.warning("All OD Cost Matrix solves failed, so no output was produced.")
 
         # Cleanup
         # Delete the job folders if the job succeeded
         if DELETE_INTERMEDIATE_OD_OUTPUTS:
-            LOGGER.info("Deleting intermediate outputs...")
+            self.logger.info("Deleting intermediate outputs...")
             try:
                 shutil.rmtree(self.scratch_folder, ignore_errors=True)
             except Exception:  # pylint: disable=broad-except
                 # If deletion doesn't work, just throw a warning and move on. This does not need to kill the tool.
-                LOGGER.warning(f"Unable to delete intermediate OD Cost Matrix output folder {self.scratch_folder}.")
+                self.logger.warning(f"Unable to delete intermediate OD Cost Matrix output folder {self.scratch_folder}.")
 
-        LOGGER.info("Finished calculating OD Cost Matrices.")
+        self.logger.info("Finished calculating OD Cost Matrices.")
 
     def _calculate_accessibility_matrix_outputs(self):
         """Calculate accessibility statistics and write them to the Origins table."""
-        LOGGER.info("Calculating statistics for final output...")
+        self.logger.info("Calculating statistics for final output...")
 
         # Read the result files from each individual OD and combine them together into a
         # dataframe with the number of time each origin reached each destination
         if USE_ARROW:
-            LOGGER.debug("Reading results into dataframe from Arrow tables...")
+            self.logger.debug("Reading results into dataframe from Arrow tables...")
         else:
-            LOGGER.debug("Reading results into dataframe from CSV files...")
+            self.logger.debug("Reading results into dataframe from CSV files...")
         t0 = time.time()
         result_df = None
         for od_file in self.od_line_files:
@@ -723,12 +726,12 @@ class ParallelODCalculator():
 
         result_df.reset_index(inplace=True)
 
-        LOGGER.debug(f"Time to read all OD result files: {time.time() - t0}")
+        self.logger.debug(f"Time to read all OD result files: {time.time() - t0}")
 
         # Handle accounting for the actual number of destinations
         if self.weight_field:
             # Read in the weight field values and join them into the result table
-            LOGGER.debug("Joining weight field from destinations to results dataframe...")
+            self.logger.debug("Joining weight field from destinations to results dataframe...")
             with arcpy.da.SearchCursor(  # pylint: disable=no-member
                     self.destinations, ["OID@", self.weight_field]) as cur:
                 w_df = pd.DataFrame(cur, columns=["DestinationOID", "Weight"])
@@ -752,14 +755,14 @@ class ParallelODCalculator():
             total_dests = int(arcpy.management.GetCount(self.destinations).getOutput(0))
 
         # Create the output dataframe indexed by the OriginOID
-        LOGGER.debug("Creating output dataframe indexed by OriginOID...")
+        self.logger.debug("Creating output dataframe indexed by OriginOID...")
         unique = result_df["OriginOID"].unique()
         output_df = pd.DataFrame(unique, columns=["OriginOID"])
         del unique
         output_df.set_index("OriginOID", inplace=True)
 
         # Calculate the total destinations found for each origin using the weight field
-        LOGGER.debug("Calculating TotalDests and PercDests...")
+        self.logger.debug("Calculating TotalDests and PercDests...")
         output_df["TotalDests"] = result_df[result_df["TimesReached"] > 0].groupby("OriginOID")["Weight"].sum()
         # Calculate the percentage of destinations reached
         output_df["PercDests"] = 100.0 * output_df["TotalDests"] / total_dests
@@ -771,7 +774,7 @@ class ParallelODCalculator():
             num_dest_field_type = "DOUBLE"
 
         # Calculate the number of destinations accessible at different thresholds
-        LOGGER.debug("Calculating the number of destinations accessible at different thresholds...")
+        self.logger.debug("Calculating the number of destinations accessible at different thresholds...")
         field_defs = [["TotalDests", num_dest_field_type], ["PercDests", "DOUBLE"]]
         for perc in range(10, 100, 10):
             total_field = f"DsAL{perc}Perc"
@@ -787,7 +790,7 @@ class ParallelODCalculator():
         del result_df
 
         # Append the calculated transit frequency statistics to the output feature class
-        LOGGER.debug("Writing data to output Origins...")
+        self.logger.debug("Writing data to output Origins...")
         arcpy.management.AddFields(self.origins, field_defs)
         oid_field = arcpy.Describe(self.origins).oidFieldName
         fields = [oid_field] + [f[0] for f in field_defs]
@@ -801,13 +804,13 @@ class ParallelODCalculator():
                     new_row = [oid] + [0] * len(field_defs)
                 cur.updateRow(new_row)
 
-        LOGGER.info(f"Accessibility statistics fields were added to Origins table {self.origins}.")
+        self.logger.info(f"Accessibility statistics fields were added to Origins table {self.origins}.")
 
     def _calculate_travel_time_statistics_outputs(self):
         """Calculate travel time statistics and write them to the output file."""
         # NOTE: This method does not support Arrow outputs at this time.  If reimplementing the USE_ARROW option,
         # this method needs to be updated.
-        LOGGER.info("Calculating travel time statistics...")
+        self.logger.info("Calculating travel time statistics...")
         t0 = time.time()
 
         # Create mappings to the original OID field values, which might have changed during preprocessing
@@ -868,8 +871,8 @@ class ParallelODCalculator():
                 # Append results to the existing output CSV file
                 stats.to_csv(self.out_csv_file, mode='a', index=False, header=False)
 
-        LOGGER.debug(f"Time to read all OD result files and calculate statistics: {time.time() - t0}")
-        LOGGER.info(f"Travel time statistics written to {self.out_csv_file}.")
+        self.logger.debug(f"Time to read all OD result files and calculate statistics: {time.time() - t0}")
+        self.logger.info(f"Travel time statistics written to {self.out_csv_file}.")
 
 
 def launch_parallel_od():
@@ -1001,21 +1004,27 @@ def launch_parallel_od():
         required=False)
 
     try:
+        logger = AnalysisHelpers.configure_global_logger(LOG_LEVEL)
+
         # Get arguments as dictionary.
         args = vars(parser.parse_args())
+        args["logger"] = logger
 
         # Initialize a parallel OD Cost Matrix calculator class
         od_calculator = ParallelODCalculator(**args)
         # Solve the OD Cost Matrix in parallel chunks
         start_time = time.time()
         od_calculator.solve_od_in_parallel()
-        LOGGER.info(
+        logger.info(
             f"Parallel OD Cost Matrix calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
     except Exception:  # pylint: disable=broad-except
         errs = traceback.format_exc().splitlines()
         for err in errs:
-            LOGGER.error(err)
+            logger.error(err)
         raise
+
+    finally:
+        AnalysisHelpers.teardown_logger(logger)
 
 
 if __name__ == "__main__":

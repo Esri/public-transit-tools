@@ -50,7 +50,9 @@ class TestParallelSA(unittest.TestCase):
         self.output_gdb = os.path.join(self.scratch_folder, "outputs.gdb")
         arcpy.management.CreateFileGDB(os.path.dirname(self.output_gdb), os.path.basename(self.output_gdb))
 
+        self.logger = AnalysisHelpers.configure_global_logger(parallel_sa.LOG_LEVEL)
         self.parallel_sa_class_args = {
+            "logger": self.logger,
             "facilities": self.facilities,
             "output_polygons": os.path.join(self.output_gdb, "TestPolys"),
             "network_data_source": self.local_nd,
@@ -67,6 +69,11 @@ class TestParallelSA(unittest.TestCase):
             "geometry_at_overlap": "Overlap",
             "max_processes": 4
         }
+
+    @classmethod
+    def tearDownClass(self):
+        """Deconstruct the logger when tests are finished."""
+        AnalysisHelpers.teardown_logger(self.logger)
 
     def check_ServiceArea_solve(self, sa_inputs, expected_num_polygons):
         """Test the solve method of the ServiceArea class."""

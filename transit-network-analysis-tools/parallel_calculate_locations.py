@@ -46,7 +46,7 @@ import AnalysisHelpers
 DELETE_INTERMEDIATE_OUTPUTS = True  # Set to False for debugging purposes
 
 # Change logging.INFO to logging.DEBUG to see verbose debug messages
-LOGGER = AnalysisHelpers.configure_global_logger(logging.INFO)
+LOG_LEVEL = logging.INFO
 
 
 class LocationCalculator(
@@ -161,7 +161,7 @@ class ParallelLocationCalculator:
     """Calculate network locations for a large dataset by chunking the dataset and calculating in parallel."""
 
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
-        self, input_features, output_features, network_data_source, chunk_size, max_processes,
+        self, logger, input_features, output_features, network_data_source, chunk_size, max_processes,
         travel_mode=None, search_tolerance=None, search_criteria=None, search_query=None
     ):
         """Calculate network locations for the input features in parallel.
@@ -171,6 +171,8 @@ class ParallelLocationCalculator:
         https://pro.arcgis.com/en/pro-app/latest/tool-reference/network-analyst/calculate-locations.htm
 
         Args:
+            logger (logging.logger): Logger class to use for messages that get written to the GP window. Set up using
+                AnalysisHelpers.configure_global_logger().
             input_features (str): Catalog path to input features to calculate locations for
             output_features (str): Catalog path to the location where the output updated feature class will be saved.
                 Unlike in the core Calculate Locations tool, this tool generates a new feature class instead of merely
@@ -186,6 +188,7 @@ class ParallelLocationCalculator:
             search_criteria (list, optional): Defines the network sources that can be used for locating
             search_query (list, optional): Defines queries to use per network source when locating.
         """
+        self.logger = logger
         self.input_features = input_features
         self.output_features = output_features
         self.max_processes = max_processes
@@ -194,7 +197,7 @@ class ParallelLocationCalculator:
         unique_id = uuid.uuid4().hex
         self.scratch_folder = os.path.join(
             arcpy.env.scratchFolder, "CalcLocs_" + unique_id)  # pylint: disable=no-member
-        LOGGER.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
+        self.logger.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
         os.mkdir(self.scratch_folder)
 
         # Dictionary of static input settings to send to the parallel location calculator
@@ -218,7 +221,7 @@ class ParallelLocationCalculator:
         """Calculate locations in parallel."""
         # Calculate locations in parallel
         job_results = AnalysisHelpers.run_parallel_processes(
-            LOGGER, calculate_locations_for_chunk, [self.calc_locs_inputs], self.ranges,
+            self.logger, calculate_locations_for_chunk, [self.calc_locs_inputs], self.ranges,
             len(self.ranges), self.max_processes,
             "Calculating locations", "Calculate Locations"
         )
@@ -228,21 +231,21 @@ class ParallelLocationCalculator:
             self.temp_out_fcs[result["oidRange"]] = result["outputFC"]
 
         # Rejoin the chunked feature classes into one.
-        LOGGER.info("Rejoining chunked data...")
+        self.logger.info("Rejoining chunked data...")
         self._rejoin_chunked_output()
 
         # Clean up
         # Delete the job folders if the job succeeded
         if DELETE_INTERMEDIATE_OUTPUTS:
-            LOGGER.info("Deleting intermediate outputs...")
+            self.logger.info("Deleting intermediate outputs...")
             try:
                 shutil.rmtree(self.scratch_folder, ignore_errors=True)
             except Exception:  # pylint: disable=broad-except
                 # If deletion doesn't work, just throw a warning and move on. This does not need to kill the tool.
-                LOGGER.warning(
+                self.logger.warning(
                     f"Unable to delete intermediate Calculate Locations output folder {self.scratch_folder}.")
 
-        LOGGER.info("Finished calculating locations in parallel.")
+        self.logger.info("Finished calculating locations in parallel.")
 
     def _rejoin_chunked_output(self):
         """Merge the chunks into a single feature class.
@@ -251,11 +254,11 @@ class ParallelLocationCalculator:
         using the Merge geoprocessing tool.
         """
         # Create the final output feature class
-        LOGGER.debug("Creating output feature class...")
+        self.logger.debug("Creating output feature class...")
         template_fc = self.temp_out_fcs[tuple(self.ranges[0])]
         desc = arcpy.Describe(template_fc)
         AnalysisHelpers.run_gp_tool(
-            LOGGER,
+            self.logger,
             arcpy.management.CreateFeatureclass, [
                 os.path.dirname(self.output_features),
                 os.path.basename(self.output_features),
@@ -268,7 +271,7 @@ class ParallelLocationCalculator:
         )
 
         # Insert the rows from all the individual output feature classes into the final output
-        LOGGER.debug("Inserting rows into output feature class from output chunks...")
+        self.logger.debug("Inserting rows into output feature class from output chunks...")
         fields = ["SHAPE@"] + [f.name for f in desc.fields]
         with arcpy.da.InsertCursor(self.output_features, fields) as cur:  # pylint: disable=no-member
             # Get rows from the output feature class from each chunk in the original order
@@ -339,22 +342,28 @@ def launch_parallel_calc_locs():
         "-sq", "--search-query", action="store", dest="search_query", help=help_string, required=False)
 
     try:
+        logger = AnalysisHelpers.configure_global_logger(LOG_LEVEL)
+
         # Get arguments as dictionary.
         args = vars(parser.parse_args())
+        args["logger"] = logger
 
         # Initialize a parallel location calculator class
         cl_calculator = ParallelLocationCalculator(**args)
         # Calculate network locations in parallel chunks
         start_time = time.time()
         cl_calculator.calc_locs_in_parallel()
-        LOGGER.info(f"Parallel Calculate Locations completed in {round((time.time() - start_time) / 60, 2)} minutes")
+        logger.info(f"Parallel Calculate Locations completed in {round((time.time() - start_time) / 60, 2)} minutes")
 
     except Exception:  # pylint: disable=broad-except
-        LOGGER.error("Error in parallelization subprocess.")
+        logger.error("Error in parallelization subprocess.")
         errs = traceback.format_exc().splitlines()
         for err in errs:
-            LOGGER.error(err)
+            logger.error(err)
         raise
+
+    finally:
+        AnalysisHelpers.teardown_logger(logger)
 
 
 if __name__ == "__main__":
