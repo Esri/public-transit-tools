@@ -75,7 +75,9 @@ class TestParallelODCM(unittest.TestCase):
             "barriers": []
         }
 
+        self.logger = AnalysisHelpers.configure_global_logger(parallel_odcm.LOG_LEVEL)
         self.parallel_od_class_args = {
+            "logger": self.logger,
             "tool": AnalysisHelpers.ODTool.CalculateAccessibilityMatrix.name,
             "origins": self.origins,
             "destinations": self.destinations,
@@ -96,6 +98,11 @@ class TestParallelODCM(unittest.TestCase):
             "out_csv_file": "",
             "out_na_folder": ""
         }
+
+    @classmethod
+    def tearDownClass(self):
+        """Deconstruct the logger when tests are finished."""
+        AnalysisHelpers.teardown_logger(self.logger)
 
     def test_ODCostMatrix_select_inputs(self):
         """Test the _select_inputs method of the ODCostMatrix class."""

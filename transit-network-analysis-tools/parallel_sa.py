@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 30 August 2023
+## Last updated: 20 September 2023
 ############################################################################
 """Run a Service Area analysis incrementing the time of day over a time window.
 Save the output polygons to a single feature class that can be used to generate
@@ -46,78 +46,6 @@ DELETE_INTERMEDIATE_SA_OUTPUTS = True  # Set to False for debugging purposes
 
 # Change logging.INFO to logging.DEBUG to see verbose debug messages
 LOG_LEVEL = logging.INFO
-
-
-def run_gp_tool(tool, tool_args=None, tool_kwargs=None, log_to_use=LOGGER):
-    """Run a geoprocessing tool with nice logging.
-
-    The purpose of this function is simply to wrap the call to a geoprocessing tool in a way that we can log errors,
-    warnings, and info messages as well as tool run time into our logging. This helps pipe the messages back to our
-    script tool dialog.
-
-    Args:
-        tool (arcpy geoprocessing tool class): GP tool class command, like arcpy.management.CreateFileGDB
-        tool_args (list, optional): Ordered list of values to use as tool arguments. Defaults to None.
-        tool_kwargs (dictionary, optional): Dictionary of tool parameter names and values that can be used as named
-            arguments in the tool command. Defaults to None.
-        log_to_use (logging.logger, optional): logger class to use for messages. Defaults to LOGGER. When calling this
-            from the ServiceArea class, use self.logger instead so the messages go to the processes's log file instead
-            of stdout.
-
-    Returns:
-        GP result object: GP result object returned from the tool run.
-
-    Raises:
-        arcpy.ExecuteError if the tool fails
-    """
-    # Try to retrieve and log the name of the tool
-    tool_name = repr(tool)
-    try:
-        tool_name = tool.__esri_toolname__
-    except Exception:  # pylint: disable=broad-except
-        try:
-            tool_name = tool.__name__
-        except Exception:  # pylint: disable=broad-except
-            # Probably the tool didn't have an __esri_toolname__ property or __name__. Just don't worry about it.
-            pass
-    log_to_use.debug(f"Running geoprocessing tool {tool_name}...")
-
-    # Try running the tool, and log all messages
-    try:
-        if tool_args is None:
-            tool_args = []
-        if tool_kwargs is None:
-            tool_kwargs = {}
-        result = tool(*tool_args, **tool_kwargs)
-        info_msgs = [msg for msg in result.getMessages(0).splitlines() if msg]
-        warning_msgs = [msg for msg in result.getMessages(1).splitlines() if msg]
-        for msg in info_msgs:
-            log_to_use.debug(msg)
-        for msg in warning_msgs:
-            log_to_use.warning(msg)
-    except arcpy.ExecuteError:
-        log_to_use.error(f"Error running geoprocessing tool {tool_name}.")
-        # First check if it's a tool error and if so, handle warning and error messages.
-        info_msgs = [msg for msg in arcpy.GetMessages(0).strip("\n").splitlines() if msg]
-        warning_msgs = [msg for msg in arcpy.GetMessages(1).strip("\n").splitlines() if msg]
-        error_msgs = [msg for msg in arcpy.GetMessages(2).strip("\n").splitlines() if msg]
-        for msg in info_msgs:
-            log_to_use.debug(msg)
-        for msg in warning_msgs:
-            log_to_use.warning(msg)
-        for msg in error_msgs:
-            log_to_use.error(msg)
-        raise
-    except Exception:
-        # Unknown non-tool error
-        log_to_use.error(f"Error running geoprocessing tool {tool_name}.")
-        errs = traceback.format_exc().splitlines()
-        for err in errs:
-            log_to_use.error(err)
-        raise
-
-    log_to_use.debug(f"Finished running geoprocessing tool {tool_name}.")
-    return result
 
 
 class ServiceArea(
@@ -319,10 +247,10 @@ class ServiceArea(
         # Do special handling if the geometry type is Dissolve because the time of day field cannot be passed
         # through from the inputs. Add it explicitly and calculate it.
         if self.geometry_at_overlap == arcpy.nax.ServiceAreaOverlapGeometry.Dissolve:
-            run_gp_tool(
+            AnalysisHelpers.run_gp_tool(
+                self.logger,
                 arcpy.management.AddField,
-                [output_polygons, AnalysisHelpers.TIME_FIELD, "DATE"],
-                log_to_use=self.logger
+                [output_polygons, AnalysisHelpers.TIME_FIELD, "DATE"]
             )
             # Use UpdateCursor instead of CalculateField to avoid having to represent the datetime as a string
             with arcpy.da.UpdateCursor(  # pylint: disable=no-member
@@ -358,7 +286,7 @@ class ParallelSACalculator():
     """Solves a Service Area incrementally over a time window solving in parallel and combining results."""
 
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
-        self, facilities, output_polygons, network_data_source, travel_mode, cutoffs, time_units,
+        self, logger, facilities, output_polygons, network_data_source, travel_mode, cutoffs, time_units,
         time_window_start_day, time_window_start_time, time_window_end_day, time_window_end_time, time_increment,
         travel_direction, geometry_at_cutoff, geometry_at_overlap, max_processes, barriers=None
     ):
@@ -367,6 +295,8 @@ class ParallelSACalculator():
         This class assumes that the inputs have already been pre-processed and validated.
 
         Args:
+            logger (logging.logger): Logger class to use for messages that get written to the GP window. Set up using
+                AnalysisHelpers.configure_global_logger().
             facilities (str): Catalog path to facilities
             output_polygons (str): Catalog path to output polygons
             network_data_source (str): Network data source catalog path or URL
@@ -387,6 +317,7 @@ class ParallelSACalculator():
             barriers (list(str), optional): List of catalog paths to point, line, and polygon barriers to use.
                 Defaults to None.
         """
+        self.logger = logger
         time_units = AnalysisHelpers.convert_time_units_str_to_enum(time_units)
         travel_direction = AnalysisHelpers.convert_travel_direction_str_to_enum(travel_direction)
         geometry_at_cutoff = AnalysisHelpers.convert_geometry_at_cutoff_str_to_enum(geometry_at_cutoff)
@@ -403,15 +334,15 @@ class ParallelSACalculator():
             )
         except Exception as ex:
             err = "Error parsing input time window."
-            LOGGER.error(err)
-            LOGGER.error(str(ex))
+            self.logger.error(err)
+            self.logger.error(str(ex))
             raise ValueError from ex
 
         # Scratch folder to store intermediate outputs from the Service Area processes
         unique_id = uuid.uuid4().hex
         self.scratch_folder = os.path.join(
             arcpy.env.scratchFolder, "PTLP_" + unique_id)  # pylint: disable=no-member
-        LOGGER.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
+        self.logger.info(f"Intermediate outputs will be written to {self.scratch_folder}.")
         os.mkdir(self.scratch_folder)
 
         # List of intermediate output feature classes created by each process
@@ -437,21 +368,21 @@ class ParallelSACalculator():
         """Validate Service Area settings before spinning up a bunch of parallel processes doomed to failure."""
         # Create a dummy ServiceArea object and set properties. This allows us to detect any errors prior to spinning up
         # a bunch of parallel processes and having them all fail.
-        LOGGER.debug("Validating Service Area settings...")
+        self.logger.debug("Validating Service Area settings...")
         sa = None
         try:
             sa = ServiceArea(**self.sa_inputs)
             sa.initialize_sa_solver()
-            LOGGER.debug("Service Area settings successfully validated.")
+            self.logger.debug("Service Area settings successfully validated.")
         except Exception:
-            LOGGER.error("Error initializing Service Area analysis.")
+            self.logger.error("Error initializing Service Area analysis.")
             errs = traceback.format_exc().splitlines()
             for err in errs:
-                LOGGER.error(err)
+                self.logger.error(err)
             raise
         finally:
             if sa:
-                LOGGER.debug("Deleting temporary test Service Area job folder...")
+                self.logger.debug("Deleting temporary test Service Area job folder...")
                 sa.teardown_logger()
                 shutil.rmtree(sa.job_result["jobFolder"], ignore_errors=True)
                 del sa
@@ -465,7 +396,7 @@ class ParallelSACalculator():
 
         # Compute Service Areas in parallel
         job_results = AnalysisHelpers.run_parallel_processes(
-            LOGGER, solve_service_area, [self.sa_inputs], self.start_times,
+            self.logger, solve_service_area, [self.sa_inputs], self.start_times,
             len(self.start_times), self.max_processes,
             "Solving Service Areas", "Service Area"
         )
@@ -475,29 +406,29 @@ class ParallelSACalculator():
             if result["solveSucceeded"]:
                 self.sa_poly_fcs.append(result["outputPolygons"])
             else:
-                LOGGER.warning(f"Solve failed for job id {result['jobId']}")
+                self.logger.warning(f"Solve failed for job id {result['jobId']}")
                 msgs = result["solveMessages"]
-                LOGGER.warning(msgs)
+                self.logger.warning(msgs)
 
         # Merge all the individual Service Area polygons feature classes
         if not self.sa_poly_fcs:
-            LOGGER.error("All Service Area calculations failed. No output will be written.")
+            self.logger.error("All Service Area calculations failed. No output will be written.")
             return
-        LOGGER.info("Merging Service Area results...")
-        run_gp_tool(arcpy.management.Merge, [self.sa_poly_fcs, self.output_polygons])
-        LOGGER.info(f"Results written to {self.output_polygons}.")
+        self.logger.info("Merging Service Area results...")
+        AnalysisHelpers.run_gp_tool(self.logger, arcpy.management.Merge, [self.sa_poly_fcs, self.output_polygons])
+        self.logger.info(f"Results written to {self.output_polygons}.")
 
         # Cleanup
         # Delete the job folders if the job succeeded
         if DELETE_INTERMEDIATE_SA_OUTPUTS:
-            LOGGER.info("Deleting intermediate outputs...")
+            self.logger.info("Deleting intermediate outputs...")
             try:
                 shutil.rmtree(self.scratch_folder, ignore_errors=True)
             except Exception:  # pylint: disable=broad-except
                 # If deletion doesn't work, just throw a warning and move on. This does not need to kill the tool.
-                LOGGER.warning(f"Unable to delete intermediate Service Area output folder {self.scratch_folder}.")
+                self.logger.warning(f"Unable to delete intermediate Service Area output folder {self.scratch_folder}.")
 
-        LOGGER.info("Finished calculating Service Areas.")
+        self.logger.info("Finished calculating Service Areas.")
 
 
 def launch_parallel_sa():
@@ -596,22 +527,29 @@ def launch_parallel_sa():
     parser.add_argument(
         "-b", "--barriers", action="store", dest="barriers", help=help_string, nargs='*', required=False)
 
-    # Get arguments as dictionary.
-    args = vars(parser.parse_args())
-
     # Initialize a parallel Service Area calculator class
     try:
+        logger = AnalysisHelpers.configure_global_logger(LOG_LEVEL)
+
+        # Get arguments as dictionary.
+        args = vars(parser.parse_args())
+        args["logger"] = logger
+
         sa_calculator = ParallelSACalculator(**args)
         # Solve the Service Area in parallel chunks
         start_time = time.time()
         sa_calculator.solve_sa_in_parallel()
-        LOGGER.info(
+        logger.info(
             f"Parallel Service Area calculation completed in {round((time.time() - start_time) / 60, 2)} minutes")
+
     except Exception:  # pylint: disable=broad-except
         errs = traceback.format_exc().splitlines()
         for err in errs:
-            LOGGER.error(err)
+            logger.error(err)
         raise
+
+    finally:
+        AnalysisHelpers.teardown_logger(logger)
 
 
 if __name__ == "__main__":

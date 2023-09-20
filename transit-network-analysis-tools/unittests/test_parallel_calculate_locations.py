@@ -23,6 +23,7 @@ import arcpy
 CWD = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(CWD))
 import parallel_calculate_locations  # noqa: E402, pylint: disable=wrong-import-position
+from AnalysisHelpers import configure_global_logger, teardown_logger
 
 
 class TestParallelCalculateLocations(unittest.TestCase):
@@ -125,7 +126,9 @@ class TestParallelCalculateLocations(unittest.TestCase):
         fc_to_precalculate = os.path.join(self.output_gdb, "PrecalcFC_Parallel")
         arcpy.management.Copy(self.input_fc, fc_to_precalculate)
         out_fc = os.path.join(self.output_gdb, "PrecalcFC_Parallel_out")
+        logger = configure_global_logger(parallel_calculate_locations.LOG_LEVEL)
         inputs = {
+            "logger": logger,
             "input_features": fc_to_precalculate,
             "output_features": out_fc,
             "chunk_size": 6,
@@ -136,15 +139,18 @@ class TestParallelCalculateLocations(unittest.TestCase):
             "search_criteria": self.search_criteria,
             "search_query": self.search_query
         }
-        parallel_calculator = parallel_calculate_locations.ParallelLocationCalculator(**inputs)
-        parallel_calculator.calc_locs_in_parallel()
-        self.assertTrue(arcpy.Exists(out_fc), "Output fc does not exist.")
-        self.assertEqual(
-            int(arcpy.management.GetCount(self.input_fc).getOutput(0)),
-            int(arcpy.management.GetCount(out_fc).getOutput(0)),
-            "Output feature class doesn't have the same number of rows as the original input."
-        )
-        self.check_precalculated_locations(out_fc, check_has_values=True)
+        try:
+            parallel_calculator = parallel_calculate_locations.ParallelLocationCalculator(**inputs)
+            parallel_calculator.calc_locs_in_parallel()
+            self.assertTrue(arcpy.Exists(out_fc), "Output fc does not exist.")
+            self.assertEqual(
+                int(arcpy.management.GetCount(self.input_fc).getOutput(0)),
+                int(arcpy.management.GetCount(out_fc).getOutput(0)),
+                "Output feature class doesn't have the same number of rows as the original input."
+            )
+            self.check_precalculated_locations(out_fc, check_has_values=True)
+        finally:
+            teardown_logger(logger)
 
     def test_cli(self):
         """Test the command line interface."""

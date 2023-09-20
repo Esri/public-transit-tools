@@ -1,7 +1,7 @@
 ################################################################################
 ## Toolbox: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 30 August 2023
+## Last updated: 20 September 2023
 ################################################################################
 """Helper methods for analysis tools."""
 ################################################################################
@@ -717,6 +717,13 @@ def configure_global_logger(log_level):
     return logger
 
 
+def teardown_logger(logger):
+    """Clean up and close the logger."""
+    for handler in logger.handlers:
+        handler.close()
+        logger.removeHandler(handler)
+
+
 def run_parallel_processes(
         logger, function_to_call, static_args, chunks, total_jobs, max_processes,
         msg_intro_verb, msg_process_str
@@ -895,9 +902,7 @@ class LoggingMixin:
 
     def teardown_logger(self):
         """Clean up and close the logger."""
-        for handler in self.logger.handlers:
-            handler.close()
-            self.logger.removeHandler(handler)
+        teardown_logger(self.logger)
 
 
 class MakeNDSLayerMixin:  # pylint:disable = too-few-public-methods
