@@ -23,18 +23,12 @@ Once you have created your transit-enabled network dataset using the tools provi
 
 [send-GTFS-rt-to-GeoEvent](send-GTFS-rt-to-GeoEvent/README.md)
 
-[GTFS Realtime](https://github.com/google/transit/tree/master/gtfs-realtime/spec/en) is an extension to static GTFS that provides a standard format for the real time status of a transit system, such as the positions of buses and trains, information about delays, and service alerts. The GTFS Realtime Connector for GeoEvent Server allows you to ingest GTFS Realtime feeds and display them in a map.
+[GTFS Realtime](https://gtfs.org/realtime/) is an extension to static GTFS that provides a standard format for the real time status of a transit system, such as the positions of buses and trains, information about delays, and service alerts. The GTFS Realtime Connector for GeoEvent Server allows you to ingest GTFS Realtime feeds and display them in a map.
 
 The GTFS Realtime Connector for GeoEvent Server can poll and process the three feed types listed below:
 - Trip updates – delays, cancellations, updated routes, etc.
 - Service alerts – stop moved, unforeseen events affecting a station, route, or the entire network, etc.
 - Vehicle positions – information about transit vehicles including location and congestion level.
-
-### Deprecated tools
-
-[deprecated-tools](deprecated-tools/README.md)
-
-A set of older tools for ArcMap that are no longer updated or maintained.  Please use the tools that are included in ArcGIS Pro instead.  These deprecated tools will be removed soon.
 
 ## Learning materials
 
@@ -59,8 +53,8 @@ Other learning resources:
 
 * ArcGIS Pro documentation: [Public transit in Network Analyst](https://pro.arcgis.com/en/pro-app/latest/help/analysis/networks/network-analysis-with-public-transit-data.htm)
 * ArcGIS Pro documentation: [Public Transit Tools.tbx geoprocesing toolbox](https://pro.arcgis.com/en/pro-app/latest/tool-reference/public-transit/an-overview-of-the-public-transit-toolbox.htm)
-* [GTFS specification](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)
-* [GTFS Realtime](https://github.com/google/transit/tree/master/gtfs-realtime/spec/en)
+* [GTFS specification](https://gtfs.org/schedule/)
+* [GTFS Realtime](https://gtfs.org/realtime/)
 * [GTFS Best Practices](https://gtfs.org/schedule/best-practices/) - Guidelines for creating a good quality GTFS feed
 * [The Mobility Database](https://database.mobilitydata.org/) - Catalog of open GTFS datasets from around the world
 * [Temporal variability in transit-based accessibility to supermarkets](https://www.sciencedirect.com/science/article/pii/S0143622814001283) by Steve Farber, Melinda Morang, and Michael Widener, in the Journal of Applied Geography
@@ -91,7 +85,7 @@ If you have more general questions about how your public transit agency can leve
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing).
 
 ## Licensing
-Copyright 2023 Esri
+Copyright 2024 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
