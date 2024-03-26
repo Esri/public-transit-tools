@@ -543,6 +543,10 @@ class CalculateAccessibilityMatrix(
 
     def _execute_solve(self):  # pylint: disable=arguments-differ
         """Solve the OD Cost Matrix analysis."""
+        # Clear the workspace cache for the origins to avoid strange file lock errors.
+        arcpy.management.ClearWorkspaceCache(os.path.dirname(self.origins_for_od))
+
+        # Configure tool-specific inputs and do the solve
         self.tool_specific_od_inputs = [
             "--tool", AnalysisHelpers.ODTool.CalculateAccessibilityMatrix.name,
             "--origins", self.origins_for_od,
