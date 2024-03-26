@@ -1,6 +1,6 @@
 """Unit tests for the Copy Traversed Source Features With Transit script tool.
 
-Copyright 2023 Esri
+Copyright 2024 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -29,6 +29,7 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
     @classmethod
     def setUpClass(self):  # pylint: disable=bad-classmethod-argument
         self.maxDiff = None
+        arcpy.CheckOutExtension("network")
 
         tbx_path = os.path.join(os.path.dirname(CWD), "Transit Network Analysis Tools.pyt")
         arcpy.ImportToolbox(tbx_path)

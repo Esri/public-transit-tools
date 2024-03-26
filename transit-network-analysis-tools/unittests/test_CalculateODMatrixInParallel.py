@@ -1,6 +1,6 @@
 """Unit tests for the CalculateODMatrixInParallel.py module.
 
-Copyright 2023 Esri
+Copyright 2024 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -44,7 +44,7 @@ class TestCalculateODMatrixInParallel(unittest.TestCase):
 
         # Create a unique output directory and gdb for this test
         self.scratch_folder = os.path.join(
-            CWD, "TestOutput", "Output_ParallelSA_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+            CWD, "TestOutput", "Output_ParallelOD_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
         os.makedirs(self.scratch_folder)
         self.output_gdb = os.path.join(self.scratch_folder, "outputs.gdb")
         arcpy.management.CreateFileGDB(os.path.dirname(self.output_gdb), os.path.basename(self.output_gdb))
