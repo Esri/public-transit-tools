@@ -119,11 +119,12 @@ class RouteShapeReplacer:
     def replace_route_shapes_with_lveshapes(self) -> dict:
         """Replace route shape geometry."""
         # Make layers to speed up search cursor queries later
-        lve_lyr_name = "LineVariantElements"
-        arcpy.management.MakeFeatureLayer(self.transit_dm.line_variant_elements, lve_lyr_name)
-        lve_oid_field = arcpy.Describe(lve_lyr_name).oidFieldName
-        lveshapes_lyr_name = "LVEShapes"
-        arcpy.management.MakeFeatureLayer(self.transit_dm.lve_shapes, lveshapes_lyr_name)
+        with arcpy.EnvManager(overwriteOutput=True):
+            lve_lyr_name = "LineVariantElements"
+            arcpy.management.MakeFeatureLayer(self.transit_dm.line_variant_elements, lve_lyr_name)
+            lve_oid_field = arcpy.Describe(lve_lyr_name).oidFieldName
+            lveshapes_lyr_name = "LVEShapes"
+            arcpy.management.MakeFeatureLayer(self.transit_dm.lve_shapes, lveshapes_lyr_name)
 
         # Loop over traversed route segments and replace LineVariantElements geometry with LVEShapes geometry
         route_segments = {}

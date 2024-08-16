@@ -1230,7 +1230,8 @@ class ReplaceRouteGeometryWithLVEShapes(object):
         arcpy.AddMessage(progress_msg)
         arcpy.SetProgressorLabel(progress_msg)
         try:
-            traversed_edges, _, _, updated_na_layer = arcpy.na.CopyTraversedSourceFeatures(
+            with arcpy.EnvManager(overwriteOutput=True):
+                traversed_edges, _, _, updated_na_layer = arcpy.na.CopyTraversedSourceFeatures(
                 na_layer, "memory", "Edges", "Junctions", "Turns")
         except arcpy.ExecuteError:
             arcpy.AddError("The Copy Traversed Source Features tool failed.")
@@ -1239,15 +1240,26 @@ class ReplaceRouteGeometryWithLVEShapes(object):
                     arcpy.AddReturnMessage(msg)
                 if arcpy.GetSeverity(msg) == 2:
                     arcpy.AddReturnMessage(msg)
+            return
 
         # Generate the updated route shapes
         progress_msg = "Generating route shapes from LVEShapes..."
         arcpy.AddMessage(progress_msg)
         arcpy.SetProgressorLabel(progress_msg)
-        desc = arcpy.Describe(na_layer)
-        transit_fd = os.path.dirname(desc.network.catalogPath)
-        replacer = RouteShapeReplacer(traversed_edges, transit_fd)
-        updated_geoms = replacer.replace_route_shapes_with_lveshapes()
+        try:
+            desc = arcpy.Describe(na_layer)
+            transit_fd = os.path.dirname(desc.network.catalogPath)
+            replacer = RouteShapeReplacer(traversed_edges, transit_fd)
+            updated_geoms = replacer.replace_route_shapes_with_lveshapes()
+        except TransitNetworkAnalysisToolsError as ex:
+            arcpy.AddError("Could generate route shapes from LVEShapes.")
+            arcpy.AddError(str(ex))
+            return
+        except Exception:  # pylint: disable=broad-except
+            arcpy.AddError("Could generate route shapes from LVEShapes for an unknown reason:")
+            import traceback  # pylint: disable=import-outside-toplevel
+            arcpy.AddError(traceback.format_exc())
+            return
 
         # Update the Routes sublayer geometry
         progress_msg = "Inserting updated route shapes..."
