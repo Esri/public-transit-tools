@@ -22,7 +22,7 @@ The tools included are:
 - [Copy Traversed Source Features With Transit](#Copy-Traversed-Source-Features-With-Transit)
 - [Create Percent Access Polygons](#Create-Percent-Access-Polygons)
 - [Prepare Time Lapse Polygons](#Prepare-Time-Lapse-Polygons)
-- [Replace Route Geometry With LVEShapes](#Replace-Route_Geometry-With-LVEShapes)
+- [Replace Route Geometry With LVEShapes](#Replace-Route-Geometry-With-LVEShapes)
 
 ## Software requirements
 * ArcGIS Pro 2.8 or higher. A Desktop Basic license is sufficient.
