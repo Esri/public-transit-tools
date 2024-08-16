@@ -1226,6 +1226,9 @@ class ReplaceRouteGeometryWithLVEShapes(object):
         na_layer = parameters[0].value
 
         # Run Copy Traversed Source Features to get the edges traversed
+        progress_msg = "Getting the traversal result from the network analysis layer..."
+        arcpy.AddMessage(progress_msg)
+        arcpy.SetProgressorLabel(progress_msg)
         try:
             traversed_edges, _, _, updated_na_layer = arcpy.na.CopyTraversedSourceFeatures(
                 na_layer, "memory", "Edges", "Junctions", "Turns")
@@ -1238,12 +1241,18 @@ class ReplaceRouteGeometryWithLVEShapes(object):
                     arcpy.AddReturnMessage(msg)
 
         # Generate the updated route shapes
+        progress_msg = "Generating route shapes from LVEShapes..."
+        arcpy.AddMessage(progress_msg)
+        arcpy.SetProgressorLabel(progress_msg)
         desc = arcpy.Describe(na_layer)
         transit_fd = os.path.dirname(desc.network.catalogPath)
         replacer = RouteShapeReplacer(traversed_edges, transit_fd)
         updated_geoms = replacer.replace_route_shapes_with_lveshapes()
 
         # Update the Routes sublayer geometry
+        progress_msg = "Inserting updated route shapes..."
+        arcpy.AddMessage(progress_msg)
+        arcpy.SetProgressorLabel(progress_msg)
         sublayer_key = {
             "Route Solver": "Routes",
             "Closest Facility Solver": "CFRoutes"
