@@ -5,7 +5,7 @@ Created by Melinda Morang, Esri
 Contributors:
 David Wasserman, Fehr & Peers
 
-Copyright 2023 Esri
+Copyright 2024 Esri
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 
 ## What are the Transit Network Analysis Tools?
@@ -22,7 +22,7 @@ The tools included are:
 - [Copy Traversed Source Features With Transit](#Copy-Traversed-Source-Features-With-Transit)
 - [Create Percent Access Polygons](#Create-Percent-Access-Polygons)
 - [Prepare Time Lapse Polygons](#Prepare-Time-Lapse-Polygons)
-
+- [Replace Route Geometry With LVEShapes](#Replace-Route_Geometry-With-LVEShapes)
 
 ## Software requirements
 * ArcGIS Pro 2.8 or higher. A Desktop Basic license is sufficient.
@@ -377,6 +377,22 @@ This tool populates some additional fields on the Edges output:
 
 This tool reads the Public Transit Data Model tables and the Edges traversal result and compares the arrive or depart times along each segment to identify the most likely transit run used for that segment.  The logic is similar to what the Public Transit evaluator has done when originally solving the analysis.  However, on some occasions, the post-process done in this tool may fail to identify the transit run used for one or more rows.  This is most common with Service Area when output Lines traverse only part of a LineVariantElements transit line segment.  It is also possible, although uncommon, that there are multiple options of transit runs for the segment with matching arrival or departure times.  In these cases, it is possible that the run ultimately returned in the output will not be the same one as that returned by the Public Transit evaluator if the tie-breaking logic is different.  These cases should be rare.  [Contact us](#Questions-or-problems) if you're experiencing widespread problems.
 
+
+## Replace Route Geometry With LVEShapes
+When you solve a Route or Closest Facility analysis with your transit-enabled network dataset, geometry of the output routes is derived from the network edges traversed.  The transit edges used by the network come from the LineVariantElements feature class of the Public Transit Data Model, and these features are generally
+straight lines connecting adjacent stops and are not intended for visualization.  If the Public Transit Data Model includes the LVEShapes feature class, the straight-line geometry can be swapped for the cartographic lines from LVEShapes as a post-process.  This tool updates the Route or Closest Facility output Routes geometry with these cartographic shapes.
+
+NOTE: The optional LVEShapes feature class was added to the Public Transit Data Model in ArcGIS Pro 3.4 and can be created from the GTFS shapes.txt file using and option in the GTFS To Public Transit Data Model tool.  The Replace Route Geometry With LVEShapes should work with any version of ArcGIS Pro as long as the LVEShapes feature class is present.
+
+![Screenshot of tool dialog](./images/Screenshot_ReplaceGeometry_Dialog.png)
+
+### Inputs
+
+* **Input Network Analysis Layer**: The Route or Closest Facility layer for which to replace the geometry of the output Routes with enhanced cartographic shapes. If the network analysis layer does not have a valid result, the layer will be solved to produce one.  The input network analysis layer must have a time of day set and must use a travel mode whose impedance attribute uses the Public Transit evaluator.  Layers using a service URL as their network data source are not supported.  The transit network used by the layer must have the LVEShapes feature class.
+
+### Outputs
+
+The tool returns the updated network analysis layer.  The geometry of the Routes sublayer is modified, but no other changes are made to the layer or its sublayers.
 
 ## When to use a specific date or a generic weekday in your analysis
 
