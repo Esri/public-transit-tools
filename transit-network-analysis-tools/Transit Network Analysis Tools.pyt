@@ -1077,15 +1077,56 @@ class CopyTraversedSourceFeaturesWithTransit(object):
         out_name_edges = parameters[2].valueAsText
         out_name_junctions = parameters[3].valueAsText
         out_name_turns = parameters[4].valueAsText
-        outputs = copy_traversed_source_features_with_transit_for_layer(
-            na_layer, output_location, out_name_edges, out_name_junctions, out_name_turns)
-        traversed_edges, traversed_junctions, traversed_turns, updated_na_layer = outputs
+
+        solver_props = arcpy.na.GetSolverProperties(na_layer)
+        travel_mode = solver_props.travelMode
+        analysis_datetime = solver_props.timeOfDay
+        analysis_time_type = AnalysisTimeType.StartTime
+        if solver_props.solverName == "Closest Facility Solver" and solver_props.timeOfDayUsage == "END_TIME":
+            analysis_time_type = AnalysisTimeType.CFLayerEndTime
+        elif solver_props.solverName == "Service Area Solver" and solver_props.travelDirection == "TRAVEL_TO":
+            analysis_time_type = AnalysisTimeType.SALayerEndTime
+        route_id_field = "FacilityID" if solver_props.solverName == "Service Area Solver" else "RouteID"
+        transit_fd = os.path.dirname(arcpy.Describe(na_layer).network.catalogPath)
+
+        # Run the Copy Traversed Source Features tool to get the traversal result from the network analysis layer.
+        progress_msg = "Getting the standard traversal result from the network analysis layer..."
+        arcpy.AddMessage(progress_msg)
+        arcpy.SetProgressorLabel(progress_msg)
+        try:
+            traversed_edges, traversed_junctions, traversed_turns, updated_na_layer = \
+                arcpy.na.CopyTraversedSourceFeatures(
+                    na_layer, output_location, out_name_edges, out_name_junctions, out_name_turns)
+        except arcpy.ExecuteError:
+            arcpy.AddError("The standard Copy Traversed Source Features tool failed.")
+            for msg in range(0, arcpy.GetMessageCount()):
+                if arcpy.GetSeverity(msg) == 1:
+                    arcpy.AddReturnMessage(msg)
+                if arcpy.GetSeverity(msg) == 2:
+                    arcpy.AddReturnMessage(msg)
+            return
 
         # Set derived outputs
         parameters[5].value = traversed_edges
         parameters[6].value = traversed_junctions
         parameters[7].value = traversed_turns
         parameters[8].value = updated_na_layer
+
+        # Enrich the Edges traversal result with public transit information
+        try:
+            progress_msg = "Adding public transit information to the traversal result..."
+            arcpy.AddMessage(progress_msg)
+            arcpy.SetProgressorLabel(progress_msg)
+            tr_calculator = TransitTraversalResultCalculator(
+                traversed_edges, analysis_datetime, analysis_time_type,  transit_fd, travel_mode, route_id_field, True)
+            tr_calculator.add_transit_to_traversal_result()
+        except TransitNetworkAnalysisToolsError as ex:
+            arcpy.AddError("Could not add public transit information to the traversal result.")
+            arcpy.AddError(str(ex))
+        except Exception:  # pylint: disable=broad-except
+            arcpy.AddError("Could not add public transit information to the traversal result for an unknown reason:")
+            import traceback  # pylint: disable=import-outside-toplevel
+            arcpy.AddError(traceback.format_exc())
 
         return
 
