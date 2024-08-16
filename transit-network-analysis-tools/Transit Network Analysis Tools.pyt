@@ -24,6 +24,7 @@ import TNAT_ToolValidator
 from AnalysisHelpers import TIME_UNITS, cell_size_to_meters, get_catalog_path_from_param, \
     does_travel_mode_use_transit_evaluator, TransitNetworkAnalysisToolsError, arcgis_version
 from TransitTraversal import TransitTraversalResultCalculator, AnalysisTimeType
+from ReplaceRouteShapes import RouteShapeReplacer
 
 
 class Toolbox(object):
@@ -40,7 +41,8 @@ class Toolbox(object):
             CalculateTravelTimeStatistics,
             CalculateTravelTimeStatisticsOD,
             CreatePercentAccessPolygons,
-            CopyTraversedSourceFeaturesWithTransit
+            CopyTraversedSourceFeaturesWithTransit,
+            ReplaceRouteGeometryWithLVEShapes
         ]
 
 
@@ -1070,40 +1072,14 @@ class CopyTraversedSourceFeaturesWithTransit(object):
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
-
         na_layer = parameters[0].value
         output_location = parameters[1].valueAsText
         out_name_edges = parameters[2].valueAsText
         out_name_junctions = parameters[3].valueAsText
         out_name_turns = parameters[4].valueAsText
-
-        solver_props = arcpy.na.GetSolverProperties(na_layer)
-        travel_mode = solver_props.travelMode
-        analysis_datetime = solver_props.timeOfDay
-        analysis_time_type = AnalysisTimeType.StartTime
-        if solver_props.solverName == "Closest Facility Solver" and solver_props.timeOfDayUsage == "END_TIME":
-            analysis_time_type = AnalysisTimeType.CFLayerEndTime
-        elif solver_props.solverName == "Service Area Solver" and solver_props.travelDirection == "TRAVEL_TO":
-            analysis_time_type = AnalysisTimeType.SALayerEndTime
-        route_id_field = "FacilityID" if solver_props.solverName == "Service Area Solver" else "RouteID"
-        transit_fd = os.path.dirname(arcpy.Describe(na_layer).network.catalogPath)
-
-        # Run the Copy Traversed Source Features tool to get the traversal result from the network analysis layer.
-        progress_msg = "Getting the standard traversal result from the network analysis layer..."
-        arcpy.AddMessage(progress_msg)
-        arcpy.SetProgressorLabel(progress_msg)
-        try:
-            traversed_edges, traversed_junctions, traversed_turns, updated_na_layer = \
-                arcpy.na.CopyTraversedSourceFeatures(
-                    na_layer, output_location, out_name_edges, out_name_junctions, out_name_turns)
-        except arcpy.ExecuteError:
-            arcpy.AddError("The standard Copy Traversed Source Features tool failed.")
-            for msg in range(0, arcpy.GetMessageCount()):
-                if arcpy.GetSeverity(msg) == 1:
-                    arcpy.AddReturnMessage(msg)
-                if arcpy.GetSeverity(msg) == 2:
-                    arcpy.AddReturnMessage(msg)
-            return
+        outputs = copy_traversed_source_features_with_transit_for_layer(
+            na_layer, output_location, out_name_edges, out_name_junctions, out_name_turns)
+        traversed_edges, traversed_junctions, traversed_turns, updated_na_layer = outputs
 
         # Set derived outputs
         parameters[5].value = traversed_edges
@@ -1111,21 +1087,133 @@ class CopyTraversedSourceFeaturesWithTransit(object):
         parameters[7].value = traversed_turns
         parameters[8].value = updated_na_layer
 
-        # Enrich the Edges traversal result with public transit information
+        return
+
+
+class ReplaceRouteGeometryWithLVEShapes(object):
+    def __init__(self):
+        """Define the tool (tool name is the name of the class)."""
+        self.label = "Replace Route Geometry With LVEShapes"
+        self.description = (
+            "Replace the geometry of output route features from a network analysis layer with prettier geometry "
+            "derived from the transit data model's LVEShapes feature class."
+        )
+        self.canRunInBackground = True
+
+    def getParameterInfo(self):
+        """Define parameter definitions"""
+
+        params = [
+
+            # 0
+            arcpy.Parameter(
+                displayName="Input Network Analysis Layer",
+                name="input_network_analysis_layer",
+                datatype="GPNALayer",
+                parameterType="Required",
+                direction="Input"
+            ),
+
+            # 1
+            arcpy.Parameter(
+                displayName="Modified Input Network Analysis Layer",
+                name="modified_input_network_analysis_layer",
+                datatype="GPNALayer",
+                parameterType="Derived",
+                direction="Output"
+            )
+
+        ]
+
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
+        return
+
+    def validate_na_layer(self, na_layer):
+        """Run validation checks on the input NA layer."""
         try:
-            progress_msg = "Adding public transit information to the traversal result..."
-            arcpy.AddMessage(progress_msg)
-            arcpy.SetProgressorLabel(progress_msg)
-            tr_calculator = TransitTraversalResultCalculator(
-                traversed_edges, analysis_datetime, analysis_time_type,  transit_fd, travel_mode, route_id_field, True)
-            tr_calculator.add_transit_to_traversal_result()
-        except TransitNetworkAnalysisToolsError as ex:
-            arcpy.AddError("Could not add public transit information to the traversal result.")
-            arcpy.AddError(str(ex))
+            solver_props = arcpy.na.GetSolverProperties(na_layer)
+            if solver_props.solverName not in ["Route Solver", "Closest Facility Solver"]:
+                return "The Input Network Analysis Layer must be a Route or Closest Facility layer."
+            if solver_props.timeOfDay is None:
+                return "The Input Network Analysis Layer must have an analysis time of day set."
+            travel_mode = solver_props.travelMode
+            if travel_mode.impedance != travel_mode.timeAttributeName:
+                return ("The Input Network Analysis Layer's travel mode does not use a time-based impedance attribute, "
+                        "so public transit lines were not used in the analysis.")
+            try:
+                network_desc = arcpy.Describe(na_layer).network
+            except Exception:  # pylint: disable=broad-except
+                # The Describe object for an NA layer cannot return the .network property if the layer references a
+                # service. This tool doesn't support layer's using services anyway because we can't retrieve the
+                # public transit data model tables and because the generic Copy Traversed Source Features tool doesn't
+                # support these layers.
+                return ("The Input Network Analysis Layer uses a service as its network data source. This tool does "
+                        "not support layers referencing a service.")
+            network = network_desc.catalogPath
+            if not does_travel_mode_use_transit_evaluator(network, travel_mode):
+                return "The Input Network Analysis Layer's travel mode does not use the Public Transit evaluator."
+            return
         except Exception:  # pylint: disable=broad-except
-            arcpy.AddError("Could not add public transit information to the traversal result for an unknown reason:")
-            import traceback  # pylint: disable=import-outside-toplevel
-            arcpy.AddError(traceback.format_exc())
+            return
+
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal validation for each tool
+        parameter.  This method is called after internal validation."""
+        param_lyr = parameters[0]
+        if param_lyr.altered and param_lyr.valueAsText:
+            global VFLAG_NA_LAYER_ERROR
+            if not param_lyr.hasBeenValidated:
+                # The parameters have already been validated and have not been changed by the user since the last
+                # validation check. Skip slow checks by just reapplying the existing validation warning if relevant.
+                na_layer = parameters[0].value
+                VFLAG_NA_LAYER_ERROR = self.validate_na_layer(na_layer)
+            if VFLAG_NA_LAYER_ERROR:
+                param_lyr.setErrorMessage(VFLAG_NA_LAYER_ERROR)
+        return
+
+    def execute(self, parameters, messages):
+        """The source code of the tool."""
+        na_layer = parameters[0].value
+
+        # Run Copy Traversed Source Features to get the edges traversed
+        try:
+            traversed_edges, _, _, updated_na_layer = arcpy.na.CopyTraversedSourceFeatures(
+                na_layer, "memory", "Edges", "Junctions", "Turns")
+        except arcpy.ExecuteError:
+            arcpy.AddError("The Copy Traversed Source Features tool failed.")
+            for msg in range(0, arcpy.GetMessageCount()):
+                if arcpy.GetSeverity(msg) == 1:
+                    arcpy.AddReturnMessage(msg)
+                if arcpy.GetSeverity(msg) == 2:
+                    arcpy.AddReturnMessage(msg)
+
+        # Generate the updated route shapes
+        desc = arcpy.Describe(na_layer)
+        transit_fd = os.path.dirname(desc.network.catalogPath)
+        replacer = RouteShapeReplacer(traversed_edges, transit_fd)
+        updated_geoms = replacer.replace_route_shapes_with_lveshapes()
+
+        # Update the Routes sublayer geometry
+        sublayer_key = {
+            "Route Solver": "Routes",
+            "Closest Facility Solver": "CFRoutes"
+        }
+        sublayer = arcpy.na.GetNASublayer(na_layer, sublayer_key[desc.solverName])
+        with arcpy.da.UpdateCursor(sublayer, ["OID@", "SHAPE@"]) as cur:
+            for row in cur:
+                cur.updateRow([row[0], updated_geoms[row[0]]])
+
+        # Set derived outputs
+        parameters[1].value = updated_na_layer
 
         return
 
