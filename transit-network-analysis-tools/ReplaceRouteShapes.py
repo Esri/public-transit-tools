@@ -78,7 +78,7 @@ class RouteShapeReplacer:
     """Enrich an ordinary traversal result with public transit info."""
 
     def __init__(
-        self, traversed_edges_fc, transit_fd, out_fc
+        self, traversed_edges_fc, transit_fd
     ):
         """Initialize the calculator for the given analysis.
 
@@ -100,7 +100,6 @@ class RouteShapeReplacer:
                 (as for solver objects) (False)
         """
         self.traversed_edges_fc = traversed_edges_fc
-        self.out_fc = out_fc
 
         # Validate basic inputs
         if not isinstance(transit_fd, str):
@@ -124,9 +123,8 @@ class RouteShapeReplacer:
                 f"fields. Required fields: {required_fields}"
             ))
 
-    def replace_route_shapes_with_lveshapes(self) -> bool:
-        """Replace route shape geometry.
-        """
+    def replace_route_shapes_with_lveshapes(self) -> dict:
+        """Replace route shape geometry."""
         # Make layers to speed up search cursor queries later
         lve_lyr_name = "LineVariantElements"
         arcpy.management.MakeFeatureLayer(self.transit_dm.line_variant_elements, lve_lyr_name)
@@ -143,7 +141,7 @@ class RouteShapeReplacer:
                 # Retrieve LVEShapes geometry
                 with arcpy.da.SearchCursor(lve_lyr_name, ["LVEShapeID"], f"{lve_oid_field} = {row[3]}") as cur:
                     lveshape_id = next(cur)[0]
-                with arcpy.da.SearchCursor(lveshapes_lyr_name, ["SHAPE@"], f"LVEShapeID = {lveshape_id}") as cur:
+                with arcpy.da.SearchCursor(lveshapes_lyr_name, ["SHAPE@"], f"ID = {lveshape_id}") as cur:
                     ## TODO: Check for case when no rows are returned
                     lveshape_geom = next(cur)[0]
                     if lveshape_geom:
@@ -154,20 +152,14 @@ class RouteShapeReplacer:
             for part in segment_geom.getPart():
                 route_segments.setdefault(row[0], arcpy.Array()).extend(part)
 
-        # Combine route segments and write to output feature class
-        ## TODO: Probably just return the geometries instead of a new feature class so we can do an UpdateCursor on the
-        ## original inputs
-        arcpy.management.CreateFeatureclass(
-            os.path.dirname(self.out_fc),
-            os.path.basename(self.out_fc),
-            "POLYLINE",
-            spatial_reference=self.te_desc.spatialReference
-        )
-        arcpy.management.AddField(self.out_fc, "RouteID", "LONG")
-        with arcpy.da.InsertCursor(self.out_fc, ["SHAPE@", "RouteID"]) as cur:
-            for route_id, vertex_array in route_segments.items():
-                route_geom = arcpy.Polyline(vertex_array, self.te_desc.spatialReference)
-                cur.insertRow([route_geom, route_id])
+        # Combine route segments into single lines per route
+        route_geoms = {}
+        for route_id, vertex_array in route_segments.items():
+            route_geom = arcpy.Polyline(vertex_array, self.te_desc.spatialReference)
+            route_geoms[route_id] = route_geom
+
+        # Return dictionary of {route_id: route_geom}
+        return route_geoms
 
 
 if __name__ == "__main__":
