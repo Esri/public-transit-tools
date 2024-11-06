@@ -1,11 +1,11 @@
 ################################################################################
 ## Toolbox: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 20 September 2023
+## Last updated: 6 November 2024
 ################################################################################
 """Helper methods for analysis tools."""
 ################################################################################
-"""Copyright 2023 Esri
+"""Copyright 2024 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -39,6 +39,7 @@ TIME_UNITS = ["Days", "Hours", "Minutes", "Seconds"]
 MAX_AGOL_PROCESSES = 4  # AGOL concurrent processes are limited so as not to overload the service for other users.
 MAX_ALLOWED_MAX_PROCESSES = 61  # Windows limitation for concurrent.futures ProcessPoolExecutor
 MAX_RETRIES = 3  # Max allowed retries if a parallel process errors (eg, temporary service glitch or read/write error)
+MAX_ALLOWED_FC_ROWS_32BIT = 2000000000  # Use a 64bit OID feature class if the row count is bigger than this
 TIME_FIELD = "TimeOfDay"  # Used for the output of Prepare Time Lapse Polygons
 # Create Percent Access Polygons: Field names that must be in the input time lapse polygons
 FACILITY_ID_FIELD = "FacilityID"
