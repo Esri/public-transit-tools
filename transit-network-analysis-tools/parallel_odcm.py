@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 20 September 2023
+## Last updated: 6 November 2024
 ############################################################################
 """Count the number of destinations reachable from each origin by transit and
 walking. The tool calculates an Origin-Destination Cost Matrix for each start
@@ -23,7 +23,7 @@ parallel. It was built based off Esri's Solve Large OD Cost Matrix sample script
 available from https://github.com/Esri/large-network-analysis-tools under an Apache
 2.0 license.
 
-Copyright 2023 Esri
+Copyright 2024 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -844,9 +844,16 @@ class ParallelODCalculator():
                 # No results for this chunk
                 continue
 
+            origin_oid_type = int
+            dest_oid_type = int
+            if AnalysisHelpers.arcgis_version >= "3.2":
+                if arcpy.Describe(self.origins).hasOID64:
+                    origin_oid_type = pd.Int64Dtype
+                if arcpy.Describe(self.destinations).hasOID64:
+                    dest_oid_type = pd.Int64Dtype
             mapfunc = partial(
                 pd.read_csv,
-                dtype={"OriginOID": int, "DestinationOID": int, "Total_Time": float}
+                dtype={"OriginOID": origin_oid_type, "DestinationOID": dest_oid_type, "Total_Time": float}
             )
             df = pd.concat(map(mapfunc, files_for_origin_range), ignore_index=True)
 

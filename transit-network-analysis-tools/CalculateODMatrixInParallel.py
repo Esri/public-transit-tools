@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 26 March 2024
+## Last updated: 6 November 2024
 ############################################################################
 """Calculate an OD Cost Matrix in parallel.
 
@@ -274,7 +274,10 @@ class ODCostMatrixSolver(
             new_field = arcpy.Field()
             new_field.name = out_oid_field
             new_field.aliasName = "Original OID"
-            new_field.type = "Integer"
+            if AnalysisHelpers.arcgis_version >= "3.2" and desc.hasOID64:
+                new_field.type = "BigInteger"
+            else:
+                new_field.type = "Integer"
             # Create a new field map object and map the ObjectID to the new output field
             new_fm = arcpy.FieldMap()
             new_fm.addInputField(input_fc, desc.oidFieldName)
