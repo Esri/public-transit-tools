@@ -19,7 +19,7 @@ within ArcGIS Pro, cannot launch parallel subprocesses on its own.
 
 This script should not be called directly from the command line.
 
-Copyright 2023 Esri
+Copyright 2024 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -253,8 +253,17 @@ class ParallelLocationCalculator:
         Create an empty final output feature class and populate it using InsertCursor, as this tends to be faster than
         using the Merge geoprocessing tool.
         """
-        # Create the final output feature class
         self.logger.debug("Creating output feature class...")
+
+        # Handle ridiculously huge outputs that may exceed the number of rows allowed in a 32-bit OID feature class
+        kwargs = {}
+        if AnalysisHelpers.arcgis_version >= "3.2":  # 64-bit OIDs were introduced in ArcGIS Pro 3.2.
+            num_inputs = int(arcpy.management.GetCount(self.input_features).getOutput(0))
+            if num_inputs > AnalysisHelpers.MAX_ALLOWED_FC_ROWS_32BIT:
+                # Use a 64bit OID field in the output feature class
+                kwargs = {"oid_type": "64_BIT"}
+
+        # Create the final output feature class
         template_fc = self.temp_out_fcs[tuple(self.ranges[0])]
         desc = arcpy.Describe(template_fc)
         AnalysisHelpers.run_gp_tool(
@@ -267,7 +276,8 @@ class ParallelLocationCalculator:
                 "SAME_AS_TEMPLATE",
                 "SAME_AS_TEMPLATE",
                 desc.spatialReference
-            ]
+            ],
+            kwargs
         )
 
         # Insert the rows from all the individual output feature classes into the final output
