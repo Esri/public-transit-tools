@@ -844,9 +844,16 @@ class ParallelODCalculator():
                 # No results for this chunk
                 continue
 
+            origin_oid_type = int
+            dest_oid_type = int
+            if AnalysisHelpers.arcgis_version >= "3.2":
+                if arcpy.Describe(self.origins).hasOID64:
+                    origin_oid_type = pd.Int64Dtype
+                if arcpy.Describe(self.destinations).hasOID64:
+                    dest_oid_type = pd.Int64Dtype
             mapfunc = partial(
                 pd.read_csv,
-                dtype={"OriginOID": int, "DestinationOID": int, "Total_Time": float}
+                dtype={"OriginOID": origin_oid_type, "DestinationOID": dest_oid_type, "Total_Time": float}
             )
             df = pd.concat(map(mapfunc, files_for_origin_range), ignore_index=True)
 
