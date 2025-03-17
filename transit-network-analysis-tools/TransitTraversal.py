@@ -1,7 +1,7 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 31 May 2023
+## Last updated: 17 March 2025
 ############################################################################
 """
 This is a shared module with classes for adding transit information, such
@@ -10,7 +10,7 @@ edges, or traversal result.  The TransitTraversalResultCalculator class can
 be used with a traversal result generated from a network analysis layer or
 a Route solver object.
 
-Copyright 2023 Esri
+Copyright 2025 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -30,6 +30,9 @@ from AnalysisHelpers import TransitNetworkAnalysisToolsError
 
 
 WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+# Deal with a pandas deprecation and backwards compatibility thing for the dt.round() method
+SECONDS_ALIAS = "S" if pd.__version__ < "2.2" else "s"
 
 
 class DayType(enum.Enum):
@@ -307,7 +310,7 @@ class TransitTraversalResultCalculator:
                 pd.to_timedelta(self.df_traversal[self.cumul_field], unit="minute")
             # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
             self.df_traversal[self.traversal_arrival_time_field] = \
-                self.df_traversal[self.traversal_arrival_time_field].dt.round("s")
+                self.df_traversal[self.traversal_arrival_time_field].dt.round(SECONDS_ALIAS)
 
         elif self.analysis_time_type is AnalysisTimeType.CFLayerEndTime:
             # We have to do some extra work figure out the total length of each route.
@@ -327,7 +330,7 @@ class TransitTraversalResultCalculator:
                 pd.to_timedelta(self.df_traversal[self.attr_field], unit="minute")
             # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
             self.df_traversal[self.traversal_departure_time_field] = \
-                self.df_traversal[self.traversal_departure_time_field].dt.round("s")
+                self.df_traversal[self.traversal_departure_time_field].dt.round(SECONDS_ALIAS)
             self.df_traversal.drop(["RouteMin"], axis="columns", inplace=True)
 
         elif self.analysis_time_type is AnalysisTimeType.SALayerEndTime:
@@ -339,7 +342,7 @@ class TransitTraversalResultCalculator:
                 pd.to_timedelta(self.df_traversal[self.cumul_field], unit="minute")
             # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
             self.df_traversal[self.traversal_departure_time_field] = \
-                self.df_traversal[self.traversal_departure_time_field].dt.round("s")
+                self.df_traversal[self.traversal_departure_time_field].dt.round(SECONDS_ALIAS)
 
         else:
             # This should never happen.
@@ -499,7 +502,7 @@ class TransitTraversalResultCalculator:
         se_df[self.segment_end_time_field] = date_to_use + \
             pd.to_timedelta(se_df["SegmentEndMin"], unit="minute")
         # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
-        se_df[self.segment_end_time_field] = se_df[self.segment_end_time_field].dt.round("s")
+        se_df[self.segment_end_time_field] = se_df[self.segment_end_time_field].dt.round(SECONDS_ALIAS)
 
         # Calculate the actual times of day when transit service starts at the beginning of the segment. This is a sum
         # the time of day when the run starts (StartRun) plus the number of minutes since the beginning of the run that
@@ -509,7 +512,7 @@ class TransitTraversalResultCalculator:
         se_df[self.segment_start_time_field] = date_to_use + \
             pd.to_timedelta(se_df["SegmentStartMin"], unit="minute")
         # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
-        se_df[self.segment_start_time_field] = se_df[self.segment_start_time_field].dt.round("s")
+        se_df[self.segment_start_time_field] = se_df[self.segment_start_time_field].dt.round(SECONDS_ALIAS)
 
         # Clean up fields that are no longer needed.
         se_df.drop(
