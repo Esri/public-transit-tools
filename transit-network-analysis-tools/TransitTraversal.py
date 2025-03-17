@@ -307,7 +307,7 @@ class TransitTraversalResultCalculator:
                 pd.to_timedelta(self.df_traversal[self.cumul_field], unit="minute")
             # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
             self.df_traversal[self.traversal_arrival_time_field] = \
-                self.df_traversal[self.traversal_arrival_time_field].dt.round("S")
+                self.df_traversal[self.traversal_arrival_time_field].dt.round("s")
 
         elif self.analysis_time_type is AnalysisTimeType.CFLayerEndTime:
             # We have to do some extra work figure out the total length of each route.
@@ -327,7 +327,7 @@ class TransitTraversalResultCalculator:
                 pd.to_timedelta(self.df_traversal[self.attr_field], unit="minute")
             # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
             self.df_traversal[self.traversal_departure_time_field] = \
-                self.df_traversal[self.traversal_departure_time_field].dt.round("S")
+                self.df_traversal[self.traversal_departure_time_field].dt.round("s")
             self.df_traversal.drop(["RouteMin"], axis="columns", inplace=True)
 
         elif self.analysis_time_type is AnalysisTimeType.SALayerEndTime:
@@ -339,7 +339,7 @@ class TransitTraversalResultCalculator:
                 pd.to_timedelta(self.df_traversal[self.cumul_field], unit="minute")
             # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
             self.df_traversal[self.traversal_departure_time_field] = \
-                self.df_traversal[self.traversal_departure_time_field].dt.round("S")
+                self.df_traversal[self.traversal_departure_time_field].dt.round("s")
 
         else:
             # This should never happen.
@@ -499,7 +499,7 @@ class TransitTraversalResultCalculator:
         se_df[self.segment_end_time_field] = date_to_use + \
             pd.to_timedelta(se_df["SegmentEndMin"], unit="minute")
         # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
-        se_df[self.segment_end_time_field] = se_df[self.segment_end_time_field].dt.round("S")
+        se_df[self.segment_end_time_field] = se_df[self.segment_end_time_field].dt.round("s")
 
         # Calculate the actual times of day when transit service starts at the beginning of the segment. This is a sum
         # the time of day when the run starts (StartRun) plus the number of minutes since the beginning of the run that
@@ -509,7 +509,7 @@ class TransitTraversalResultCalculator:
         se_df[self.segment_start_time_field] = date_to_use + \
             pd.to_timedelta(se_df["SegmentStartMin"], unit="minute")
         # Remove stray microseconds that the solver sometimes injects by rounding to the nearest second
-        se_df[self.segment_start_time_field] = se_df[self.segment_start_time_field].dt.round("S")
+        se_df[self.segment_start_time_field] = se_df[self.segment_start_time_field].dt.round("s")
 
         # Clean up fields that are no longer needed.
         se_df.drop(
