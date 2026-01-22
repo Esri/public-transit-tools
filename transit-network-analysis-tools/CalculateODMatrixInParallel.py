@@ -213,7 +213,13 @@ class ODCostMatrixSolver(
             raise
 
         # Return a JSON string representation of the travel mode to pass to the subprocess
-        return odcm.travelMode._JSON  # pylint: disable=protected-access
+        if hasattr(odcm.travelMode, "JSON"):
+            # Pro 3.7+
+            tm_json = odcm.travelMode.JSON
+        else:
+            # Pre 3.7
+            tm_json = odcm.travelMode._JSON  # pylint: disable=protected-access
+        return tm_json
 
     def _set_od_tool_settings(self, odcm):
         """Set ODCostMatrix solver object properties specific to the tool being run.

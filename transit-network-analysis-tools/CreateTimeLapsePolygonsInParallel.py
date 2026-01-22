@@ -209,7 +209,13 @@ class ServiceAreaSolver():  # pylint: disable=too-many-instance-attributes, too-
             raise
 
         # Return a JSON string representation of the travel mode to pass to the subprocess
-        return sa.travelMode._JSON  # pylint: disable=protected-access
+        if hasattr(sa.travelMode, "JSON"):
+            # Pro 3.7+
+            tm_json = sa.travelMode.JSON
+        else:
+            # Pre 3.7
+            tm_json = sa.travelMode._JSON  # pylint: disable=protected-access
+        return tm_json
 
     def _precalculate_network_locations(self, input_features):
         """Precalculate network location fields if possible for faster loading and solving later.
