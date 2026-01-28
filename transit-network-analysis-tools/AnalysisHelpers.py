@@ -911,6 +911,7 @@ class MakeNDSLayerMixin:  # pylint:disable = too-few-public-methods
 
     def _make_nds_layer(self):
         """Create a network dataset layer if one does not already exist."""
+        arcpy.CheckOutExtension("network")
         nds_layer_name = os.path.basename(self.network_data_source)
         if arcpy.Exists(nds_layer_name):
             # The network dataset layer already exists in this process, so we can re-use it without having to spend
