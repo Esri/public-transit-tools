@@ -1,12 +1,12 @@
 ############################################################################
 ## Tool name: Transit Network Analysis Tools
 ## Created by: Melinda Morang, Esri
-## Last updated: 1 June 2023
+## Last updated: 16 September 2026
 ############################################################################
 """ Python toolbox that defines all the tools in the Transit Network Analysis Tools tool
 suite."""
 ################################################################################
-"""Copyright 2023 Esri
+"""Copyright 2026 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -1028,8 +1028,12 @@ class CopyTraversedSourceFeaturesWithTransit(object):
         """Run validation checks on the input NA layer."""
         try:
             solver_props = arcpy.na.GetSolverProperties(na_layer)
-            if solver_props.solverName not in ["Route Solver", "Closest Facility Solver", "Service Area Solver"]:
-                return "The Input Network Analysis Layer must be a Route, Closest Facility, or Service Area layer."
+            valid_solvers = ["Route Solver", "Closest Facility Solver", "Service Area Solver"]
+            if arcgis_version >= "3.8":
+                # Service Area was desupported in the Copy Traversed Source Features tool in the Pro 3.8 release.
+                valid_solvers.remove("Service Area Solver")
+            if solver_props.solverName not in valid_solvers:
+                return f"The Input Network Analysis Layer must be one of the following solver types: {valid_solvers}"
             if solver_props.timeOfDay is None:
                 return "The Input Network Analysis Layer must have an analysis time of day set."
             if solver_props.solverName == "Service Area Solver" and solver_props.lineType == "NO_LINES":

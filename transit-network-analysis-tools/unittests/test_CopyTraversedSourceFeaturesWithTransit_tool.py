@@ -1,6 +1,6 @@
 """Unit tests for the Copy Traversed Source Features With Transit script tool.
 
-Copyright 2024 Esri
+Copyright 2026 Esri
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -29,6 +29,7 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
     @classmethod
     def setUpClass(self):  # pylint: disable=bad-classmethod-argument
         self.maxDiff = None
+        self.arcgis_version = arcpy.GetInstallInfo()["Version"]
         arcpy.CheckOutExtension("network")
 
         tbx_path = os.path.join(os.path.dirname(CWD), "Transit Network Analysis Tools.pyt")
@@ -133,6 +134,8 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
 
     def test_sa_layer(self):
         """Test the tool with a service area layer."""
+        if self.arcgis_version >= "3.8":
+            self.skipTest("Service Area solver was desupported in the Pro 3.8 release.")
         # Create and solve a service area layer
         layer_name = "SA"
         lyr = arcpy.na.MakeServiceAreaAnalysisLayer(
@@ -227,10 +230,15 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
         # Create a layer of one of the unsupported types
         # Don't attempt to test VRP because the test network doesn't even support VRP.
         layer_name = "WrongType"
-        solver_tool = random.choice([
+        valid_solvers = ["Route Solver", "Closest Facility Solver", "Service Area Solver"]
+        bad_solver_tools = [
             arcpy.na.MakeODCostMatrixAnalysisLayer,
             arcpy.na.MakeLocationAllocationAnalysisLayer
-        ])
+        ]
+        if self.arcgis_version >= "3.8":
+            bad_solver_tools.append(arcpy.na.MakeServiceAreaAnalysisLayer)
+            valid_solvers.remove("Service Area Solver")
+        solver_tool = random.choice(bad_solver_tools)
         lyr = solver_tool(self.local_nd, layer_name, self.local_tm_time)
         # Run the tool
         with self.assertRaises(arcpy.ExecuteError):
@@ -241,7 +249,7 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
                 layer_name + "_Junctions",
                 layer_name + "_Turns"
             )
-        expected_message = "The Input Network Analysis Layer must be a Route, Closest Facility, or Service Area layer."
+        expected_message = f"The Input Network Analysis Layer must be one of the following solver types: {valid_solvers}"
         actual_messages = arcpy.GetMessages(2)
         self.assertIn(expected_message, actual_messages)
 
@@ -268,6 +276,8 @@ class TestCopyTraversedSourceFeaturesWithTransitTool(unittest.TestCase):
 
     def test_sa_layer_no_lines(self):
         """Check for correct error when the input service area layer doesn't output lines."""
+        if self.arcgis_version >= "3.8":
+            self.skipTest("Service Area solver was desupported in the Pro 3.8 release.")
         # Create and solve a service area layer with polygon output only
         layer_name = "NoLines"
         lyr = arcpy.na.MakeServiceAreaAnalysisLayer(
